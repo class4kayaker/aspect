@@ -289,15 +289,36 @@ namespace aspect
                     index++;
                 }
 
-                  index = 1000;
-
-                const double tol_tmp = it.first->diameter() * 1e-2;
+                  index = 0;
+                  Point<dim> quadrature_point = quadrature_points[0];
+                  double error = itr_input_quadrature_points->distance(quadrature_point);
+                  const double tol = it.first->diameter() * 1e-2;
+                  
                   for (unsigned int i=0; i<fe_values.n_quadrature_points; i++)
                   {
-                    Point<dim> tmp((*itr_input_quadrature_points) - quadrature_points[i]);
-                      if ( std::sqrt(tmp.square()) <= tol_tmp) //&& *itr_weights== jacobian_weight_points[i])
+                    double distance = itr_input_quadrature_points->distance(quadrature_points[i]);
+                    if ( distance < error) {
+                      error = distance;
+                      quadrature_point = quadrature_points[i];
+                      index = i;
+                    }
+                  }
+
+                      if (error > tol)
                       {
-                          index = i;
+                          std::cout << "Tolerance of: " << tol << std::endl;
+                          std::cout << "x: "  << (*itr_input_quadrature_points)[0] << " y: " << (*itr_input_quadrature_points)[1] << std::endl;
+                          for (unsigned int i=0; i<fe_values.n_quadrature_points; i++)
+                          {
+                              std::cout << "Index " << i << ": " << quadrature_points[i] << std::endl;
+                          }
+                          /**
+                           * TODO: Make sure that AMR has not been set!!
+                           */
+
+                          Assert(false, ExcInternalError());
+                      }
+
                           velocity_l2_error += (velocity[index] - (*itr_velocity_input))*(velocity[index] - (*itr_velocity_input))*(jacobian_weights[index]);
                           pressure_l2_error += (pressure[index] - (*itr_pressure_input))*(pressure[index] - (*itr_pressure_input))*(jacobian_weights[index]);
                           temperature_l2_error += (temperature[index] - (*itr_temperature_input))*(temperature[index] - (*itr_temperature_input))*(jacobian_weights[index]);
@@ -314,23 +335,7 @@ namespace aspect
                                                                                          (jacobian_weights[index]);
                               compositional_field_index++;
                           }
-                          break;
-                      }
-                      else if (i == (fe_values.n_quadrature_points-1))
-                      {
-                          std::cout << "Tolerance of: " << tol_tmp << std::endl;
-                          std::cout << "x: "  << (*itr_input_quadrature_points)[0] << " y: " << (*itr_input_quadrature_points)[1] << std::endl;
-                          for (unsigned int i=0; i<fe_values.n_quadrature_points; i++)
-                          {
-                              std::cout << "Index " << i << ": " << quadrature_points[i] << std::endl;
-                          }
-                          /**
-                           * TODO: Make sure that AMR has not been set!!
-                           */
 
-                              Assert(false, ExcInternalError());
-                      }
-                  }
             }
 
           velocity_l2_error = std::sqrt(Utilities::MPI::sum(velocity_l2_error, this->get_mpi_communicator()));
