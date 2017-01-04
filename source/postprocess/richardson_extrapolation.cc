@@ -48,6 +48,9 @@ namespace aspect
                         + input_file_name + "_"
                         + Utilities::int_to_string(Utilities::MPI::this_mpi_process(this->get_mpi_communicator()))
                         + ".dat";
+      data_output_file_name = this->get_output_directory()
+                              + data_output_file_name
+                              + ".dat";
     }
 
     template <int dim>
