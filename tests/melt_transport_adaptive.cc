@@ -1,6 +1,6 @@
 #include <aspect/material_model/interface.h>
-#include <aspect/velocity_boundary_conditions/interface.h>
-#include <aspect/fluid_pressure_boundary_conditions/interface.h>
+#include <aspect/boundary_velocity/interface.h>
+#include <aspect/boundary_fluid_pressure/interface.h>
 #include <aspect/simulator_access.h>
 #include <aspect/global.h>
 #include <aspect/mesh_refinement/interface.h>
@@ -37,7 +37,7 @@ namespace aspect
 
         KellyErrorEstimator<dim>::estimate (this->get_mapping(),
                                             this->get_dof_handler(),
-                                            QGauss<dim-1>(this->get_fe().base_element(this->introspection().base_elements.velocities).degree+1),
+                                            QGauss<dim-1>(this->introspection().polynomial_degree.velocities +1),
                                             typename FunctionMap<dim>::type(),
                                             this->get_solution(),
                                             indicators,
@@ -70,7 +70,7 @@ namespace aspect
 
         KellyErrorEstimator<dim>::estimate (this->get_mapping(),
                                             this->get_dof_handler(),
-                                            QGauss<dim-1>(this->get_fe().base_element(this->introspection().base_elements.velocities).degree+1),
+                                            QGauss<dim-1>(this->introspection().polynomial_degree.velocities +1),
                                             typename FunctionMap<dim>::type(),
                                             this->get_solution(),
                                             indicators,
@@ -88,7 +88,7 @@ namespace aspect
 
   template <int dim>
   class TestMeltMaterial:
-    public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>
   {
     public:
       virtual bool is_compressible () const
@@ -99,6 +99,13 @@ namespace aspect
       virtual double reference_viscosity () const
       {
         return 1.0;
+      }
+
+      virtual double reference_darcy_coefficient () const
+      {
+        const double porosity = 0.01;
+        const double permeability = porosity;
+        return permeability / 1.0;
       }
 
       virtual void evaluate(const typename MaterialModel::Interface<dim>::MaterialModelInputs &in,
@@ -140,8 +147,8 @@ namespace aspect
 
                 const double x = in.position[i](0);
                 const double z = in.position[i](1);
-                //porosity = 0.1000000000e-1 + 0.1000000000e0 * exp(-0.40e1 * pow(x + 0.20e1 * z, 0.2e1));
-                //porosity = 0.1000000000e-1 + 0.2000000000e0 * exp(-0.200e2 * pow(x + 0.2e1 * z, 0.2e1));
+                // porosity = 0.1000000000e-1 + 0.1000000000e0 * exp(-0.40e1 * pow(x + 0.20e1 * z, 0.2e1));
+                // porosity = 0.1000000000e-1 + 0.2000000000e0 * exp(-0.200e2 * pow(x + 0.2e1 * z, 0.2e1));
                 melt_out->compaction_viscosities[i] = 0.1e0 + 0.1e0 * exp(-0.20e2 * x * x - 0.20e2 * z * z + 0.1e1);
                 melt_out->fluid_viscosities[i] = 1.0;
                 melt_out->permeabilities[i] = porosity;// K_D
@@ -224,7 +231,7 @@ namespace aspect
   ConvergenceMeltPostprocessor<dim>::execute (TableHandler &statistics)
   {
     RefFunction<dim> ref_func;
-    const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.velocities).degree+2);
+    const QGauss<dim> quadrature_formula (this->introspection().polynomial_degree.velocities +2);
 
     const unsigned int n_total_comp = this->introspection().n_components;
 
@@ -306,7 +313,7 @@ namespace aspect
   template <int dim>
   class PressureBdry:
 
-    public FluidPressureBoundaryConditions::Interface<dim>
+    public BoundaryFluidPressure::Interface<dim>
   {
     public:
       virtual
@@ -358,10 +365,10 @@ namespace aspect
                                 "solution derived for incompressible melt transport in a 2D box as described "
                                 "in the manuscript and reports the error.")
 
-  ASPECT_REGISTER_FLUID_PRESSURE_BOUNDARY_CONDITIONS(PressureBdry,
-                                                     "PressureBdry",
-                                                     "A fluid pressure boundary condition that prescribes the "
-                                                     "gradient of the fluid pressure at the boundaries as "
-                                                     "calculated in the analytical solution. ")
+  ASPECT_REGISTER_BOUNDARY_FLUID_PRESSURE_MODEL(PressureBdry,
+                                                "PressureBdry",
+                                                "A fluid pressure boundary condition that prescribes the "
+                                                "gradient of the fluid pressure at the boundaries as "
+                                                "calculated in the analytical solution. ")
 
 }

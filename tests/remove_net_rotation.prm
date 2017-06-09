@@ -45,7 +45,7 @@ subsection Boundary temperature model
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = spherical hexagonal perturbation
 end
 
@@ -56,7 +56,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial global refinement          = 3
+  set Initial global refinement          = 2
   set Initial adaptive refinement        = 0
   set Strategy                           = temperature
   set Time steps between mesh refinement = 1 #upon refinement we tend to put more power in nullspace modes due to roundof error and such

@@ -34,7 +34,7 @@ namespace aspect
                           const Point<dim> &position,
                           const unsigned int compositional_field) const
     {
-      return this->get_compositional_initial_conditions().initial_composition(position, compositional_field);
+      return this->get_initial_composition_manager().initial_composition(position, compositional_field);
     }
 
 
@@ -113,7 +113,7 @@ namespace aspect
                                                "know certain pieces of information such as the "
                                                "minimal and maximal composition on the boundary. "
                                                "For operations that require this, for example in "
-                                               "postprocessing, this boundary composition model "
+                                               "post-processing, this boundary composition model "
                                                "must therefore be told what the minimal and "
                                                "maximal values on the boundary are. This is done "
                                                "using parameters set in section ``Boundary composition model/Initial composition''.")

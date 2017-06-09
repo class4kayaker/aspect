@@ -25,6 +25,8 @@
 #include <aspect/geometry_model/interface.h>
 #include <aspect/simulator_access.h>
 
+#include <deal.II/grid/tria_boundary_lib.h>
+#include <deal.II/grid/manifold_lib.h>
 
 namespace aspect
 {
@@ -46,6 +48,11 @@ namespace aspect
     class SphericalShell : public Interface<dim>, public SimulatorAccess<dim>
     {
       public:
+        /**
+         *
+         */
+        SphericalShell();
+
         /**
          * Generate a coarse mesh for the geometry described by this class.
          */
@@ -91,7 +98,7 @@ namespace aspect
          *
          * The spherical shell model uses boundary indicators zero and one,
          * with zero corresponding to the inner surface and one corresponding
-         * to the outer surface. In 2d, if the geomery is only a slice of the
+         * to the outer surface. In 2d, if the geometry is only a slice of the
          * shell, boundary indicators 2 and 3 indicate the left and right
          * radial bounding lines.
          */
@@ -179,6 +186,35 @@ namespace aspect
          * Number of tangential mesh cells in the initial, coarse mesh.
          */
         int n_cells_along_circumference;
+
+        /**
+         * The manifold that describes the geometry.
+         */
+        const SphericalManifold<dim> spherical_manifold;
+
+        /**
+         * Set the manifold ids on all cells (also boundaries) before
+         * refinement to generate well shaped cells.
+         */
+        void set_manifold_ids (parallel::distributed::Triangulation<dim> &triangulation) const;
+
+#if !DEAL_II_VERSION_GTE(9,0,0)
+        /**
+         * Clear manifold ids from boundaries after refinement so that
+         * the boundary objects can take over for versions of deal.II,
+         * in which manifolds could not provide the normal vectors that
+         * are necessary at boundaries.
+         */
+        void clear_manifold_ids (parallel::distributed::Triangulation<dim> &triangulation) const;
+
+        /**
+         * Boundary objects that are required until deal.II 9.0,
+         * because the manifold could not provide normal vectors
+         * up to this version.
+         */
+        const HyperShellBoundary<dim> boundary_shell;
+        const StraightBoundary<dim> straight_boundary;
+#endif
     };
   }
 }

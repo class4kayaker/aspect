@@ -36,7 +36,7 @@ subsection Geometry model
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = function
 
   subsection Function
@@ -50,7 +50,7 @@ subsection Compositional fields
   set Number of fields = 1
 end
 
-subsection Compositional initial conditions
+subsection Initial composition model
   set Model name = function
 
   subsection Function
@@ -109,17 +109,10 @@ end
 subsection Postprocess
   set List of postprocessors = dynamic topography, visualization
   
-  subsection Dynamic Topography
-    set Subtract mean of dynamic topography = true
-  end
- 
   subsection Visualization
     set Time between graphical output = 0
     set List of output variables = dynamic topography
     set Output format                 = gnuplot
-    subsection Dynamic Topography
-      set Subtract mean of dynamic topography = true
-    end 
   end
 
 end

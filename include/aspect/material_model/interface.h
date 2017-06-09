@@ -21,6 +21,7 @@
 #ifndef _aspect_material_model_interface_h
 #define _aspect_material_model_interface_h
 
+#include <aspect/global.h>
 #include <aspect/plugins.h>
 #include <deal.II/base/point.h>
 #include <deal.II/base/quadrature.h>
@@ -29,9 +30,14 @@
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/fe/mapping.h>
+#include <deal.II/numerics/data_postprocessor.h>
 
 namespace aspect
 {
+  template <int dim>
+  struct Introspection;
+
+
   /**
    * A namespace in which we define everything that has to do with modeling
    * convecting material, including descriptions of material parameters such
@@ -180,6 +186,48 @@ namespace aspect
                           const unsigned int n_comp);
 
       /**
+       * Constructor. Initialize the arrays of the structure with the number
+       * of points in the `input_data` structure, and fills them appropriately.
+       *
+       * @param input_data The data used to populate the material model input quantities.
+       * @param introspection A reference to the simulator introspection object.
+       * @param use_strain_rate Whether to compute the strain rates.
+       */
+      MaterialModelInputs(const DataPostprocessorInputs::Vector<dim> &input_data,
+                          const Introspection<dim> &introspection,
+                          const bool use_strain_rate = true);
+
+
+      /**
+       * Constructor. Initializes the various arrays of this
+       * structure with the FEValues and introspection objects and
+       * the solution_vector. This constructor calls the function
+       * reinit to populate the newly created arrays.
+       *
+       * @param fe_values An FEValuesBase object used to evaluate the finite elements.
+       * @param cell The currently active cell for the fe_values object.
+       * @param introspection A reference to the simulator introspection object.
+       * @param solution_vector The finite element vector from which to construct the inputs.
+       * @param use_strain_rate Whether to compute the strain rates.
+       */
+      MaterialModelInputs(const FEValuesBase<dim,dim> &fe_values,
+                          const typename DoFHandler<dim>::active_cell_iterator *cell,
+                          const Introspection<dim> &introspection,
+                          const LinearAlgebra::BlockVector &solution_vector,
+                          const bool use_strain_rates = true);
+
+      /**
+       * Function to re-initialize and populate the pre-existing arrays
+       * created by the constructor MaterialModelInputs.
+       */
+      void reinit(const FEValuesBase<dim,dim> &fe_values,
+                  const typename DoFHandler<dim>::active_cell_iterator *cell,
+                  const Introspection<dim> &introspection,
+                  const LinearAlgebra::BlockVector &solution_vector,
+                  const bool use_strain_rates = true);
+
+
+      /**
        * Vector with global positions where the material has to be evaluated
        * in evaluate().
        */
@@ -282,7 +330,7 @@ namespace aspect
        *
        * @note The strain rate term in equation (1) of the manual will be
        * multiplied by this tensor *and* the viscosity scalar ($\eta$), as
-       * described in the manual secion titled "Constitutive laws". This
+       * described in the manual section titled "Constitutive laws". This
        * variable is assigned the rank-four identity tensor by default.
        * This leaves the isotropic constitutive law unchanged if the material
        * model does not explicitly assign a value.
@@ -457,7 +505,7 @@ namespace aspect
 
       /**
        * Return a string that represents the various averaging options laid
-       * out above and that can be used in the claration of an input
+       * out above and that can be used in the declaration of an input
        * parameter. The options are separated by "|" so that they can be used
        * in a dealii::Patterns::Selection argument.
        */
@@ -495,11 +543,30 @@ namespace aspect
 
 
     /**
-     * A base class for additional output fields to be added to the
-     * MaterialModel::MaterialModelOutputs structure and filled in the
-     * MaterialModel::Interface::evaluate() function. The format of the
-     * additional quantities defined in derived classes should be the
-     * same as for MaterialModel::MaterialModelOutputs.
+     * Some material models can compute more than just the basic material
+     * coefficients defined in the MaterialModel::MaterialModelOutputs
+     * class. These additions are either for more complicated physics
+     * than the basic flow model usually solved by ASPECT (for example
+     * to support the melt migration functionality), or other derived
+     * quantities that are not coefficients in any of the equations
+     * ASPECT solves but that may be of interest for visualization
+     * (for example seismic velocities).
+     *
+     * Rather than litter the MaterialModelOutputs class with additional
+     * fields that are not universally used, we use a mechanism by
+     * which MaterialModelOutputs can store a set of pointers to
+     * "additional" output objects that store information such as
+     * mentioned above. These pointers are all to objects whose types
+     * are derived from the current class.
+     *
+     * If an implementation of the MaterialModel::Interface::evaluate()
+     * in a class derived from MaterialModel::Interface encounters
+     * a MaterialModelOutputs object that has these pointers set
+     * (and if it recognizes the type of the object pointed to),
+     * it should fill this set of additional output quantities.
+     *
+     * The format of the additional quantities defined in derived classes
+     * should be the same as for MaterialModel::MaterialModelOutputs.
      */
     template<int dim>
     class AdditionalMaterialOutputs
@@ -512,6 +579,142 @@ namespace aspect
                               const FullMatrix<double>  &/*projection_matrix*/,
                               const FullMatrix<double>  &/*expansion_matrix*/)
         {}
+    };
+
+
+    /**
+     * Some material models can compute things that are not used anywhere
+     * in the physics modules of ASPECT, but that may be of interest for
+     * visualization purposes. An example would be a material model that can
+     * compute seismic velocities -- these are irrelevant to the rest of
+     * ASPECT, but would be nice to have for postprocessing.
+     *
+     * This class is a base class for material models to provide this kind
+     * of information. It follows the scheme laid out by
+     * AdditionalMaterialModelOutputs but also provides an interface by which
+     * consumers of these objects (e.g., the
+     * Postprocess::Visualization::NamedAdditionalOutputs class) can query the
+     * names and values material models have put into these additional
+     * outputs. (Because every material model can decide by itself which --
+     * if any -- additional outputs it produces, there are no standard
+     * names. Consequently, the material models have to describe what
+     * values and how many values they can produce.)
+     *
+     * This class is then this base class for additional named material model outputs
+     * to be added to the MaterialModel::MaterialModelOutputs structure.
+     */
+    template<int dim>
+    class NamedAdditionalMaterialOutputs : public AdditionalMaterialOutputs<dim>
+    {
+      public:
+        /**
+         * Constructor.
+         *
+         * @param output_names A list of names for the additional output variables
+         *   this object will store. The length of the list also indicates
+         *   how many additional output variables objects of derived classes
+         *   will store.
+         */
+        NamedAdditionalMaterialOutputs(const std::vector<std::string> &output_names);
+
+        /**
+         * Destructor.
+         */
+        virtual ~NamedAdditionalMaterialOutputs();
+
+        /**
+         * Return a reference to the vector of names of the additional
+         * outputs.
+         */
+        const std::vector<std::string> &get_names() const;
+
+        /**
+         * Given an index as input argument, return a reference the to vector of
+         * values of the additional output with that index.
+         */
+        virtual const std::vector<double> &get_nth_output(const unsigned int idx) const = 0;
+
+        virtual void average (const MaterialAveraging::AveragingOperation /*operation*/,
+                              const FullMatrix<double>  &/*projection_matrix*/,
+                              const FullMatrix<double>  &/*expansion_matrix*/)
+        {}
+
+      private:
+        const std::vector<std::string> names;
+    };
+
+
+    /**
+     * Additional output fields for the seismic velocities to be added to
+     * the MaterialModel::MaterialModelOutputs structure and filled in the
+     * MaterialModel::Interface::evaluate() function.
+     */
+    template<int dim>
+    class SeismicAdditionalOutputs : public NamedAdditionalMaterialOutputs<dim>
+    {
+      public:
+        SeismicAdditionalOutputs(const unsigned int n_points);
+
+        virtual const std::vector<double> &get_nth_output(const unsigned int idx) const;
+
+        /**
+         * Seismic s-wave velocities at the evaluation points passed to
+         * the instance of MaterialModel::Interface::evaluate() that fills
+         * the current object.
+         */
+        std::vector<double> vs;
+
+        /**
+         * Seismic p-wave velocities at the evaluation points passed to
+         * the instance of MaterialModel::Interface::evaluate() that fills
+         * the current object.
+         */
+        std::vector<double> vp;
+    };
+
+
+    /**
+     * A class for additional output fields to be added to the RHS of the
+     * Stokes system, which can be attached to the
+     * MaterialModel::MaterialModelOutputs structure and filled in the
+     * MaterialModel::Interface::evaluate() function.
+     */
+    template<int dim>
+    class AdditionalMaterialOutputsStokesRHS: public AdditionalMaterialOutputs<dim>
+    {
+      public:
+        AdditionalMaterialOutputsStokesRHS(const unsigned int n_points)
+          : rhs_u(n_points), rhs_p(n_points), rhs_melt_pc(n_points)
+        {}
+
+        virtual ~AdditionalMaterialOutputsStokesRHS()
+        {}
+
+        virtual void average (const MaterialAveraging::AveragingOperation /*operation*/,
+                              const FullMatrix<double>  &/*projection_matrix*/,
+                              const FullMatrix<double>  &/*expansion_matrix*/)
+        {
+          // TODO: not implemented
+        }
+
+        /**
+         * Force tensor on the right-hand side for the conservation of
+         * momentum equation (first part of the Stokes equation) in each
+         * quadrature point.
+         */
+        std::vector<Tensor<1,dim> > rhs_u;
+
+        /**
+         * Force value for the conservation of mass equation (second Stokes
+        * equation) in each quadrature point.
+        */
+        std::vector<double> rhs_p;
+
+        /**
+        * Force for the compaction pressure equation (when using melt
+        * transport) in each quadrature point.
+        */
+        std::vector<double> rhs_melt_pc;
     };
 
 
@@ -543,14 +746,14 @@ namespace aspect
     {
       public:
         /**
-         * A typedef to import the MatertialModelInputs name into the current
+         * A typedef to import the MaterialModelInputs name into the current
          * class. This typedef primarily exists as a backward compatibility
          * measure given that the referenced structure used to be a member of
          * the current class.
          */
         typedef MaterialModel::MaterialModelInputs<dim> MaterialModelInputs;
         /**
-         * A typedef to import the MatertialModelOutputs name into the current
+         * A typedef to import the MaterialModelOutputs name into the current
          * class. This typedef primarily exists as a backward compatibility
          * measure given that the referenced structure used to be a member of
          * the current class.
@@ -632,49 +835,6 @@ namespace aspect
          */
 
         /**
-         * @name Common auxiliary material properties used for postprocessing
-         * @{
-         */
-        /**
-         * Return the p-wave seismic velocity Vp of the model as a function of
-         * temperature and pressure.
-         *
-         * This function is only called in postprocessing. Derived classes do
-         * not need to implement it if no useful information is known to
-         * compute this quantity, in which case graphical output will simply
-         * show an uninformative field of constant value. By default this
-         * function returns -1 to indicate that no useful value is
-         * implemented.
-         */
-        virtual
-        double
-        seismic_Vp (const double      temperature,
-                    const double      pressure,
-                    const std::vector<double> &compositional_fields,
-                    const Point<dim> &position) const;
-
-        /**
-         * Return the s-wave seismic velocity Vs of the model as a function of
-         * temperature and pressure.
-         *
-         * This function is only called in postprocessing. Derived classes do
-         * not need to implement it if no useful information is known to
-         * compute this quantity, in which case graphical output will simply
-         * show an uninformative field of constant value. By default this
-         * function returns -1 to indicate that no useful value is
-         * implemented.
-         */
-        virtual
-        double
-        seismic_Vs (const double      temperature,
-                    const double      pressure,
-                    const std::vector<double> &compositional_fields,
-                    const Point<dim> &position) const;
-        /**
-         * @}
-         */
-
-        /**
          * Function to compute the material properties in @p out given the
          * inputs in @p in. If MaterialModelInputs.strain_rate has the length
          * 0, then the viscosity does not need to be computed.
@@ -709,6 +869,15 @@ namespace aspect
          * @}
          */
 
+        /**
+         * If this material model can produce additional named outputs
+         * that are derived from NamedAdditionalOutputs, create them in here.
+         * By default, this does nothing.
+          */
+        virtual
+        void
+        create_additional_named_outputs (MaterialModelOutputs &outputs) const;
+
       protected:
         /**
          * A structure that describes how each of the model's
@@ -720,7 +889,7 @@ namespace aspect
          * constructor of this member variable which in turn
          * initializes the object to invalid values. Derived classes
          * then need to fill it either in their constructor (if they
-         * already know the correct dependences at that time) or
+         * already know the correct dependencies at that time) or
          * at the end of their parse_parameter() functions where
          * they know the correct material parameters they will
          * use.

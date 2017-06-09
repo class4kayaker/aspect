@@ -11,12 +11,12 @@ set CFL number                             = 0.5
 set Composition solver tolerance           = 1e-24
 set Temperature solver tolerance           = 1e-20
 set Nonlinear solver scheme                = iterated IMPES
-set Max nonlinear iterations               = 5
+set Max nonlinear iterations               = 4
 set Nonlinear solver tolerance             = 1e-5
 
 set Dimension                              = 2
 
-set End time                               = 5e-8
+set End time                               = 3e-8
 
 set Pressure normalization                 = surface
 set Surface pressure                       = 0
@@ -90,7 +90,7 @@ subsection Gravity model
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = function # default: 
   subsection Function
     set Function constants  = l=64000
@@ -99,7 +99,7 @@ subsection Initial conditions
   end
 end
 
-subsection Compositional initial conditions
+subsection Initial composition model
   set Model name = shear bands initial condition
 end
 

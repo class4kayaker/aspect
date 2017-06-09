@@ -21,9 +21,9 @@
 
 #include <aspect/simulator.h>
 #include <aspect/adiabatic_conditions/interface.h>
-#include <aspect/initial_conditions/interface.h>
-#include <aspect/compositional_initial_conditions/interface.h>
-#include <aspect/postprocess/tracers.h>
+#include <aspect/initial_temperature/interface.h>
+#include <aspect/initial_composition/interface.h>
+#include <aspect/postprocess/particles.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/function.h>
@@ -69,9 +69,9 @@ namespace aspect
     // a (simplified) copy of the code in VectorTools::interpolate
     // that only works on the temperature component
     //
-    //TODO: it would be great if we had a cleaner way than iterating to 1+n_fields.
+    // TODO: it would be great if we had a cleaner way than iterating to 1+n_fields.
     // Additionally, the n==1 logic for normalization at the bottom is not pretty.
-    for (unsigned int n=0; n<1+parameters.n_compositional_fields; ++n)
+    for (unsigned int n=0; n<1+introspection.n_compositional_fields; ++n)
       {
         AdvectionField advf = ((n == 0) ? AdvectionField::temperature()
                                : AdvectionField::composition(n-1));
@@ -91,18 +91,17 @@ namespace aspect
 
         std::vector<types::global_dof_index> local_dof_indices (finite_element.dofs_per_cell);
 
-#if DEAL_II_VERSION_GTE(8,5,0)
         const VectorFunctionFromScalarFunctionObject<dim, double> &advf_init_function =
           (advf.is_temperature()
            ?
-           VectorFunctionFromScalarFunctionObject<dim, double>(std_cxx11::bind(&InitialConditions::Interface<dim>::initial_temperature,
-                                                                               std_cxx11::ref(*initial_conditions),
+           VectorFunctionFromScalarFunctionObject<dim, double>(std_cxx11::bind(&InitialTemperature::Manager<dim>::initial_temperature,
+                                                                               std_cxx11::ref(initial_temperature_manager),
                                                                                std_cxx11::_1),
                                                                introspection.component_indices.temperature,
                                                                introspection.n_components)
            :
-           VectorFunctionFromScalarFunctionObject<dim, double>(std_cxx11::bind(&CompositionalInitialConditions::Interface<dim>::initial_composition,
-                                                                               std_cxx11::ref(*compositional_initial_conditions),
+           VectorFunctionFromScalarFunctionObject<dim, double>(std_cxx11::bind(&InitialComposition::Manager<dim>::initial_composition,
+                                                                               std_cxx11::ref(initial_composition_manager),
                                                                                std_cxx11::_1,
                                                                                n-1),
                                                                introspection.component_indices.compositional_fields[n-1],
@@ -135,8 +134,9 @@ namespace aspect
                     // must not exceed one, this should be checked
                     double sum = 0;
                     for (unsigned int m=0; m<parameters.normalized_fields.size(); ++m)
-                      sum += compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),
-                                                                                   parameters.normalized_fields[m]);
+                      sum += initial_composition_manager.initial_composition(fe_values.quadrature_point(i),
+                                                                             parameters.normalized_fields[m]);
+
                     if (std::abs(sum) > 1.0+std::numeric_limits<double>::epsilon())
                       {
                         max_sum_comp = std::max(sum, max_sum_comp);
@@ -144,48 +144,6 @@ namespace aspect
                       }
                   }
               }
-#else
-        for (typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active();
-             cell != dof_handler.end(); ++cell)
-          if (cell->is_locally_owned())
-            {
-              fe_values.reinit (cell);
-
-              // go through the temperature/composition dofs and set their global values
-              // to the temperature/composition field interpolated at these points
-              cell->get_dof_indices (local_dof_indices);
-              for (unsigned int i=0; i<finite_element.base_element(base_element).dofs_per_cell; ++i)
-                {
-                  const unsigned int system_local_dof
-                    = finite_element.component_to_system_index(advf.component_index(introspection),
-                                                               /*dof index within component=*/i);
-
-                  const double value =
-                    (advf.is_temperature()
-                     ?
-                     initial_conditions->initial_temperature(fe_values.quadrature_point(i))
-                     :
-                     compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),n-1));
-                  initial_solution(local_dof_indices[system_local_dof]) = value;
-
-                  // if it is specified in the parameter file that the sum of all compositional fields
-                  // must not exceed one, this should be checked
-                  if (parameters.normalized_fields.size()>0 && n == 1)
-                    {
-                      double sum = 0;
-                      for (unsigned int m=0; m<parameters.normalized_fields.size(); ++m)
-                        sum += compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),
-                                                                                     parameters.normalized_fields[m]);
-                      if (std::abs(sum) > 1.0+std::numeric_limits<double>::epsilon())
-                        {
-                          max_sum_comp = std::max(sum, max_sum_comp);
-                          normalize_composition = true;
-                        }
-                    }
-
-                }
-            }
-#endif
 
         initial_solution.compress(VectorOperation::insert);
 
@@ -217,7 +175,7 @@ namespace aspect
 
     // Now copy the temperature and initial composition blocks into the solution variables
 
-    for (unsigned int n=0; n<1+parameters.n_compositional_fields; ++n)
+    for (unsigned int n=0; n<1+introspection.n_compositional_fields; ++n)
       {
         AdvectionField advf = ((n == 0) ? AdvectionField::temperature()
                                : AdvectionField::composition(n-1));
@@ -234,6 +192,8 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::interpolate_particle_properties (const AdvectionField &advection_field)
   {
+    computing_timer.enter_section("Particles: Interpolate");
+
     // below, we would want to call VectorTools::interpolate on the
     // entire FESystem. there currently is no way to restrict the
     // interpolation operations to only a subset of vector
@@ -254,14 +214,14 @@ namespace aspect
     // need to write into it and we can not
     // write into vectors with ghost elements
 
-    const Postprocess::Tracers<dim> *tracer_postprocessor = postprocess_manager.template find_postprocessor<Postprocess::Tracers<dim> >();
+    const Postprocess::Particles<dim> *particle_postprocessor = postprocess_manager.template find_postprocessor<Postprocess::Particles<dim> >();
 
-    AssertThrow(tracer_postprocessor != 0,
-                ExcMessage("Did not find the <tracers> postprocessor when trying to interpolate particle properties."));
+    AssertThrow(particle_postprocessor != 0,
+                ExcMessage("Did not find the <particles> postprocessor when trying to interpolate particle properties."));
 
-    const std::multimap<aspect::Particle::types::LevelInd, Particle::Particle<dim> > *particles = &tracer_postprocessor->get_particle_world().get_particles();
-    const Particle::Interpolator::Interface<dim> *particle_interpolator = &tracer_postprocessor->get_particle_world().get_interpolator();
-    const Particle::Property::Manager<dim> *particle_property_manager = &tracer_postprocessor->get_particle_world().get_property_manager();
+    const std::multimap<aspect::Particle::types::LevelInd, Particle::Particle<dim> > *particles = &particle_postprocessor->get_particle_world().get_particles();
+    const Particle::Interpolator::Interface<dim> *particle_interpolator = &particle_postprocessor->get_particle_world().get_interpolator();
+    const Particle::Property::Manager<dim> *particle_property_manager = &particle_postprocessor->get_particle_world().get_property_manager();
 
     unsigned int particle_property;
 
@@ -311,7 +271,7 @@ namespace aspect
           ComponentMask property_mask  (particle_property_manager->get_data_info().n_components(),false);
           property_mask.set(particle_property,true);
 
-          const std::vector<std::vector<double> > tracer_properties =
+          const std::vector<std::vector<double> > particle_properties =
             particle_interpolator->properties_at_points(*particles,quadrature_points,property_mask,cell);
 
           // go through the composition dofs and set their global values
@@ -323,7 +283,7 @@ namespace aspect
                 = finite_element.component_to_system_index(advection_field.component_index(introspection),
                                                            /*dof index within component=*/i);
 
-              particle_solution(local_dof_indices[system_local_dof]) = tracer_properties[i][particle_property];
+              particle_solution(local_dof_indices[system_local_dof]) = particle_properties[i][particle_property];
             }
         }
 
@@ -341,6 +301,8 @@ namespace aspect
     solution.block(blockidx) = particle_solution.block(blockidx);
     old_solution.block(blockidx) = particle_solution.block(blockidx);
     old_old_solution.block(blockidx) = particle_solution.block(blockidx);
+
+    computing_timer.exit_section("");
   }
 
 
@@ -484,7 +446,7 @@ namespace aspect
 
     // normalize the pressure in such a way that the surface pressure
     // equals a known and desired value
-    normalize_pressure(old_solution);
+    this->last_pressure_normalization_adjustment = normalize_pressure(old_solution);
 
     // set all solution vectors to the same value as the previous solution
     solution = old_solution;

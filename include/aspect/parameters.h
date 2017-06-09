@@ -141,7 +141,7 @@ namespace aspect
           return Formulation::isothermal_compression;
         else if (input == "anelastic liquid approximation")
           return Formulation::anelastic_liquid_approximation;
-        else if (input == "boussinesq approximation")
+        else if (input == "Boussinesq approximation")
           return Formulation::boussinesq_approximation;
         else if (input == "custom")
           return Formulation::custom;
@@ -302,6 +302,7 @@ namespace aspect
     typename NonlinearSolver::Kind nonlinear_solver;
 
     double                         nonlinear_tolerance;
+    double                         nonlinear_switch_tolerance;
     bool                           resume_computation;
     double                         start_time;
     double                         CFL_number;
@@ -317,12 +318,24 @@ namespace aspect
     double                         linear_stokes_solver_tolerance;
     double                         linear_solver_A_block_tolerance;
     double                         linear_solver_S_block_tolerance;
+    std::string                    AMG_smoother_type;
+    unsigned int                   AMG_smoother_sweeps;
+    double                         AMG_aggregation_threshold;
+    bool                           AMG_output_details;
     unsigned int                   max_nonlinear_iterations;
     unsigned int                   max_nonlinear_iterations_in_prerefinement;
     unsigned int                   n_cheap_stokes_solver_steps;
+    unsigned int                   n_expensive_stokes_solver_steps;
     double                         temperature_solver_tolerance;
     double                         composition_solver_tolerance;
+    unsigned int                   max_pre_newton_nonlinear_iterations;
+    unsigned int                   max_newton_line_search_iterations;
+    double                         switch_initial_newton_residual;
+    double                         minimum_linear_stokes_solver_tolerance;
 
+    // possibly find a better place for these variables
+    double                         newton_theta;
+    double                         newton_residual;
     /**
      * @}
      */
@@ -366,6 +379,7 @@ namespace aspect
      * @{
      */
     bool                           include_melt_transport;
+    bool                           enable_additional_stokes_rhs;
 
     std::set<types::boundary_id> fixed_temperature_boundary_indicators;
     std::set<types::boundary_id> fixed_composition_boundary_indicators;
@@ -410,6 +424,7 @@ namespace aspect
     std::vector<double>            additional_refinement_times;
     unsigned int                   adaptive_refinement_interval;
     bool                           run_postprocessors_on_initial_refinement;
+    bool                           run_postprocessors_on_nonlinear_iterations;
     /**
      * @}
      */

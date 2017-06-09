@@ -4,7 +4,7 @@
 set Dimension                              = 2
 set Use years in output instead of seconds = true
 set End time                               = 3e8
-set Output directory                       = output
+set Output directory                       = output-gplates-2d
 set Adiabatic surface temperature          = 1600
 
 
@@ -40,7 +40,7 @@ end
 
 subsection Boundary velocity model
   subsection GPlates model
-    set Data directory = $ASPECT_SOURCE_DIR/data/velocity-boundary-conditions/gplates/
+    set Data directory = $ASPECT_SOURCE_DIR/data/boundary-velocity/gplates/
     set Velocity file name = current_day.gpml
     set Data file time step = 1e6
     set Point one = 1.5708,4.87
@@ -59,7 +59,7 @@ subsection Boundary temperature model
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = adiabatic
 
   subsection Adiabatic

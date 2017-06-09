@@ -38,6 +38,14 @@ namespace aspect
       return eta_0;
     }
 
+    template <int dim>
+    double
+    MeltGlobal<dim>::
+    reference_darcy_coefficient () const
+    {
+      // 0.01 = 1% melt
+      return reference_permeability * std::pow(0.01,3.0) / eta_f;
+    }
 
     template <int dim>
     bool
@@ -318,10 +326,10 @@ namespace aspect
           prm.declare_entry ("Depletion density change", "0.0",
                              Patterns::Double (),
                              "The density contrast between material with a depletion of 1 and a "
-                             "depletion of zero. Negative values indicate lower densities of"
-                             "depleted material. Depletion is indicated by the compositional"
+                             "depletion of zero. Negative values indicate lower densities of "
+                             "depleted material. Depletion is indicated by the compositional "
                              "field with the name peridotite. Not used if this field does not "
-                             "exist in the model."
+                             "exist in the model. "
                              "Units: $kg/m^3$.");
           prm.declare_entry ("Surface solidus", "1300",
                              Patterns::Double (0),
@@ -331,7 +339,7 @@ namespace aspect
                              Patterns::Double (),
                              "The solidus temperature change for a depletion of 100\\%. For positive "
                              "values, the solidus gets increased for a positive peridotite field "
-                             "(depletion) and lowered for a negative peridotite field (enrichment)."
+                             "(depletion) and lowered for a negative peridotite field (enrichment). "
                              "Scaling with depletion is linear. Only active when fractional melting "
                              "is used. "
                              "Units: $K$.");
@@ -355,12 +363,12 @@ namespace aspect
                              "Units: $1/Pa$.");
           prm.declare_entry ("Melt bulk modulus derivative", "0.0",
                              Patterns::Double (0),
-                             "The value of the pressure derivative of the melt bulk"
+                             "The value of the pressure derivative of the melt bulk "
                              "modulus. "
                              "Units: None.");
           prm.declare_entry ("Include melting and freezing", "true",
                              Patterns::Bool (),
-                             "Whether to include malting and freezing (according to a simplified"
+                             "Whether to include melting and freezing (according to a simplified "
                              "linear melting approximation in the model (if true), or not (if "
                              "false).");
         }

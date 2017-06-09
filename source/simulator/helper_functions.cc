@@ -29,6 +29,7 @@
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/signaling_nan.h>
 #include <deal.II/lac/constraint_matrix.h>
 #include <deal.II/lac/block_sparsity_pattern.h>
 #include <deal.II/grid/grid_tools.h>
@@ -222,21 +223,6 @@ namespace aspect
     if (Utilities::MPI::this_mpi_process(mpi_communicator)!=0)
       return;
 
-    if (parameters.convert_to_years == true)
-      {
-        statistics.set_precision("Time (years)", 12);
-        statistics.set_scientific("Time (years)", true);
-        statistics.set_precision("Time step size (years)", 12);
-        statistics.set_scientific("Time step size (years)", true);
-      }
-    else
-      {
-        statistics.set_precision("Time (seconds)", 12);
-        statistics.set_scientific("Time (seconds)", true);
-        statistics.set_precision("Time step size (seconds)", 12);
-        statistics.set_scientific("Time step size (seconds)", true);
-      }
-
     // formatting the table we're about to output and writing the
     // actual file may take some time, so do it on a separate
     // thread. we pass a pointer to a copy of the statistics
@@ -305,7 +291,10 @@ namespace aspect
 
         output_statistics();
 
-        if (parameters.run_postprocessors_on_initial_refinement)
+        // we only want to do the postprocessing here if it is not already done in
+        // the nonlinear iteration scheme, which is the case if we run postprocessors
+        // on all nonlinear iterations
+        if (parameters.run_postprocessors_on_initial_refinement && (!parameters.run_postprocessors_on_nonlinear_iterations))
           postprocess ();
 
         refine_mesh (max_refinement_level);
@@ -447,7 +436,7 @@ namespace aspect
 
     std::vector<Tensor<1,dim> > velocity_values(n_q_points);
     std::vector<Tensor<1,dim> > fluid_velocity_values(n_q_points);
-    std::vector<std::vector<double> > composition_values (parameters.n_compositional_fields,std::vector<double> (n_q_points));
+    std::vector<std::vector<double> > composition_values (introspection.n_compositional_fields,std::vector<double> (n_q_points));
 
     double max_local_speed_over_meshsize = 0;
     double min_local_conduction_timestep = std::numeric_limits<double>::max();
@@ -455,6 +444,13 @@ namespace aspect
     typename DoFHandler<dim>::active_cell_iterator
     cell = dof_handler.begin_active(),
     endc = dof_handler.end();
+
+
+    MaterialModel::MaterialModelInputs<dim> in(n_q_points,
+                                               introspection.n_compositional_fields);
+    MaterialModel::MaterialModelOutputs<dim> out(n_q_points,
+                                                 introspection.n_compositional_fields);
+
     for (; cell!=endc; ++cell)
       if (cell->is_locally_owned())
         {
@@ -484,33 +480,13 @@ namespace aspect
 
           if (parameters.use_conduction_timestep)
             {
-              MaterialModel::MaterialModelInputs<dim> in(n_q_points, parameters.n_compositional_fields);
-              MaterialModel::MaterialModelOutputs<dim> out(n_q_points, parameters.n_compositional_fields);
-
-              in.strain_rate.resize(0); // we do not need the viscosity
-              in.position = fe_values.get_quadrature_points();
-              in.cell = &cell;
-
-              fe_values[introspection.extractors.pressure].get_function_values (solution,
-                                                                                in.pressure);
-              fe_values[introspection.extractors.temperature].get_function_values (solution,
-                                                                                   in.temperature);
-              fe_values[introspection.extractors.pressure].get_function_gradients (solution,
-                                                                                   in.pressure_gradient);
-
-              for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
-                fe_values[introspection.extractors.compositional_fields[c]].get_function_values (solution,
-                    composition_values[c]);
-
-              for (unsigned int q=0; q<fe_values.n_quadrature_points; ++q)
-                {
-                  for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
-                    in.composition[q][c] = composition_values[c][q];
-
-                  in.velocity[q] = velocity_values[q];
-                }
+              in.reinit(fe_values,
+                        &cell,
+                        introspection,
+                        solution);
 
               material_model->evaluate(in, out);
+
 
               // Evaluate thermal diffusivity at each quadrature point and
               // calculate the corresponding conduction timestep, if applicable
@@ -691,10 +667,10 @@ namespace aspect
 
 
   template <int dim>
-  void Simulator<dim>::normalize_pressure (LinearAlgebra::BlockVector &vector)
+  double Simulator<dim>::normalize_pressure (LinearAlgebra::BlockVector &vector) const
   {
     if (parameters.pressure_normalization == "no")
-      return;
+      return 0;
 
     const FEValuesExtractors::Scalar &extractor_pressure =
       (parameters.include_melt_transport ?
@@ -773,7 +749,8 @@ namespace aspect
       AssertThrow (false, ExcMessage("Invalid pressure normalization method: " +
                                      parameters.pressure_normalization));
 
-    // sum up the integrals from each processor
+    // sum up the integrals from each processor and compute the result we care about
+    double pressure_adjustment = numbers::signaling_nan<double>();
     {
       const double my_temp[2] = {my_pressure, my_area};
       double temp[2];
@@ -872,8 +849,11 @@ namespace aspect
         distributed_vector.compress(VectorOperation::insert);
       }
 
-    // now get back to the original vector
+    // now get back to the original vector and return the adjustment used
+    // in the computations above
     vector = distributed_vector;
+
+    return pressure_adjustment;
   }
 
 
@@ -881,7 +861,8 @@ namespace aspect
   template <int dim>
   void
   Simulator<dim>::
-  denormalize_pressure (LinearAlgebra::BlockVector &vector,
+  denormalize_pressure (const double                      pressure_adjustment,
+                        LinearAlgebra::BlockVector       &vector,
                         const LinearAlgebra::BlockVector &relevant_vector) const
   {
     if (parameters.pressure_normalization == "no")
@@ -961,8 +942,6 @@ namespace aspect
               // and that it is in fact a pressure dof
               Assert (dof_handler.locally_owned_dofs().is_element(local_dof_indices[first_pressure_dof]),
                       ExcInternalError());
-              Assert (local_dof_indices[first_pressure_dof] >= vector.block(0).size(),
-                      ExcInternalError());
 
               // then adjust its value
               vector (local_dof_indices[first_pressure_dof]) -= pressure_adjustment;
@@ -978,39 +957,75 @@ namespace aspect
   void
   Simulator<dim>::make_pressure_rhs_compatible(LinearAlgebra::BlockVector &vector)
   {
-    if (parameters.use_locally_conservative_discretization)
-      AssertThrow(false, ExcNotImplemented());
+    // If the mass conservation is written as
+    //   div u = f
+    // make sure this is solvable by modifying f to ensure that
+    // int_\Omega f = int_\Omega div u = 0
+    //
+    // We have to deal with several complications:
+    // - we can have an FE_Q or an FE_DGP for the pressure
+    // - we might use a direct solver, so pressure and velocity is in the same block
+    // - we might have melt transport, where we need to operate only on p_f
+    //
+    // We ensure int_\Omega f = 0 by computing a correction factor
+    //   c = \int f
+    // and adjust pressure RHS to be
+    //  fnew = f - c/|\Omega|
+    // such that
+    //   \int fnew = \int f - c/|\Omega| = -c + \int f = 0.
+    //
+    // We can compute
+    //   c = \int f = (f, 1) = (f, \sum_i \phi_i) = \sum_i (f, \phi_i) = \sum_i F_i
+    // which is just the sum over the RHS vector for FE_Q. For FE_DGP we need
+    // to restrict to 0th shape functions on each cell because this is how we
+    // represent the function 1.
+    //
+    // To make the adjustment fnew = f - c/|\Omega|
+    // note that
+    // fnew_i = f_i - c/|\Omega| * (1, \phi_i)
+    // and the same logic for FE_DGP applies
 
-    // In the following we integrate the right hand side. This integral is the
-    // correction term that needs to be added to the pressure right hand side.
-    // (so that the integral of right hand side is set to zero).
-    if (!parameters.include_melt_transport && introspection.block_indices.velocities != introspection.block_indices.pressure)
+
+    if ((!parameters.use_locally_conservative_discretization)
+        &&
+        (!parameters.include_melt_transport)
+        &&
+        (introspection.block_indices.velocities != introspection.block_indices.pressure))
       {
-        const double mean       = vector.block(introspection.block_indices.pressure).mean_value();
-        const double correction = (- mean * vector.block(introspection.block_indices.pressure).size()) / global_volume;
+        // Easy Case. We have an FE_Q in a separate block, so we can use
+        // mean_value() and vector.block(p) += correction:
+        const double mean = vector.block(introspection.block_indices.pressure).mean_value();
+        const double int_rhs = mean * vector.block(introspection.block_indices.pressure).size();
+        const double correction = -int_rhs / global_volume;
+
         vector.block(introspection.block_indices.pressure).add(correction, pressure_shape_function_integrals.block(introspection.block_indices.pressure));
       }
-    else
+    else if (!parameters.use_locally_conservative_discretization)
       {
+        // FE_Q but we can not access the pressure block separately (either
+        // a direct solver or we have melt with p_f and p_c in the same block).
+        // Luckily we don't need to go over DoFs on each cell, because we
+        // have IndexSets to help us:
+
         // we need to operate only on p_f not on p_c
         const IndexSet &idxset = parameters.include_melt_transport ?
                                  introspection.index_sets.locally_owned_fluid_pressure_dofs
                                  :
                                  introspection.index_sets.locally_owned_pressure_dofs;
-        double pressure_sum = 0.0;
+        double int_rhs = 0.0;
 
         for (unsigned int i=0; i < idxset.n_elements(); ++i)
           {
             types::global_dof_index idx = idxset.nth_index_in_set(i);
-            pressure_sum += vector(idx);
+            int_rhs += vector(idx);
           }
 
         // We do not have to integrate over the normal velocity at the
         // boundaries with a prescribed velocity because the constraints
         // are already distributed to the right hand side in
         // current_constraints.distribute.
-        const double global_pressure_sum = Utilities::MPI::sum(pressure_sum, mpi_communicator);
-        const double correction = (- global_pressure_sum) / global_volume;
+        const double global_int_rhs = Utilities::MPI::sum(int_rhs, mpi_communicator);
+        const double correction = - global_int_rhs / global_volume;
 
         for (unsigned int i=0; i < idxset.n_elements(); ++i)
           {
@@ -1020,6 +1035,64 @@ namespace aspect
 
         vector.compress(VectorOperation::add);
       }
+    else
+      {
+        // Locally conservative with or without direct solver and with or
+        // without melt: grab a pickaxe and do everything by hand!
+        AssertThrow(parameters.use_locally_conservative_discretization,
+                    ExcInternalError());
+
+        double int_rhs = 0.0;
+        const unsigned int pressure_component = (parameters.include_melt_transport ?
+                                                 introspection.variable("fluid pressure").first_component_index
+                                                 : introspection.component_indices.pressure);
+        std::vector<types::global_dof_index> local_dof_indices (finite_element.dofs_per_cell);
+        typename DoFHandler<dim>::active_cell_iterator
+        cell = dof_handler.begin_active(),
+        endc = dof_handler.end();
+        for (; cell != endc; ++cell)
+          if (cell->is_locally_owned())
+            {
+              // identify the first pressure dof
+              cell->get_dof_indices (local_dof_indices);
+              const unsigned int first_pressure_dof
+                = finite_element.component_to_system_index (pressure_component, 0);
+
+              // make sure that this DoF is really owned by the current processor
+              // and that it is in fact a pressure dof
+              Assert (dof_handler.locally_owned_dofs().is_element(local_dof_indices[first_pressure_dof]),
+                      ExcInternalError());
+
+              // compute integral:
+              int_rhs += vector(local_dof_indices[first_pressure_dof]);
+            }
+
+        const double global_int_rhs = Utilities::MPI::sum(int_rhs, mpi_communicator);
+        const double correction = - global_int_rhs / global_volume;
+
+        // Now modify our RHS with the correction factor:
+        for (cell = dof_handler.begin_active(); cell != endc; ++cell)
+          if (cell->is_locally_owned())
+            {
+              // identify the first pressure dof
+              cell->get_dof_indices (local_dof_indices);
+              const unsigned int first_pressure_dof
+                = finite_element.component_to_system_index (pressure_component, 0);
+
+              // make sure that this DoF is really owned by the current processor
+              // and that it is in fact a pressure dof
+              Assert (dof_handler.locally_owned_dofs().is_element(local_dof_indices[first_pressure_dof]),
+                      ExcInternalError());
+
+              // correct:
+              types::global_dof_index idx = local_dof_indices[first_pressure_dof];
+              vector(idx) += correction * pressure_shape_function_integrals(idx);
+            }
+
+        vector.compress(VectorOperation::add);
+      }
+
+
   }
 
 
@@ -1027,7 +1100,7 @@ namespace aspect
   double
   Simulator<dim>::compute_initial_stokes_residual()
   {
-    LinearAlgebra::BlockVector remap (introspection.index_sets.stokes_partitioning, mpi_communicator);
+    LinearAlgebra::BlockVector linearized_stokes_variables (introspection.index_sets.stokes_partitioning, mpi_communicator);
     LinearAlgebra::BlockVector residual (introspection.index_sets.stokes_partitioning, mpi_communicator);
     const unsigned int block_p =
       parameters.include_melt_transport ?
@@ -1047,12 +1120,12 @@ namespace aspect
         for (unsigned int i=0; i < idxset.n_elements(); ++i)
           {
             types::global_dof_index idx = idxset.nth_index_in_set(i);
-            remap(idx)        = current_linearization_point(idx);
+            linearized_stokes_variables(idx)        = current_linearization_point(idx);
           }
-        remap.block(block_p).compress(VectorOperation::insert);
+        linearized_stokes_variables.block(block_p).compress(VectorOperation::insert);
       }
     else
-      remap.block (block_p) = current_linearization_point.block (block_p);
+      linearized_stokes_variables.block (block_p) = current_linearization_point.block (block_p);
 
     // TODO: we don't have .stokes_relevant_partitioning so I am creating a much
     // bigger vector here, oh well.
@@ -1061,11 +1134,11 @@ namespace aspect
                                         mpi_communicator);
     // TODO for Timo: can we create the ghost vector inside of denormalize_pressure
     // (only in cases where we need it)
-    ghosted.block(block_p) = remap.block(block_p);
-    denormalize_pressure (remap, ghosted);
-    current_constraints.set_zero (remap);
+    ghosted.block(block_p) = linearized_stokes_variables.block(block_p);
+    denormalize_pressure (this->last_pressure_normalization_adjustment, linearized_stokes_variables, ghosted);
+    current_constraints.set_zero (linearized_stokes_variables);
 
-    remap.block (block_p) /= pressure_scaling;
+    linearized_stokes_variables.block (block_p) /= pressure_scaling;
 
     // we calculate the velocity residual with a zero velocity,
     // computing only the part of the RHS not balanced by the static pressure
@@ -1073,13 +1146,13 @@ namespace aspect
       {
         // we can use the whole block here because we set the velocity to zero above
         return system_matrix.block(0,0).residual (residual.block(0),
-                                                  remap.block(0),
+                                                  linearized_stokes_variables.block(0),
                                                   system_rhs.block(0));
       }
     else
       {
         const double residual_u = system_matrix.block(0,1).residual (residual.block(0),
-                                                                     remap.block(1),
+                                                                     linearized_stokes_variables.block(1),
                                                                      system_rhs.block(0));
         const double residual_p = system_rhs.block(block_p).l2_norm();
         return sqrt(residual_u*residual_u+residual_p*residual_p);
@@ -1093,7 +1166,7 @@ namespace aspect
     // currently, the only coefficient that really appears on the
     // left hand side of the Stokes equation is the viscosity. note
     // that our implementation of compressible materials makes sure
-    // that the density does not appear on the lhs.
+    // that the density does not appear on the LHS.
     // if melt transport is included in the simulation, we have an
     // additional equation with more coefficients on the left hand
     // side.
@@ -1118,7 +1191,7 @@ namespace aspect
     /*
      * First setup the quadrature points which are used to find the maximum and minimum solution values at those points.
      * A quadrature formula that combines all quadrature points constructed as all tensor products of
-     * 1) one dimentional Gauss points; 2) one dimentional Gauss-Lobatto points.
+     * 1) one dimensional Gauss points; 2) one dimensional Gauss-Lobatto points.
      * We require that the Gauss-Lobatto points (2) appear in only one direction.
      * Therefore, possible combination
      * in 2D: the combinations are 21, 12
@@ -1137,7 +1210,7 @@ namespace aspect
       {
         case 2:
         {
-          //append quadrature points combination 12
+          // append quadrature points combination 12
           for ( unsigned int i=0; i < n_q_points_1 ; i++)
             {
               const double  x = quadrature_formula_1.point(i)(0);
@@ -1148,7 +1221,7 @@ namespace aspect
                 }
             }
           const unsigned int n_q_points_12 = n_q_points_1 * n_q_points_2;
-          //append quadrature points combination 21
+          // append quadrature points combination 21
           for ( unsigned int i=0; i < n_q_points_2 ; i++)
             {
               const double  x = quadrature_formula_2.point(i)(0);
@@ -1163,7 +1236,7 @@ namespace aspect
 
         case 3:
         {
-          //append quadrature points combination 121
+          // append quadrature points combination 121
           for ( unsigned int i=0; i < n_q_points_1 ; i++)
             {
               const double  x = quadrature_formula_1.point(i)(0);
@@ -1179,7 +1252,7 @@ namespace aspect
                 }
             }
           const unsigned int n_q_points_121 = n_q_points_1 * n_q_points_2 * n_q_points_1;
-          //append quadrature points combination 112
+          // append quadrature points combination 112
           for ( unsigned int i=0; i < n_q_points_1 ; i++)
             {
               const double  x = quadrature_formula_1.point(i)(0);
@@ -1195,7 +1268,7 @@ namespace aspect
                     }
                 }
             }
-          //append quadrature points combination 211
+          // append quadrature points combination 211
           for ( unsigned int i=0; i < n_q_points_2 ; i++)
             {
               const double  x = quadrature_formula_2.point(i)(0);
@@ -1224,7 +1297,7 @@ namespace aspect
 
     const unsigned int n_q_points_0 = quadrature_formula_0.size();
 
-    // fe values for points evalution
+    // fe values for points evaluation
     FEValues<dim> fe_values (*mapping,
                              finite_element,
                              quadrature_formula,
@@ -1277,21 +1350,21 @@ namespace aspect
         if (cell->is_locally_owned())
           {
             cell->get_dof_indices (local_dof_indices);
-            //used to find the maximum, minimum
+            // used to find the maximum, minimum
             fe_values.reinit (cell);
             fe_values[field].get_function_values(solution, values);
-            //used for the numerical integration
+            // used for the numerical integration
             fe_values_0.reinit (cell);
             fe_values_0[field].get_function_values(solution, values_0);
 
-            //Find the local max and local min
+            // Find the local max and local min
             const double min_solution_local = *std::min_element (values.begin(), values.end());
             const double max_solution_local = *std::max_element (values.begin(), values.end());
-            //Find the trouble cell
+            // Find the trouble cell
             if (min_solution_local < min_solution_exact_global
                 || max_solution_local > max_solution_exact_global)
               {
-                //Compute the cell area and cell solution average
+                // Compute the cell area and cell solution average
                 double local_area = 0;
                 double local_solution_average = 0;
                 for (unsigned int q = 0; q < n_q_points_0; ++q)
@@ -1400,13 +1473,13 @@ namespace aspect
       {
         AssertThrow(!heating_model_manager.adiabatic_heating_enabled(),
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
-                               "The 'boussinesq approximation' formulation expects adiabatic heating to be disabled, "
+                               "The 'Boussinesq approximation' formulation expects adiabatic heating to be disabled, "
                                "but the 'adiabatic heating' plugin has been selected in the input file. "
                                "Please check the consistency of your input file."));
 
         AssertThrow(!heating_model_manager.shear_heating_enabled(),
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
-                               "The 'boussinesq approximation' formulation expects shear heating to be disabled, "
+                               "The 'Boussinesq approximation' formulation expects shear heating to be disabled, "
                                "but the 'shear heating' plugin has been selected in the input file. "
                                "Please check the consistency of your input file."));
       }
@@ -1442,8 +1515,10 @@ namespace aspect
 {
 #define INSTANTIATE(dim) \
   template struct Simulator<dim>::AdvectionField; \
-  template void Simulator<dim>::normalize_pressure(LinearAlgebra::BlockVector &vector); \
-  template void Simulator<dim>::denormalize_pressure(LinearAlgebra::BlockVector &vector, const LinearAlgebra::BlockVector &relevant_vector) const; \
+  template double Simulator<dim>::normalize_pressure(LinearAlgebra::BlockVector &vector) const; \
+  template void Simulator<dim>::denormalize_pressure(const double pressure_adjustment, \
+                                                     LinearAlgebra::BlockVector &vector, \
+                                                     const LinearAlgebra::BlockVector &relevant_vector) const; \
   template double Simulator<dim>::get_maximal_velocity (const LinearAlgebra::BlockVector &solution) const; \
   template std::pair<double,double> Simulator<dim>::get_extrapolated_advection_field_range (const AdvectionField &advection_field) const; \
   template void Simulator<dim>::maybe_write_timing_output () const; \

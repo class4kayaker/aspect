@@ -331,6 +331,25 @@ namespace aspect
         {}
 
 
+        template <int dim>
+        void StokesPreconditioner<dim>::
+        extract_stokes_dof_indices(const std::vector<types::global_dof_index> &all_dof_indices,
+                                   const Introspection<dim>                   &introspection,
+                                   const dealii::FiniteElement<dim>           &finite_element)
+        {
+          const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
+
+          for (unsigned int i=0, i_stokes=0; i<dofs_per_cell; /*increment at end of loop*/)
+            {
+              if (introspection.is_stokes_component(finite_element.system_to_component_index(i).first))
+                {
+                  this->local_dof_indices[i_stokes] = all_dof_indices[i];
+                  ++i_stokes;
+                }
+              ++i;
+            }
+        }
+
 
         template <int dim>
         StokesPreconditioner<dim>::
@@ -362,6 +381,7 @@ namespace aspect
           local_rhs (data.local_rhs),
           local_pressure_shape_function_integrals (data.local_pressure_shape_function_integrals.size())
         {}
+
 
 
 
@@ -479,19 +499,19 @@ namespace aspect
     else
       material_model_inputs.strain_rate.resize(0);
 
-    // the values of the compositional fields are stored as blockvectors for each field
+    // the values of the compositional fields are stored as block vectors for each field
     // we have to extract them in this structure
-    std::vector<std::vector<double> > composition_values (parameters.n_compositional_fields,
+    std::vector<std::vector<double> > composition_values (introspection.n_compositional_fields,
                                                           std::vector<double> (n_q_points));
 
-    for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+    for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
       input_finite_element_values[introspection.extractors.compositional_fields[c]].get_function_values(input_solution,
           composition_values[c]);
 
     // then we copy these values to exchange the inner and outer vector, because for the material
     // model we need a vector with values of all the compositional fields for every quadrature point
     for (unsigned int q=0; q<n_q_points; ++q)
-      for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+      for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
         material_model_inputs.composition[q][c] = composition_values[c][q];
 
     material_model_inputs.cell = &cell;
@@ -536,11 +556,11 @@ namespace aspect
 
       template <int dim>
       void
-      traction_boundary_conditions (const SimulatorAccess<dim>                           &simulator_access,
-                                    const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                    const unsigned int                                    face_no,
-                                    internal::Assembly::Scratch::StokesSystem<dim>       &scratch,
-                                    internal::Assembly::CopyData::StokesSystem<dim>      &data)
+      boundary_traction (const SimulatorAccess<dim>                           &simulator_access,
+                         const typename DoFHandler<dim>::active_cell_iterator &cell,
+                         const unsigned int                                    face_no,
+                         internal::Assembly::Scratch::StokesSystem<dim>       &scratch,
+                         internal::Assembly::CopyData::StokesSystem<dim>      &data)
       {
         const Introspection<dim> &introspection = simulator_access.introspection();
         const FiniteElement<dim> &fe = scratch.finite_element_values.get_fe();
@@ -549,17 +569,17 @@ namespace aspect
         // we need to assemble force terms for the right hand side
         const unsigned int stokes_dofs_per_cell = data.local_dof_indices.size();
 
-        if (simulator_access.get_traction_boundary_conditions()
+        if (simulator_access.get_boundary_traction()
             .find (cell->face(face_no)->boundary_id())
             !=
-            simulator_access.get_traction_boundary_conditions().end())
+            simulator_access.get_boundary_traction().end())
           {
             scratch.face_finite_element_values.reinit (cell, face_no);
 
             for (unsigned int q=0; q<scratch.face_finite_element_values.n_quadrature_points; ++q)
               {
                 const Tensor<1,dim> traction
-                  = simulator_access.get_traction_boundary_conditions().find(
+                  = simulator_access.get_boundary_traction().find(
                       cell->face(face_no)->boundary_id()
                     )->second
                     ->boundary_traction (cell->face(face_no)->boundary_id(),
@@ -615,8 +635,8 @@ namespace aspect
     aspect::Assemblers::AdvectionAssembler<dim> *adv_assembler
       = new aspect::Assemblers::AdvectionAssembler<dim>();
 
-    assemblers->advection_system_assembler_properties.resize(1+parameters.n_compositional_fields);
-    assemblers->advection_system_assembler_on_face_properties.resize(1+parameters.n_compositional_fields);
+    assemblers->advection_system_assembler_properties.resize(1+introspection.n_compositional_fields);
+    assemblers->advection_system_assembler_on_face_properties.resize(1+introspection.n_compositional_fields);
 
     aspect::Assemblers::MeltEquations<dim> *melt_equation_assembler = NULL;
     if (parameters.include_melt_transport)
@@ -737,7 +757,7 @@ namespace aspect
 
     // add the terms for traction boundary conditions
     assemblers->local_assemble_stokes_system_on_boundary_face
-    .connect (std_cxx11::bind(&aspect::Assemblers::OtherTerms::traction_boundary_conditions<dim>,
+    .connect (std_cxx11::bind(&aspect::Assemblers::OtherTerms::boundary_traction<dim>,
                               SimulatorAccess<dim>(*this),
                               std_cxx11::_1,
                               std_cxx11::_2,
@@ -836,7 +856,7 @@ namespace aspect
 
         if (parameters.use_discontinuous_composition_discretization)
           {
-            for (unsigned int i = 1; i<=parameters.n_compositional_fields; ++i)
+            for (unsigned int i = 1; i<=introspection.n_compositional_fields; ++i)
               {
                 assemblers->advection_system_assembler_on_face_properties[i].need_face_material_model_data = true;
                 assemblers->advection_system_assembler_on_face_properties[i].need_face_finite_element_evaluation = true;
@@ -869,15 +889,7 @@ namespace aspect
     // models with melt transport).
 
     cell->get_dof_indices (scratch.local_dof_indices);
-
-    const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
-
-    for (unsigned int i=0, i_stokes=0; i<dofs_per_cell; ++i)
-      if (introspection.is_stokes_component(finite_element.system_to_component_index(i).first))
-        {
-          data.local_dof_indices[i_stokes] = scratch.local_dof_indices[i];
-          ++i_stokes;
-        }
+    data.extract_stokes_dof_indices(scratch.local_dof_indices, introspection, finite_element);
 
     // Prepare the data structures for assembly
     scratch.finite_element_values.reinit (cell);
@@ -964,7 +976,7 @@ namespace aspect
          StokesPreconditioner<dim> (finite_element, quadrature_formula,
                                     *mapping,
                                     cell_update_flags,
-                                    parameters.n_compositional_fields,
+                                    introspection.n_compositional_fields,
                                     stokes_dofs_per_cell,
                                     parameters.include_melt_transport),
          internal::Assembly::CopyData::
@@ -1011,15 +1023,17 @@ namespace aspect
 
     // set the AMG parameters in a way that minimizes the run
     // time. compared to some of the deal.II tutorial programs, we
-    // found that it pays off to set the aggregration threshold to
+    // found that it pays off to set the aggregation threshold to
     // zero, especially for ill-conditioned problems with large
     // variations in the viscosity
     //
     // for extensive benchmarking of various settings of these
     // parameters and others, see
     // https://github.com/geodynamics/aspect/pull/234
-    Amg_data.smoother_sweeps = 2;
-    Amg_data.aggregation_threshold = 0.001;
+    Amg_data.smoother_type = parameters.AMG_smoother_type.c_str();
+    Amg_data.smoother_sweeps = parameters.AMG_smoother_sweeps;
+    Amg_data.aggregation_threshold = parameters.AMG_aggregation_threshold;
+    Amg_data.output_details = parameters.AMG_output_details;
 #endif
 
     /*  The stabilization term for the free surface (Kaus et. al., 2010)
@@ -1063,18 +1077,7 @@ namespace aspect
 
     cell->get_dof_indices (scratch.local_dof_indices);
 
-    const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
-
-    for (unsigned int i=0, i_stokes=0; i<dofs_per_cell; /*increment at end of loop*/)
-      {
-        if (introspection.is_stokes_component(finite_element.system_to_component_index(i).first))
-          {
-            data.local_dof_indices[i_stokes] = scratch.local_dof_indices[i];
-            ++i_stokes;
-          }
-        ++i;
-      }
-
+    data.extract_stokes_dof_indices (scratch.local_dof_indices, introspection, finite_element);
 
     // Prepare the data structures for assembly
     scratch.finite_element_values.reinit (cell);
@@ -1268,7 +1271,7 @@ namespace aspect
                             face_quadrature_formula,
                             cell_update_flags,
                             face_update_flags,
-                            parameters.n_compositional_fields,
+                            introspection.n_compositional_fields,
                             stokes_dofs_per_cell,
                             parameters.include_melt_transport,
                             use_reference_density_profile),
@@ -1457,7 +1460,7 @@ namespace aspect
             (*scratch.face_finite_element_values)[introspection.extractors.velocities].get_function_values(current_linearization_point,
                 scratch.face_current_velocity_values);
 
-            //get the mesh velocity, as we need to subtract it off of the advection systems
+            // get the mesh velocity, as we need to subtract it off of the advection systems
             if (parameters.free_surface_enabled)
               (*scratch.face_finite_element_values)[introspection.extractors.velocities].get_function_values(free_surface->mesh_velocity,
                   scratch.face_mesh_velocity_values);
@@ -1478,7 +1481,7 @@ namespace aspect
                 heating_model_manager.evaluate(scratch.face_material_model_inputs,
                                                scratch.face_material_model_outputs,
                                                scratch.face_heating_model_outputs);
-                //TODO: the following doesn't currently compile because the get_quadrature() call returns
+                // TODO: the following doesn't currently compile because the get_quadrature() call returns
                 //  a dim-1 dimensional quadrature
                 // MaterialModel::MaterialAveraging::average (parameters.material_averaging,
                 //                                            cell,
@@ -1642,7 +1645,7 @@ namespace aspect
                                 Quadrature<dim-1> ()),
                                update_flags,
                                face_update_flags,
-                               parameters.n_compositional_fields),
+                               introspection.n_compositional_fields),
          internal::Assembly::CopyData::
          AdvectionSystem<dim> (finite_element.base_element(advection_field.base_element(introspection)),
                                allocate_neighbor_contributions));

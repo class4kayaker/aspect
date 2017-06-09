@@ -36,6 +36,7 @@
 \usepackage{listings}
 \lstset{
   language=C++,
+  showstringspaces=false,
   basicstyle=\small\ttfamily,
   columns=fullflexible,
   keepspaces=true,
@@ -139,7 +140,7 @@ COMPUTATIONAL INFRASTRUCTURE FOR GEODYNAMICS (CIG)
 
 %AUTHOR(S) & WEBSITE%
 \null
-\vspace{18em}
+\vspace{17em}
 \color{dark_grey}
 {\fontfamily{\sfdefault}\selectfont
 % FILL: author list
@@ -164,21 +165,25 @@ COMPUTATIONAL INFRASTRUCTURE FOR GEODYNAMICS (CIG)
     Elvira Mulyukova,
     John Naliboff,
     Jonathan Perry-Houts,
+    Elbridge Gerry Puckett,
     Tahiry Rajaonarison,
     Ian Rose,
     D.~Sarah Stamps,
     Cedric Thieulot,
     Iris van Zelst,
     Siqi Zhang \\
-\vspace{1em}
+\vspace{1.0em}
 }
 
+{\noindent
 {\fontfamily{\sfdefault}\selectfont \href{https://geodynamics.org}{geodynamics.org}}
-
+}
 
 %LINE%
+{\noindent
 \color{dark_grey}
 \rule{\textwidth}{2pt}
+}
 
 }
 
@@ -306,13 +311,14 @@ this software:
 \end{lstlisting}
 Please also cite the User's Manual:
 \begin{lstlisting}[frame=single,language=tex]
-@Manual{aspectmanual,
-  title =        {\textsc{ASPECT}: {Advanced Solver for Problems in Earth's
-                  ConvecTion} v1.4.0}, 
-  author =       {W. Bangerth and J. Dannberg and
-                  R. Gassm{\"o}ller and T. Heister and others},
-  organization = {Computational Infrastructure for Geodynamics},
-  year =         2016
+@Article{aspectmanual,
+  Title         = {{\textsc{ASPECT}: Advanced Solver for Problems in Earth's ConvecTion, User Manual}},
+  Author        = {W. Bangerth and J. Dannberg and R. Gassm{\"o}ller and T. Heister and others},
+  Year          = {2017},
+  Month         = {4},
+  DOI           = {10.6084/m9.figshare.4865333},
+  Note          = {doi:10.6084/m9.figshare.4865333},
+  URL           = {https://doi.org/10.6084/m9.figshare.4865333}
 }
 \end{lstlisting}
 
@@ -327,11 +333,12 @@ website at \url{https://aspect.dealii.org/}.
 
 The development of \aspect{} has been funded
 through a variety of grants to the authors. Most immediately, it has been
-supported through the Computational Infrastructure in Geodynamics (CIG-II)
-grant (National Science Foundation Award No. EAR-0949446, via The University
-of California -- Davis) but the initial portions have also been supported
-by the original CIG grant (National Science Foundation Award No. EAR-0426271,
-via The California Institute of Technology). In addition, the libraries upon
+supported through the Computational Infrastructure in Geodynamics
+grant, initially by the CIG-I grant (National Science Foundation Award No. EAR-0426271,
+via The California Institute of Technology) and later by the CIG-II
+and CIG-III grants
+(National Science Foundation Awards No. EAR-0949446 and EAR-1550901, via The University
+of California -- Davis). In addition, the libraries upon
 which \aspect{} builds heavily have been supported through many other grants
 that are equally gratefully acknowledged.
 
@@ -608,8 +615,93 @@ component, whereas the compositional equations do not.
 There are other equations that \aspect{} can optionally solve. For example, it
 can deal with free surfaces (see Section~\ref{sec:freesurface}), melt generation and
 transport (see Section~\ref{sec:melt_transport}), and it can advect along
-particles or tracers (see Section~\ref{sec:particles}). These optional models
+particles (see Section~\ref{sec:particles}). These optional models
 are discussed in more detail in the indicated sections.
+
+
+\subsubsection{Two-dimensional models}
+\label{sec:meaning-of-2d}
+\aspect{} allows solving both two- and three-dimensional
+models via a parameter in the input files, see also Section~\ref{sec:2d-vs-3d}.
+\index[prmindex]{Dimension} \index[prmindexfull]{Dimension}
+At the same time, the world is unambiguously three-dimensional. This raises the
+question what exactly we mean when we say that we want to solve two-dimensional
+problems.
+
+The notion we adopt here -- in agreement with that chosen by many other codes --
+is to think of two-dimensional models in the following way: We assume that the
+domain we want to solve on is a two-dimensional cross section (parameterized by
+$x$ and $y$ coordinates) that extends infinitely far in both negative and
+positive $z$ direction. Further, we assume that the velocity is zero in $z$
+direction and that all variables have no variation in $z$ direction. As a
+consequence, we ought to really think of these two-dimensional models as
+three-dimensional ones in which the $z$ component of the velocity is zero and so
+are all $z$ derivatives.
+
+If one adopts this point of view, the Stokes equations
+\eqref{eq:stokes-1}--\eqref{eq:stokes-2} naturally simplify in a way that allows
+us to reduce the $3+1$ equations to only $2+1$, but it makes clear that the
+correct description of the compressible strain rate is still 
+$\varepsilon(\mathbf u) - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1$, rather
+than using a factor of $\frac{1}{2}$ for the second term. (A derivation of why
+the compressible strain rate tensor has this form can be found in \cite[Section
+6.5]{STO01}.)
+
+It is interesting to realize that this compressible strain rate indeed requires
+a $3\times 3$ tensor: While under the assumptions above we have
+\begin{align*}
+  \varepsilon(\mathbf u) = 
+  \begin{pmatrix}
+    \tfrac{\partial u_x}{\partial x}
+    &
+    \tfrac 12 \tfrac{\partial u_x}{\partial y} + 
+    \tfrac 12 \tfrac{\partial u_y}{\partial x}
+    &
+    0
+    \\
+    \tfrac 12 \tfrac{\partial u_x}{\partial y} + 
+    \tfrac 12 \tfrac{\partial u_y}{\partial x}
+    &
+    \tfrac{\partial u_y}{\partial y}
+    &
+    0
+    \\
+    0 & 0 & 0
+  \end{pmatrix}
+\end{align*}
+with the expected zeros in the last row and column, the full compressible strain
+rate tensor reads
+\begin{align*}
+  \varepsilon(\mathbf u) - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1 = 
+  \begin{pmatrix}
+    \tfrac 23 \tfrac{\partial u_x}{\partial x}
+    - \tfrac 13 \tfrac{\partial u_y}{\partial y}
+    &
+    \tfrac 12 \tfrac{\partial u_x}{\partial y} + 
+    \tfrac 12 \tfrac{\partial u_y}{\partial x}
+    &
+    0
+    \\
+    \tfrac 12 \tfrac{\partial u_x}{\partial y} + 
+    \tfrac 12 \tfrac{\partial u_y}{\partial x}
+    &
+    \tfrac 23 \tfrac{\partial u_y}{\partial y}
+    - \tfrac 13 \tfrac{\partial u_x}{\partial x}
+    &
+    0
+    \\
+    0 & 0 &
+    - \tfrac 13 \tfrac{\partial u_y}{\partial y}
+    - \tfrac 13 \tfrac{\partial u_x}{\partial x}
+  \end{pmatrix}.
+\end{align*}
+The entry in the $(3,3)$ position of this tensor may be surprising. It
+disappears, however, when taking the (three-dimensional) divergence of the
+stress, as is done in \eqref{eq:stokes-1}, because the divergence applies the $z$ derivative to all
+elements of the last row -- and the assumption above was that all $z$
+derivatives are zero; consequently whatever lives in the third row of the
+strain rate tensor does not matter.
+
 
 
 \subsubsection{Comments on the final set of equations}
@@ -1471,7 +1563,7 @@ equations:
 For the temperature equation, using the definition of the hydrostatic pressure gradient \eqref{eq:hydrostatic-pressure}, we arrive at the following:
 
 \begin{multline}
-  \label{eq:temperature-decomposed}
+  \label{eq:temperature-ala}
   \bar\rho C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla
   T\right) - \nabla\cdot k\nabla T
   \\
@@ -1533,7 +1625,7 @@ equations:
 The energy equation is the same as in the ALA case. 
 
 \subsubsection{The Boussinesq approximation (BA)}
-\label{sec:boussinesq}
+\label{sec:Boussinesq}
 
 If we further assume that the reference temperature and the reference density are constant, 
 $\bar T(z)=T_0$, $\bar\rho(\bar p,\bar T)=\rho_0$, 
@@ -1573,7 +1665,6 @@ adiabatic and shear heating in the energy equation
 \end{equation}
 
 \paragraph*{On incompressibility.}
-\label{sec:boussinesq}
 
 The Boussinesq approximation assumes that the density can be
 considered constant in all occurrences in the equations with the exception of
@@ -1649,19 +1740,19 @@ $\rho_0$ that is attained at temperature $T_0$. Since the thermal expansion is
 considered small, this naturally leads to the following variant of the the Boussinesq
 model discussed above:
 \begin{align}
-  \label{eq:stokes-1-boussinesq-linear}
+  \label{eq:stokes-1-Boussinesq-linear}
   -\nabla \cdot \left[2\eta \varepsilon(\mathbf u)
                 \right] + \nabla p' &=
   -\alpha\rho_0 T \mathbf g
   & \qquad
   & \textrm{in $\Omega$},
   \\
-  \label{eq:stokes-2-boussinesq-linear}
+  \label{eq:stokes-2-Boussinesq-linear}
   \nabla \cdot \mathbf u &= 0
   & \qquad
   & \textrm{in $\Omega$},
   \\
-  \label{eq:temperature-boussinesq-linear}
+  \label{eq:temperature-Boussinesq-linear}
   \rho_0 C_p \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla T\right)
   - \nabla\cdot k\nabla T
   &=
@@ -1670,14 +1761,14 @@ model discussed above:
   & \textrm{in $\Omega$}.
 \end{align}
 Note that the right hand side forcing term
-in \eqref{eq:stokes-1-boussinesq-linear} is now only the deviation of the
+in \eqref{eq:stokes-1-Boussinesq-linear} is now only the deviation of the
 gravitational force from the force that would act if the material were at
 temperature $T_0$.
 
 Under the assumption that all other coefficients are constant, one then
 arrives at equations in which the only nonlinear term is the advection term,
 $\mathbf u \cdot \nabla T$ in the temperature equation
-\eqref{eq:temperature-boussinesq-linear}. This facilitates the use of a
+\eqref{eq:temperature-Boussinesq-linear}. This facilitates the use of a
 particular class of time stepping schemes in which one does not solve the whole
 set of equations at once, iterating out nonlinearities as necessary, but
 instead in each time step solves first the Stokes system with the previous
@@ -1784,7 +1875,8 @@ We provide the following options, which can be selected in the parameter file in
  \nabla \cdot \textbf{u} = -\frac{1}{\rho} \frac{\partial \rho}{\partial p} \rho \textbf{g} \cdot \textbf{u},
 \]
 where $\frac{1}{\rho} \frac{\partial \rho}{\partial p} = \kappa$ is the compressibility, and 
-is defined in the material model. 
+is defined in the material model. This is the explicit compressible mass equation where 
+the velocity $\textbf{u}$ on the right-hand side is an extrapolated velocity from the last timesteps.
 
 \item
 ``reference density profile'':
@@ -1793,18 +1885,19 @@ is defined in the material model.
 \]
 where the reference profiles for the density $\bar{\rho}$ and the density gradient $\frac{\partial \bar{\rho}}{\partial z}$
 provided by the adiabatic conditions model (\ref{sec:adiabatic})
-are used. Note that the
-gravity is assumed to point downwards in depth direction.
+are used. Note that the gravity is assumed to point downwards in depth direction.
+This is the explicit mass equation where the velocity $\textbf{u}$ on the right-hand 
+side is an extrapolated velocity from the last timesteps.
 
 \item
 ``implicit reference density profile'':
 \[
- \nabla \cdot \textbf{u} + \frac{1}{\bar{\rho}} \frac{\partial \bar{\rho}}{\partial z} \frac{\textbf{g}}{g} \cdot \textbf{u} = 0,
+ \nabla \cdot \textbf{u} + \frac{1}{\bar{\rho}} \frac{\partial \bar{\rho}}{\partial z} \frac{\textbf{g}}{\|\textbf{g}\|} \cdot \textbf{u} = 0,
 \]
 which uses the same approximation for the density as ``reference density profile'', 
 but implements this term on the left-hand side instead of the right-hand side of the mass
 conservation equation. This effectively uses the current velocity $\textbf{u}$ instead
-of an extrapolated velocity from the last timesteps.
+of an explicitly extrapolated velocity from the last timesteps.
 
  \item 
 ``ask material model'', which uses ``isothermal compression'' if the material model reports 
@@ -1912,13 +2005,13 @@ or with a material model that defines a density that depends on temperature and 
 (Section~\ref{sec:tala}).
 
 \item
-``boussinesq approximation'': This formulation sets the mass conservation approximation to ``incompressible'', 
+``Boussinesq approximation'': This formulation sets the mass conservation approximation to ``incompressible'', 
 the temperature equation approximation to ``reference density profile'' and checks that neither
 adiabatic nor shear heating are included in the list of heating plugins used in the model. 
 The default setting for the adiabatic conditions is a constant temperature, and hydrostatic
 pressure and density profiles. This option should be chosen together with a material model 
 that defines a density that only depends on temperature and depth (and not on the pressure).
-This is equivalent to the Boussinesq approximation (Section~\ref{sec:boussinesq}).
+This is equivalent to the Boussinesq approximation (Section~\ref{sec:Boussinesq}).
 
 \item
 ``isothermal compression'': This formulation sets the mass conservation approximation to 
@@ -1982,7 +2075,7 @@ After this mesh velocity is calculated, the mesh vertices are time-stepped expli
 This scheme has the effect of choosing a minimally distorting perturbation to the mesh.
 Because the mesh velocity is no longer zero in the ALE approach, we must then correct
 the Eulerian advection terms in the advection system with the mesh velocity (see, e.g.
-\cite{DHPR2004}).  For instance, the temperature equation \eqref{eq:temperature-boussinesq-linear}
+\cite{DHPR2004}).  For instance, the temperature equation \eqref{eq:temperature-Boussinesq-linear}
 becomes
 
 \begin{equation*}
@@ -2061,7 +2154,7 @@ on porosity are $\eta = (1-\phi) \eta_0 e^{-\alpha_\phi \phi}$ with $\alpha_\phi
 $\xi = \eta_0 \phi^{-n}$ with $n \approx 1$.
 
 To avoid the density gradients in Equation~\eqref{eq:stokes-2-melt}, which would have to be specified individually 
-for each material model by the user, we can use the same method as for the mass conservation (described in Section~\ref{sec:boussinesq}) and assume the change in solid density is dominated by the change in static pressure, 
+for each material model by the user, we can use the same method as for the mass conservation (described in Section~\ref{sec:Boussinesq}) and assume the change in solid density is dominated by the change in static pressure, 
 which can be written as
 $\nabla p_s \approx \nabla p_\text{static} \approx \rho_s \textbf{g}$.
 This finally allows us to write
@@ -2072,7 +2165,7 @@ This finally allows us to write
 \approx \frac{1}{\rho_s} \frac{\partial \rho_s}{\partial p_s} \rho_s \textbf{g}
 \approx \kappa_s \rho_s \textbf{g}. 
 \end{equation*}
-For the fluid pressure, choosing a good approximation depends on the model parameters and setup (see \cite{DH2015}). 
+For the fluid pressure, choosing a good approximation depends on the model parameters and setup (see \cite{dannberg_melt}). 
 Hence, we make $\nabla \rho_{f}$ a model input parameter, which can be adapted based on the forces that are expected 
 to be dominant in the model. 
 We can then replace the second equation by
@@ -2141,7 +2234,7 @@ so we get
 + (1 - \phi) (\nabla \cdot \mathbf{u}_s + \kappa_s \rho_s \textbf{g} \cdot \mathbf{u}_s ).
 \end{equation*}
 
-More details on the implementation can be found in \cite{DH2015}. A benchmark case demonstrating the propagation of solitary waves can be found in Section~\ref{sec:benchmark-solitary_wave}.
+More details on the implementation can be found in \cite{dannberg_melt}. A benchmark case demonstrating the propagation of solitary waves can be found in Section~\ref{sec:benchmark-solitary_wave}.
 
 \subsection{Nullspace removal}
 
@@ -2261,17 +2354,282 @@ $\mathbf g_m$ in ways that also allows for impulse (delta) functions in time.
 How particles are used in practice is probably best explained using examples. To
 this end, see in particular Section~\ref{sec:cookbooks-particles}. All
 particle-related input parameters are listed in
-Section~\ref{parameters:Postprocess/Tracers}. The implementation of particles is
+Section~\ref{parameters:Postprocess/Particles}. The implementation of particles is
 discussed in great detail in \cite{GHPB17}.
 
 
 \section{Installation}
 \label{sec:installation}
 
-This is a brief explanation of how to install all the required software and
-\aspect{} itself.
+There are three distinct ways to install ASPECT -- compilation
+from source, installing a virtual machine, and using a Docker container --
+each providing distinct advantages and disadvantages. In this section we
+describe all three options and start with a summary of their properties to
+guide users to an informed decision about the best option for their purpose.
 
-\subsection{System prerequisites}
+\begin{table}[htb]
+  \center
+  \begin{tabular}{|c|ccc|}
+    \hline
+    Feature & Compile \& Install & Virtual Machine & Docker Container \\
+    \hline
+    Speed overhead          & 0\%   & 30\%     & 0--5\%    \\
+    Disk overhead           & 0~GB  & 1~GB     & 200~MB       \\
+    Knowledge required      & Much  & Very Little & Little    \\
+    Root privileges required & No   & No (installed VM software) & Partially  \\
+    Embedded in native environment & Yes & No  & Partially    \\
+    MacOS support           & Yes   & Yes      & Yes    \\
+    Windows support         & No    & Yes      & Yes    \\
+    Local parallelization   & Yes   & Yes      & Yes            \\ 
+    Massively parallel computations & Yes & No & No \\ 
+    Modifying ASPECT        & Possible & Possible & Possible \\
+    Configuring dependencies & Possible & No   & No \\ \hline
+  \end{tabular}
+  \caption{Features of the different installation options of \aspect{}.}
+  \label{tab:install-options}
+\end{table}
+
+The available options can be best presented in form of typical use cases:
+
+\begin{enumerate}
+\item Virtual Machine (\aspect{} beginner and tutorial participant): The
+virtual machine image provides a fully prepared user environment that contains
+installations of \aspect{}, all required libraries, and visualization software
+on top of a full Linux environment. This way beginning users and tutorial
+participants can work in a unified  environment, thus minimizing installation
+time and technical problems. Due to the overhead of virtualizing a full
+operating system this installation typically needs more space, and is
+approximately 30~\% slower than a native installation. Additionally working in a
+virtual machine `feels' differently from working in your usual desktop
+environment. The virtual machine can be run on all host operating systems that
+can run a virtualization software like VirtualBox (e.g. Linux, Apple MacOS,
+Microsoft Windows).
+
+\item Docker Container (advanced user with no need to configure/change the
+underlying libraries, possibly changing parts of \aspect): Docker containers are
+lightweight packages that only encapsulate the minimal dependencies to run an
+application like \aspect{} on top of the host operating system. They allow easy
+installation and usage of \aspect{} in a unified environment, while relying on
+the user's operating system to provide visualization software and model input
+data. When compared to the virtual machine it is simple to exchange files
+between the host operating system and the docker container, and it provides the
+benefit to work in the desktop environment you are used to. They have very
+little overhead in terms of memory and speed compared to virtual machines, and
+allow for reproducible computations. The container is set up with a standard
+\aspect{} installation, but this can be modified by advanced users (source code
+development within the container is possible).
+
+\item Compile \& Install (advanced users and developers with the need to
+reconfigure underlying libraries or running massively parallel models): The most
+advanced option is to compile and install \aspect{} from source. This allows
+maximal control over the underlying libraries like \trilinos{} and \dealii{}, as
+well as easy modifications to \aspect{} by recompiling a modified source
+directory. Our installation instructions cover most Linux and MacOS operating
+systems, but incompatibilities on individual systems can always occur and make
+the installation more cumbersome. If you are planning to run massively parallel
+computations on a compute cluster this is likely your only option. Since
+clusters usually have a very individual setup, it is always a good idea to ask
+IT support staff for help when installing \aspect{}, to avoid hard to reproduce
+setup problems, and performance penalties.
+\end{enumerate}
+
+\subsection{Docker Container}
+
+\subsubsection{Installing Docker and downloading the \aspect{} image}
+
+Docker is a lightweight virtualization software that allows to ship
+applications with all their dependencies in a simple way. It is outside of the
+scope of this manual to explain all possible applications of Docker, and we
+refer to the introduction (\url{https://www.docker.com/what-docker}) and
+installation and quickstart guides
+(\url{https://www.docker.com/products/docker}) on the Docker website for more
+detailed descriptions of how to set up and use the docker engine. More
+importantly Docker provides a marketplace for exchanging prepared docker images
+(called Docker Hub). After setting up the docker engine downloading a
+precompiled \aspect{} image from Docker Hub is as simple as typing in a
+terminal:
+
+\begin{lstlisting}[frame=single,language=ksh]
+docker pull gassmoeller/aspect
+\end{lstlisting}
+
+Note that the transfer size of the compressed image containing \aspect{} and
+all its dependencies is about 900~MB. When extracted the image requires about
+3.2~GB of disk space.
+
+\subsubsection{Running \aspect{} models}
+Although it is possible to use the downloaded \aspect{} docker image in a
+number of different ways, we recommend the following workflow:
+
+\begin{enumerate}
+\item Create your \aspect{} input file in a folder of your choice (possibly
+also containing any input data that is required by your model) and navigate in a
+terminal into that directory.
+\item Run the docker image and mount the current directory as a read-only
+volume into the docker container\footnote{Note that it is possible to mount a
+directory as writeable into the container. However, this is often associated
+with file permission conflicts between the host system and the container.
+Therefore, we recommend this slightly more cumbersome, but also more reliable
+workflow.}. This is accomplished by specifying the -v flag followed by
+the absolute path on the host machine, colon, absolute path within the docker
+container, colon, and specifying read-only permissions as in the example below.
+
+Make sure your parameter file specifies a model output directory \textit{other}
+than the input directory, e.g. \texttt{/home/dealii/aspect/model\_output}. When
+you have started the container run the aspect model inside the container. Note
+that there are two \aspect{} executables in the work directory of the container:
+\texttt{aspect} and \texttt{aspect-release}. For a discussion of the
+different versions see Section~\ref{sec:debug-mode}, in essence: You should run
+\texttt{aspect} first to check your model for errors, then run
+\texttt{aspect-release} for a faster model run.
+
+To sum up, the steps you will want to execute are:
+\begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
+docker run -it -v "$(pwd):/home/dealii/aspect/model_input:ro" \
+  gassmoeller/aspect:latest bash
+\end{lstlisting}
+
+Within the container, simply run your model by executing:
+
+\begin{lstlisting}[frame=single,language=ksh]
+./aspect model_input/your_input_file.prm
+\end{lstlisting}
+
+\item After the model has finished (or during the model run if you want to check
+intermediate results) copy the model output out of the container into your
+current directory. For this you need to find the name or ID of the docker
+container by running \texttt{docker ps -a} in a separate terminal first. Look
+for the most recently started container to identify your current \aspect{}
+container.
+
+Commands that copy the model output to the current directory could be:
+\begin{lstlisting}[frame=single,language=ksh]
+docker ps -a # Find the name of the running / recently closed container in the output
+docker cp CONTAINER_NAME:/home/dealii/aspect/model_output .
+\end{lstlisting}
+
+\item The output data is saved inside your container even after the computation
+finishes and even when you stop the container. After you have copied the data
+out of the container you should therefore delete the container to avoid
+duplication of output data. Even after deleting you will always be able to start
+a new container from the downloaded image following step 2. Deleting the
+finished container can be achieved by the \texttt{docker container prune}
+command that removes any container that is not longer running.
+\note{If you own other finished containers that you want to keep use
+\texttt{docker container rm CONTAINER\_NAME} to only remove the container named
+\texttt{CONTAINER\_NAME}.}
+
+To remove all finished containers use the following command:
+\begin{lstlisting}[frame=single,language=ksh]
+docker container prune
+\end{lstlisting}
+Alternatively only remove a particular container:
+\begin{lstlisting}[frame=single,language=ksh]
+docker container rm CONTAINER_NAME
+\end{lstlisting}
+\end{enumerate}
+
+You are all set. Repeat steps 1-4 of this process as necessary when updating
+your model parameters. 
+
+\subsubsection{Developing \aspect{} within a container}
+
+The above given workflow does not include advice on how to modify \aspect{}
+inside the container. We recommend a slightly different workflow for advanced
+users that want to modify parts of \aspect{}. The \aspect{} docker container
+itself is build on top of a \dealii{} container that contains all dependencies
+for compiling \aspect{}. Therefore it is possible to run the deal.II container,
+mount an \aspect{} source directory from your host system and compile it inside
+of the container. An example workflow could look as following (assuming you
+navigated in a terminal into the modified \aspect{} source folder):
+
+\begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
+docker pull dealii/dealii:v8.5.pre.4-gcc-mpi-fulldepsmanual-debugrelease
+docker run -it -v "$(pwd):/home/dealii/aspect:ro" \
+  dealii/dealii:v8.5.pre.4-gcc-mpi-fulldepsmanual-debugrelease bash
+\end{lstlisting}
+
+Inside of the container you now find a read-only \aspect{} directory that
+contains your modified source code. You can compile and run a model inside the
+container, e.g. in the following way:
+
+\begin{lstlisting}[frame=single,language=ksh]
+mkdir aspect-build
+cd aspect-build
+cmake -DCMAKE_BUILD_TYPE=Debug -DDEAL_II_DIR=$HOME/deal.II-install $HOME/aspect
+./aspect $HOME/aspect/cookbooks/shell_simple_2d.prm
+\end{lstlisting}
+
+To avoid repeated recompilations of the \aspect{} source folder we recommend to
+reuse the so prepared container instead of starting new containers based on the
+\dealii{} image. This can be achieved by the following commands outside of the
+container:
+
+\begin{lstlisting}[frame=single,language=ksh]
+docker ps -a # Find the name of the running / recently closed container in the output
+docker restart CONTAINER_NAME
+docker attach CONTAINER_NAME
+\end{lstlisting}
+
+For more information on the differences between using images and containers,
+and how to attach additional terminals to a running container, we refer to the
+docker documentation (e.g.
+\url{https://docs.docker.com/engine/getstarted/step_two/}).
+
+\subsection{Virtual Machine}
+
+\subsubsection{Installing VM software and setting up the virtual machine}
+
+The \aspect{} project provides an experimental virtual machine containing a
+fully configured version of \aspect{}. To use this machine, you will need to
+install VirtualBox (\url{http://www.virtualbox.org/}) on your machine, and then
+import a virtual machine image that can be downloaded from
+\url{http://www.math.clemson.edu/~heister/dealvm/}. Note, however, that the
+machine image is several gigabytes in size and downloading will take a while.
+After downloading and installing the virtual image it is convenient to set up a
+shared folder between your host system and the virtual machine to exchange model
+files and outputs.
+
+\subsubsection{Running \aspect{} models}
+
+The internal setup of the virtual machine is similar to the Docker container
+discussed above, except that it contains a full-featured desktop environment.
+Also note that the user name is \texttt{ubuntu}, not \texttt{dealii} as in the
+Docker container. Again there are multiple ways to use the virtual machine, but
+we recommend the following workflow:
+
+\begin{enumerate}
+\item Create your \aspect{} input file in the shared folder and start the
+virtual machine.
+\item Navigate in a terminal to your model directory.
+\item Run your model using the provided \aspect{} executable:
+
+\begin{lstlisting}[frame=single,language=ksh]
+~/aspect/aspect your_input_file.prm
+\end{lstlisting}
+
+\item The model output should automatically appear on your host machine in the
+shared directory.
+
+\item After you have verified that your model setup is correct, you might want
+to consider recompiling \aspect{} in release mode to increase the speed of the
+computation. See Section~\ref{sec:debug-mode} for a discussion of debug and
+release mode.
+
+\item Visualize your model output either inside of the virtual machine
+(ParaView and VisIt are pre-installed), or outside on your host system.
+\end{enumerate}
+
+You are all set. Repeat steps 1-6 of this process as necessary when updating
+your model parameters. 
+
+\subsection{Local installation}
+
+This is a brief explanation of how to compile and install all the required software and
+\aspect{} itself. This installation procedure guarantees fastest runtimes, and largest flexibility,
+but might reveal incompatibilities with existing system libraries.
+
+\subsubsection{System prerequisites}
 
 In order to install \aspect{} and its dependencies, you should
 have your system set up to be able to compile and link programs. Additionally,
@@ -2306,7 +2664,7 @@ sudo apt-get install build-essential \
                      zlib1g-dev
 \end{verbatim}
 
-\subsection{Software prerequisites}
+\subsubsection{Software prerequisites}
 
 \aspect{} builds on a few other libraries that are widely used in the
 computational science area and that provide most of the lower-level
@@ -2338,16 +2696,6 @@ prerequisites:
     p4est installation instructions}. This is done using the
   {\tt{p4est-setup.sh}}; do not use the \pfrst{} stand-alone installation
   instructions.
-
-%\item  \textit{\dealii{}:}
-%  The current version of \aspect{} requires features of \dealii{} that have
-%  been developed after the 7.1 release. Since at the time of writing,
-%  \dealii{} 7.2 has not yet appears, we currently require the development
-%  version of \dealii{}, which can be obtained by running
-%\begin{verbatim}
-% svn checkout https://svn.dealii.org/trunk/deal.II
-%\end{verbatim}
-%  Once \dealii{} 7.2 is available, this will suffice as well.
 
 \item \textit{\dealii{}:}
   The current version of \aspect{} requires \dealii{} version 8.4.0 or later.
@@ -2393,7 +2741,7 @@ cmake -DDEAL_II_WITH_MPI=ON \
 \end{enumerate}
 
 
-\subsection{Obtaining \aspect{} and initial configuration}
+\subsubsection{Obtaining \aspect{} and initial configuration}
 
 The development version of \aspect{} can be downloaded by executing the command
 \begin{verbatim}
@@ -2416,7 +2764,7 @@ specify an install directory using -DCMAKE\_INSTALL\_PREFIX. The
 instructions in the following sections assume an in-source build, so you need
 to adapt the location of the \aspect{} binary.
 
-\subsection{Compiling \aspect{} and generating documentation}
+\subsubsection{Compiling \aspect{} and generating documentation}
 \label{sec:compiling}
 
 After downloading \aspect{} and having built the libraries it builds on, you
@@ -2438,7 +2786,7 @@ installed. Most Linux distributions have packages for \texttt{doxygen}. The
 result will be the file \url{doc/doxygen/index.html} that is the starting
 point for exploring the documentation.
 
-\subsection{Compiling a static \aspect{} executable}
+\subsubsection{Compiling a static \aspect{} executable}
 \aspect{} defaults to a dynamically linked executable, which saves disk space and build time. In some circumstances however, it is preferred to generate a statically linked executable that incorporates all used libraries. This need may arise on large clusters on which libraries and loaded modules/variables on login nodes may be different from the ones available on compute nodes. The general build procedure in such a case equals the above explained instructions with the following differences:
 \begin{enumerate}
 \item \textit{Trilinos}: Add the following lines to your cmake call:
@@ -2460,7 +2808,7 @@ point for exploring the documentation.
 
 The here mentioned build was tested on a Cray XC30 cluster, which was set up for default static compiling and linking. On machines that default to dynamic linking additional compiler and/or linker flags may be required (e.g. "-fPIC" / "--static"). In case of questions send an email to the mailing list.
 
-\subsection{Installing and running \aspect{} on Mac OS X}
+\subsubsection{Installing and running \aspect{} on Mac OS X}
 OS X has some eccentricities which can complicate installation of \aspect{}. Currently the easiest and most reliable way to run \aspect{} under Mac OS X Mavericks (10.9), Yosemite (10.10) and El Capitan (10.11) is to install and run the binary package for \dealii{}. The step-by-step process is described in detail, with screenshots, here: \url{https://wiki.geodynamics.org/_media/software:aspect:aspect_yosemite_20150529.pdf}
 
 \begin{enumerate}
@@ -2843,7 +3191,7 @@ The purpose of these files is as follows:
   is essentially a table that allows for the simple production of time
   trends. In the example above, and at the time when we are writing this
   section, it looks like this:
-  \begin{lstlisting}[frame=single,language=ksh]
+  \begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
 # 1: Time step number
 # 2: Time (years)
 # 3: Iterations for Stokes solver
@@ -2914,8 +3262,10 @@ Section~\ref{sec:cookbooks-particles} for an example of how this looks like.
 \subsection{Selecting between 2d and 3d runs}
 \label{sec:2d-vs-3d}
 
-\aspect{} can solve both two- and three-dimensional problems. You
-select which one you want by putting a line like the following into
+\aspect{} can solve both two- and three-dimensional problems.%
+\footnote{For a description of what exactly we mean when we consider
+two-dimensional models, see Section~\ref{sec:meaning-of-2d}.}
+You select which one you want by putting a line like the following into
 \index[prmindex]{Dimension}
 \index[prmindexfull]{Dimension}
 the parameter file (see Section~\ref{sec:parameters}):
@@ -3195,7 +3545,7 @@ a file called \texttt{statistics} in the output directory that, at the time
 of writing this, looked like this:
 This file has a structure that looks (at the time of writing this section)
 like this:
-\begin{lstlisting}[frame=single,language=ksh]
+\begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
 # 1: Time step number
 # 2: Time (seconds)
 # 3: Number of mesh cells
@@ -3246,7 +3596,7 @@ It is extensively documented at \url{http://www.gnuplot.info/}.
 \texttt{Gnuplot} is a command line program in which you enter commands that
 plot data or modify the way data is plotted. When you call it, you will first
 get a screen that looks like this:
-\begin{lstlisting}[frame=single]
+\begin{lstlisting}[frame=single,showstringspaces=false]
 /home/user/aspect/output gnuplot
 
         G N U P L O T
@@ -3268,7 +3618,7 @@ description of the individual columns given above, let us first try to
 plot the heat flux through boundary 2 (the bottom
 boundary of the box), i.e., column 19, as a function of time (column 2).
 This can be achieved using the following command:
-\begin{lstlisting}[frame=single,language=gnuplot]
+\begin{lstlisting}[frame=single,language=gnuplot,showstringspaces=false]
   plot "statistics" using 2:19
 \end{lstlisting}
 The left panel of Fig.~\ref{fig:viz-gnuplot-1} shows what \texttt{Gnuplot}
@@ -3281,7 +3631,7 @@ $[-10:10]$,
 plot not only the flux through the bottom but also through the top boundary
 (column 20) and finally add a key to the figure, then the following
 commands achieve this:
-\begin{lstlisting}[frame=single,language=gnuplot]
+\begin{lstlisting}[frame=single,language=gnuplot,showstringspaces=false]
   set xlabel "Time"
   set ylabel "Heat flux"
   set style data linespoints
@@ -3313,7 +3663,7 @@ different ways. For example, one can abbreviate most commands. Furthermore,
 one does not need to repeat the name of an input file if it is the same
 as the previous one in a plot command. Thus, instead of the commands above,
 the following abbreviated form would have achieved the same effect:
-\begin{lstlisting}[frame=single,language=gnuplot]
+\begin{lstlisting}[frame=single,language=gnuplot,showstringspaces=false]
   se xl "Time"
   se yl "Heat flux"
   se sty da lp
@@ -3327,7 +3677,7 @@ want to save it into a file. \texttt{Gnuplot} can write output in many
 different formats. For inclusion in publications, either \texttt{eps} or
 \texttt{png} are the most common. In the latter case, the commands to
 achieve this are
-\begin{lstlisting}[frame=single,language=gnuplot]
+\begin{lstlisting}[frame=single,language=gnuplot,showstringspaces=false]
   set terminal png
   set output "heatflux.png"
   replot
@@ -3585,7 +3935,7 @@ The default settings of \aspect{} use quadratic finite elements for the
 velocity. Given that the temperature and compositional fields essentially (up
 to material parameters) satisfy advection equations of the kind $\partial_t T +
 \mathbf u \cdot \nabla T = \ldots$, it seems appropriate to also use quadratic
-finite elemen shape functions for the temperature and compositional fields.
+finite element shape functions for the temperature and compositional fields.
 
 However, this is not mandatory. If you do not care about high accuracy in these
 fields and are mostly interested in the velocity or pressure field, you can
@@ -3825,7 +4175,80 @@ an if-statement that has the general form
 the syntax understood, reference the documentation of the muparser library
 linked to above.
 
+  
+\subsection{A graphical user interface for editing \aspect{} parameter files}
+Preparing a parameter file in a text editor can be a tedious task, not
+only because the number of input parameters has grown considerably during the
+development of \aspect{}, but also because remembering the names of commonly
+used options is a waste of (human) memory. Therefore, we provide a graphical
+user interface that builds upon an available program for \dealii{}. This GUI
+allows to investigate existing input parameters, including their default values, modify
+these values in a spreadsheet like environment and then save a formatted 
+parameter file that can be used to start an ASPECT model. In the following
+subsections we describe installing and using this user interface. 
 
+\subsubsection{Installing parameter-GUI}
+The \dealii{} parameter-GUI program can be downloaded at \url{https://github.com/dealii/parameter_gui},
+and is compiled using the \texttt{cmake} program just like \aspect{} itself. The program has no
+dependencies except for the Qt development libraries that should be available as packages for 
+most Linux distributions and can also be obtained for all major operating systems at
+\url{https://www.qt.io/download-open-source/}.
+
+Example steps for installing the parameter-gui could look as follows:
+\begin{enumerate}
+\item Download the program from \url{https://github.com/dealii/parameter_gui}.
+\item Prepare a Makefile by running \texttt{cmake .} in the source folder.
+\item Compile the program by running \texttt{make}.
+\item Make sure to set the environment variable \texttt{PARAMETER\_GUI\_DIR} 
+to the directory that contains the parameter-GUI executable (optional). 
+This will allow \aspect{} to automatically enable the GUI during configuration.
+\end{enumerate}
+
+\paragraph{Installing on macOS} On a mac machine with recent macOS Sierra 10.12.4, Qt development libraries of version 4.x.x at the libraries' official website \url{https://www.qt.io/download-open-source/} may fail to install.  Alternatively, you can install \texttt{qt4} through Homebrew (also see instruction here \url{https://github.com/cartr/homebrew-qt4})
+\begin{verbatim}
+brew tap cartr/qt4
+brew tap-pin cartr/qt4
+brew install qt@4
+\end{verbatim}
+or install it through Mac Ports (\url{https://www.macports.org/})
+\begin{verbatim}
+sudo port install qt4-mac
+\end{verbatim}
+Then you can follow the Linux user instructions provided previously to download and install dealii parameter-GUI. 
+Before running \texttt{cmake .}, you may need to either pass the path of \texttt{qt4} and specify the value of variable \texttt{QT\_LIBRARIES} to the directory that contains the libraries of \texttt{qt4}
+or add those information into your \texttt{.bash\_profile}. For example, for installation through Mac Ports, you can set the following into your \texttt{.bash\_profile}
+\begin{verbatim}
+export PATH="$PATH:/opt/local/libexec/qt4"
+export QT_LIBRARIES="/opt/local/libexec/qt4"
+\end{verbatim}
+
+
+
+
+\subsubsection{Using \aspect{}-GUI}
+
+When configuring \aspect{} after executing the above steps, it should automatically pick up the
+location of the parameter-GUI, and will create a new script named \texttt{aspect-gui} within the build folder.
+If this does not happen, it is possible to hand over the location of the parameter-GUI as a cmake
+variable during configuration (e.g. \texttt{cmake -D PARAMETER\_GUI\_EXECUTABLE=path\_to\_your\_executable}).
+
+The aspect-gui script can be executed from any folder either with no argument or with one argument that contains the path to
+an existing parameter file. The script will run \aspect{} with the given (or an empty) parameter file, generate a database
+of existing input parameters, and open the parameter-GUI program with this database. The resulting window looks similar to Fig.~\ref{fig:aspect-gui}. If an existing parameter file was
+given, all parameter fields are pre-filled with the values set in the file instead of the default values.
+In the program's main window you can change parameters as necessary, and then save the file as a new parameter file. This parameter file can then be used
+to start an \aspect{} model as usual. Note that it is possible to prepare and execute the parameter file with different versions of \aspect{}, e.g. if you prepare parameter files on a local machine, and execute the model on a remote compute cluster.
+Note however that if the two \aspect{} versions contain different default values or parameter names have changed, this can lead
+to unexpected model behavior or even unusable parameter files.
+
+\begin{figure}
+\hfill
+\includegraphics[width=0.4\textwidth]{aspect-gui.png}
+\hfill
+\phantom.
+\caption{\it The parameter GUI lists all available parameter options, and allows to change and save them into a new parameter file. Input fields know about the type of the variable and will display useful options to change them (e.g. drop-down menus, file dialogs, text fields).}
+\label{fig:aspect-gui}
+\end{figure}
 
 \section{Cookbooks}
 \label{sec:cookbooks}
@@ -4007,7 +4430,7 @@ is well understood:
   heat from the bottom to the top boundaries. The simulations we will set up
   operates in this regime. Specifically, we will choose $Ra=10^4$.
 
-  On the other hand, if the Rayleigh number becomes even larger, a serious of
+  On the other hand, if the Rayleigh number becomes even larger, a series of
   period doublings starts that makes the system become more and more unstable.
   We will investigate some of this behavior at the end of this section.
 
@@ -4509,7 +4932,7 @@ the bottom and top, the following will make sense:
 
 
 The next step is to describe the initial conditions. As before, we will use an
-instably layered medium but the perturbation now needs to be both in $x$- and
+unstably layered medium but the perturbation now needs to be both in $x$- and
 $y$-direction
 \lstinputlisting[language=prmfile]{cookbooks/convection-box-3d/initial.part.prm.out}
 
@@ -4653,7 +5076,7 @@ shows the negative of the values available in the statistics file.}
 The figure reinforces a pattern that can also be seen by watching the movie of
 the temperature field referenced above, namely that the simulation can be
 subdivided into three distinct phases. The first phase corresponds to the
-initial overturning of the instable layering of the temperature field and is
+initial overturning of the unstable layering of the temperature field and is
 associated with a large spike in heat flux as well as large velocities (not
 shown here). The second phase, until approximately $t=0.01$ corresponds to a
 relative lull: some plumes rise up, but not very fast because the medium is now
@@ -4900,14 +5323,14 @@ the transition from red or blue to the edge of the shown region is no
 wider than 3 cells. This means that the computation is not overly
 diffusive but it is nevertheless true that this method has difficulty
 following long and thin filaments.%
-\footnote{We note that this is no different for tracers where the
-  position of tracers has to be integrated over time and is subject to
+\footnote{We note that this is no different for particles where the
+  position of particles has to be integrated over time and is subject to
   numerical error. In simulations, their location is therefore not the
   exact one but also subject to a diffusive process resulting from
   numerical inaccuracies. Furthermore, in long thin filaments, the
-  number of tracers per cell often becomes too small and new tracers
+  number of particles per cell often becomes too small and new particles
   have to be inserted; their properties are then interpolated from the
-  surrounding tracers, a process that also incurs a smoothing penalty.}
+  surrounding particles, a process that also incurs a smoothing penalty.}
 This is an area in which \aspect{} may see improvements in the future.
 
 
@@ -4920,7 +5343,7 @@ This is an area in which \aspect{} may see improvements in the future.
 \end{figure}
 
 A different way of looking at the quality of compositional fields as opposed to
-tracers is to ask whether they conserve mass. In the current context, the
+particles is to ask whether they conserve mass. In the current context, the
 mass contained in the $i$th compositional field is $m_i(t)=\int_\Omega c_i(\mathbf x,t)$.
 This can easily be achieve in the following way, by adding the \texttt{composition statistics}
 postprocessor:
@@ -5104,7 +5527,7 @@ of the domain ascends, reaches the reaction depth and gets converted to the seco
 
 
 
-\subsubsection{Using tracer particles}
+\subsubsection{Using particles}
 \label{sec:cookbooks-particles}
 
 Using compositional fields to trace where material has come from or is going to
@@ -5117,32 +5540,32 @@ is that the value of a compositional field is well defined at every point within
 the domain. On the other hand, compositional fields over time diffuse initially
 sharp interfaces, as we have seen in the images of the previous section.
 
-At the same time, the geodynamics community has a history of using tracers for
+At the same time, the geodynamics community has a history of using particles for
 this purpose. Historically, this may have been because it is conceptually
 simpler to advect along individual particles rather than whole fields, since it
 only requires an ODE integrator rather than the stabilization techniques
 necessary to advect fields. They also provide the appearance of no diffusion,
 though this is arguable. Leaving aside the debate whether fields or particles are the
-way to go, \aspect{} supports both: using fields and using tracers.
+way to go, \aspect{} supports both: using fields and using particles.
 
-In order to advect tracer particles along with the flow field, one just needs to
-add the \texttt{tracers} postprocessor to the list of postprocessors and specify
+In order to advect particles along with the flow field, one just needs to
+add the \texttt{particles} postprocessor to the list of postprocessors and specify
 a few parameters. We do so in the
-\url{cookbooks/composition-passive-tracers.prm} input file, which is otherwise
+\url{cookbooks/composition-passive-particles.prm} input file, which is otherwise
 just a minor variation of the \url{cookbooks/composition-passive.prm} case
 discussed in the previous Section~\ref{sec:cookbooks-composition}. In
 particular, the postprocess section now looks like this:
 
-\index[prmindex]{Number of tracers}
-\index[prmindexfull]{Postprocess!Tracers!Number of tracers}
+\index[prmindex]{Number of particles}
+\index[prmindexfull]{Postprocess!Particles!Number of particles}
 
-\lstinputlisting[language=prmfile]{cookbooks/composition-passive-tracers/tracer.part.prm.out}
+\lstinputlisting[language=prmfile]{cookbooks/composition-passive-particles/particles.part.prm.out}
 
 The 1000 particles we are asking here are initially uniformly distributed
 throughout the domain and are, at the end of each time step, advected along with
 the velocity field just computed. (There are a number of options to decide which
 method to use for advecting particles, see
-Section~\ref{parameters:Postprocess/Tracers}.) 
+Section~\ref{parameters:Postprocess/Particles}.) 
 
 If you run this cookbook, information about all particles will be written into
 the output directory selected in the input file (as discussed in
@@ -5180,14 +5603,14 @@ that correspond to particles (for example, \texttt{output/solution.visit} and
 for the particles, selecting the ``id'' of particles to color each particle.
 By going to, for example, the output from the 72nd visualization output, this
 then results in a plot like the one shown in
-Fig.~\ref{fig:composition-passive-tracers}.
+Fig.~\ref{fig:composition-passive-particles}.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.5\textwidth]{cookbooks/composition-passive-tracers/solution-00072.png}
+  \includegraphics[width=0.5\textwidth]{cookbooks/composition-passive-particles/solution-00072.png}
   \caption{\it Passively advected quantities visualized through both a
   compositional field and a set of 1,000 particles, at $t=7.2$.}
-  \label{fig:composition-passive-tracers}
+  \label{fig:composition-passive-particles}
 \end{figure}
 
 The particles shown here are not too impressive in still pictures since they are
@@ -5212,9 +5635,9 @@ In any case, we will see in the next section how to attach more interesting
 information to particles, and how to visualize these.
 
 
-\paragraph{Using tracer properties.}
+\paragraph{Using particle properties.}
 
-The particles in the above example only fulfill the purpose of
+The particles in the above example only fulfil the purpose of
 visualizing the convection pattern. A more meaningful use for
 particles is to attach ``properties'' to them. A property consists of
 one or more numbers (or vectors or tensors) that may either be set at
@@ -5223,21 +5646,21 @@ during the model runtime. These properties can then be used for many
 applications, e.g., storing an initial property (like the position, or
 initial composition), evaluating a property at a defined particle path (like the
 pressure-temperature evolution of a certain piece of rock), or by integrating a
-quantity along a particle parth (like the integrated strain a certain domain has
+quantity along a particle path (like the integrated strain a certain domain has
 experienced).  We illustrate these properties in the cookbook
-\url{cookbooks/composition-passive-tracers-properties.prm}, in which we add the
-following lines to the \texttt{Tracers} subsection (we also increase the number
+\url{cookbooks/composition-passive-particles-properties.prm}, in which we add the
+following lines to the \texttt{Particles} subsection (we also increase the number
 of particles compared to the previous section to make the visualizations below
 more obvious):
 
-\lstinputlisting[language=prmfile]{cookbooks/composition-passive-tracers/tracer-properties.part.prm.out}
+\lstinputlisting[language=prmfile]{cookbooks/composition-passive-particles/particle-properties.part.prm.out}
 
-These commands make sure that every tracer will carry four different
+These commands make sure that every particle will carry four different
 properties (\texttt{function}, \texttt{pT path}, \texttt{initial
   position} and \texttt{initial composition}), some of which may be
 scalars and others can have multiple components. (A full list of
 particle properties that can currently be selected can be found in
-Section~\ref{parameters:Postprocess/Tracers}, and new tracer
+Section~\ref{parameters:Postprocess/Particles}, and new particle
 properties can be added as plugins as described in
 Section~\ref{sec:write-plugin}.) The properties selected above do the following:
 
@@ -5285,14 +5708,14 @@ Section~\ref{sec:write-plugin}.) The properties selected above do the following:
   should behave identical to the compositional field (except that the
   compositional field may have a reaction term that this particle
   property does not), although the two are of course advected using
-  very different methods. This allows to compare the error in tracer
+  very different methods. This allows to compare the error in particle
   position to the numerical diffusion of the compositional field.
 \item \texttt{pT path:} This property is interesting in that the
   particle property's values always exactly mirror the pressure and
   temperature at the particle's current location. This does not seem
   to be very useful since the information is already
-  avaiable. However, because each particle has a unique id, one can
-  select a particular tracer particle and output its properties
+  available. However, because each particle has a unique id, one can
+  select a particular particle and output its properties
   (including pressure and temperature based on the \texttt{pT path}
   property) at all time steps. This allows for the creation of a pressure-temperature curve of a certain piece of rock. This property is interesting in many lithosphere and crustal scale models, because it is determining the metamorphic reactions that happen during deformation processes (e.g., in a subduction zone).
 \end{itemize}
@@ -5301,26 +5724,26 @@ Section~\ref{sec:write-plugin}.) The properties selected above do the following:
   \centering
   \phantom{.}
   \hfill
-  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-tracers-properties/composition-C1.png}
+  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-particles-properties/composition-C1.png}
   \hfill
-  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-tracers-properties/particles-C1.png}
+  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-particles-properties/particles-C1.png}
   \phantom{.}
   \\
   \phantom{.}
   \hfill
-  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-tracers-properties/initial-position-00000.png}
+  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-particles-properties/initial-position-00000.png}
   \hfill
-  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-tracers-properties/initial-position-00199.png}
+  \includegraphics[width=0.45\textwidth]{cookbooks/composition-passive-particles-properties/initial-position-00199.png}
   \phantom{.}
   \caption{\it Passively advected particle properties visualized. Top row:
   Composition $C_1$ and particle property ``initial $C_1$''. The blue line in both
   figures is the 0.5-isocontour for the $C_1$ field. Bottom row: Norm of the
   ``initial position'' of particles at $t=0$ and $t=20$.}
-  \label{fig:composition-passive-tracers-properties}
+  \label{fig:composition-passive-particles-properties}
 \end{figure}
 
 The results of all of these properties can of course be visualized.
-Fig.~\ref{fig:composition-passive-tracers-properties} shows some of the pictures
+Fig.~\ref{fig:composition-passive-particles-properties} shows some of the pictures
 one can create with particles.
 The top row shows both the composition field $C_1$ (along with the mesh on
 which it is defined) and the corresponding ``initial $C_1$'' particle property,
@@ -5335,9 +5758,9 @@ the initial time and at time $t=20$. These images therefore show how far from
 the origin each of the particles shown was at the initial time.
 
 
-\paragraph{Using active tracers.}
-In the examples above, tracer properties passively track distinct
-model properties.  These tracer properties, however, may also be used
+\paragraph{Using active particles.}
+In the examples above, particle properties passively track distinct
+model properties.  These particle properties, however, may also be used
 to actively influence the model as it runs.  For instance, a
 composition-dependent material model may use particles' initial
 composition rather than an advected compositional field. To make this
@@ -5347,15 +5770,15 @@ points at which material models and other parts of the code need to
 evaluate these properties -- we need to somehow get the values from
 particles back to fields that can then be evaluated at any point where
 this is necessary.
-A slightly modified version of the active-composition cookbook (\url{cookbooks/composition-active.prm}) illustrates how to use `active tracers' in this manner.
+A slightly modified version of the active-composition cookbook (\url{cookbooks/composition-active.prm}) illustrates how to use `active particles' in this manner.
 
-This cookbook, \url{cookbooks/composition-active-tracers.prm}, modifies two sections of the input file.  First, tracers are added under the \texttt{Postprocess} section: 
+This cookbook, \url{cookbooks/composition-active-particles.prm}, modifies two sections of the input file.  First, particles are added under the \texttt{Postprocess} section: 
 
-\lstinputlisting[language=prmfile]{cookbooks/composition-active-tracers/tracers.part.prm.out}
+\lstinputlisting[language=prmfile]{cookbooks/composition-active-particles/particles.part.prm.out}
 Here, each particle will carry the \texttt{velocity} and
-\texttt{initial composition} properties.  In order to use the tracer initial composition value to modify the flow through the material model, we now modify the \texttt{Composition} section:
+\texttt{initial composition} properties.  In order to use the particle initial composition value to modify the flow through the material model, we now modify the \texttt{Composition} section:
 
-\lstinputlisting[language=prmfile]{cookbooks/composition-active-tracers/composition.part.prm.out}
+\lstinputlisting[language=prmfile]{cookbooks/composition-active-particles/composition.part.prm.out}
  
 What this does is the following: It says that there will be two
 compositional fields, called \texttt{lower} and \texttt{upper}
@@ -5388,7 +5811,7 @@ time step.
  
 In this model the given global refinement level (5), associated number of cells (1024) and 100,000 total particles produces an average particle-per-cell count slightly below 100.  While on the high end compared to most geodynamic studies using active particles, increasing the number of particles per cell further may alter the solution.  As with the numerical resolution, any study using active particles should systematically vary the number of particles per cell in order to determine this parameter's influence on the simulation.
 
-\note{\aspect{}'s tracer implementation is in a preliminary state. While the accuracy and scalability of the implementation is benchmarked, other limitations remain. This in particular means that it is not optimized for performance, and more than a few thousand tracers per process can slow down a model significantly. Moreover, models with a highly adaptive mesh and many tracers do encounter a significant slowdown, because \aspect{} only considers the number of degrees of freedom for load balancing across processes and not the number of tracers. Therefore processes that compute the solution for coarse-grid regions have to process many more tracers than other processes. Additionally, the checkpoint/restart functionality for tracers is only implemented in models with a constant number of processes before and after the checkpoint and when the selected tracer properties do not change. These limitations might be removed over time, but for current models the user should be aware of them.}
+\note{\aspect{}'s particle implementation is in a preliminary state. While the accuracy and scalability of the implementation is benchmarked, other limitations remain. This in particular means that it is not optimized for performance, and more than a few thousand particles per process can slow down a model significantly. Moreover, models with a highly adaptive mesh and many particles do encounter a significant slowdown, because \aspect{} only considers the number of degrees of freedom for load balancing across processes and not the number of particles. Therefore processes that compute the solution for coarse-grid regions have to process many more particles than other processes. Additionally, the checkpoint/restart functionality for particles is only implemented in models with a constant number of processes before and after the checkpoint and when the selected particle properties do not change. These limitations might be removed over time, but for current models the user should be aware of them.}
 
 
 \subsubsection{Using a free surface}
@@ -5407,12 +5830,12 @@ details to run this cookbook.  Here we demonstrate the evolution of surface topo
 that results when a blob of hot material rises in the mantle, pushing up the free
 surface as it does.  Usually the amplitude of free surface topography 
 will be small enough that it is difficult to see with the naked eye in visualizations,
-but the \texttt{topography} postprocessor can help by outputting the maximum and minumum 
+but the \texttt{topography} postprocessor can help by outputting the maximum and minimum 
 topography on the free surface at every time step. 
 
 The bulk of the parameter file for this cookbook is similar to previous ones in this manual.
 We use initial temperature conditions that set up a hot blob of rock in the center of the 
-domain. In the \texttt{Model settings} secion you need to give \aspect{} a comma 
+domain. In the \texttt{Model settings} section you need to give \aspect{} a comma 
 separated list of the free surface boundary indicators.  In this case, we are 
 dealing with the top boundary of a box in 2D, corresponding to boundary indicator 3.  
 
@@ -5576,7 +5999,7 @@ numerical computations. First, you will find that they lead to very long compute
 times because our solvers and preconditioners break down. This may be
 acceptable if it would at least lead to accurate solutions, but large viscosity
 gradients lead also to large pressure gradients, and this in turn leads to over-
-and undershots in the numerical approximation of the gradient. We will 
+and undershoots in the numerical approximation of the gradient. We will 
 demonstrate both of these issues experimentally below.
 
 One of the solution to such problems is the realization that one can mitigate
@@ -5587,7 +6010,7 @@ properties not per quadrature point when doing the integrals for forming the
 finite element matrix, but per cell, then we will lose accuracy in the solution
 in those cases where the solution is smooth. More specifically, we will likely
 lose one or more orders of convergence. In other words, it would be a bad idea
-to do this averging unconditionally. On the other hand, if the solution has
+to do this averaging unconditionally. On the other hand, if the solution has
 essentially discontinuous gradients and kinks in the velocity field, then at
 least at these locations we cannot expect a particularly high convergence order
 anyway, and the averaging will not hurt very much either. In cases where
@@ -5662,14 +6085,14 @@ equations~\eqref{eq:stokes-1}--\eqref{eq:stokes-2}.%
   global refinement steps, the 30+188 outer iterations without averaging shown
   in Table~\ref{tab:sinker-with-averaging-iteration-counts} require a total of
   22,096 inner CG iterations for the elliptic block (and a total of 837 for the
-  aproximate Schur complement). Using harmonic averaging, the 30+26 outer
+  approximate Schur complement). Using harmonic averaging, the 30+26 outer
   iterations require only 1258 iterations on the elliptic block (and 84 on the
   Schur complement). In other words, the number of inner iterations per outer
   iteration (taking into account the split into ``cheap'' and ``expensive''
   outer iterations, see \cite{KHB12}) is reduced from 117 to 47 for the
   elliptic block and from 3.8 to 1.5 for the Schur complement.}
 The implication of these results is that the averaging gives us a solution
-that not only reduces the degree of pressure over- and undershots, but is also
+that not only reduces the degree of pressure over- and undershoots, but is also
 significantly faster to compute: for example, the total run time for 8 global
 refinement steps is reduced from 5,250s for no averaging to 358s for harmonic
 averaging.
@@ -5991,7 +6414,7 @@ properties are read in from the subsection \texttt{Simple model}.
     \label{fig:finite_strain}
 \end{figure}
 
-The plugin was tested against analytical solutions for the deformation gradient tensor in simple and pure shear as described in \url{benchmark/finite_strain/pure_shear.prm} and \url{benchmark/finite_strain/simple_shear.prm}.
+The plugin was tested against analytical solutions for the deformation gradient tensor in simple and pure shear as described in \url{benchmarks/finite_strain/pure_shear.prm} and \url{benchmarks/finite_strain/simple_shear.prm}.
 
 We will demonstrate its use at the example of a 2D Cartesian convection model (Figure~\ref{fig:finite_strain}):
 Heating from the bottom leads to the the ascent of plumes from the boundary layer (top panel), and the
@@ -6011,13 +6434,13 @@ Because the values of the compositional fields are part of what the material mod
 they can easily be used for computing material model outputs such as the viscosity.  
 
 \note{In this model we present the use of multiple compositional fields for other purposes than chemical composition.
-It would have been feasible to run the same model with tracer particles that track the deformation gradient, as
+It would have been feasible to run the same model with particles that track the deformation gradient, as
 additionally implemented and tested in the simple shear and pure shear benchmarks mentioned in this section. 
 Both approaches have specific advantages, and for scientific computations one needs to evaluate the more suitable
 strategy. Compositional fields cover the whole domain, but are affected by numerical diffusion, effectively reducing the
-maximum accumulated strain. Tracers only provide finite strain values at discrete positions, but can, if this is desired, be used in 
+maximum accumulated strain. Particles only provide finite strain values at discrete positions, but can, if this is desired, be used in 
 fewer numbers and only a part of the model domain (and are much faster in this case). If however
-there needs to be a large number of tracers (possibly because they are used for other purposes as well), then they
+there needs to be a large number of particles (possibly because they are used for other purposes as well), then they
 can be much more expensive. Both approaches can be used to actively influence the rheology in the material model.}
 
 \subsubsection{Reading in compositional initial composition files generated with geomIO}
@@ -6063,7 +6486,7 @@ have already been assigned to each path (Figure~\ref{fig:jelly-picture}).
 \note{The page of your drawing in Inkscape should already have the extents (in px) that you later want to use in your model (in m).}
 
 After geomIO is initialized in MATLAB, we \href{http://geomio-doc.bitbucket.org/tuto2D.html#assigning-phase-to-markers}
-{run geomIO as desribed in the documentation}, loading the default options and then specifying all the option we want to 
+{run geomIO as described in the documentation}, loading the default options and then specifying all the option we want to 
 change, such as the path to the input file, or the resolution: 
 \lstinputlisting[language=matlab]{cookbooks/geomio/run_geomio.part1.m}
 You can view all of the options available by typing \texttt{opt} in MATLAB. 
@@ -6150,7 +6573,7 @@ one by one:
     This question is easier to answer. To first order, the domains we want to
     simulate are spherical shells, and to second order ellipsoid shells that can
     be obtained by considering the isopotential surface of the gravity field of
-    a homogenous, rotating fluid.
+    a homogeneous, rotating fluid.
     A more accurate description is of course the geoid for which several
     parameterizations are available. A complication arises if we ask whether we
     want to include the mostly rigid crust in the domain and simply assume that
@@ -6356,7 +6779,7 @@ the current case to be%
 \end{equation*}
 
 Second, the initial temperature profile we chose is not realistic -- in fact, it
-is a completely instable one: there is hot material underlying cold one, and
+is a completely unstable one: there is hot material underlying cold one, and
 this is not just the result of boundary layers. Consequently, what happens in
 the simulation is that we first overturn the entire temperature field with the
 hot material in the lower half of the domain swapping places with the colder
@@ -6383,7 +6806,7 @@ the entire depth of the mantle.
 \includegraphics[width=0.48\textwidth]{cookbooks/shell_simple_2d/depth_average_temperature}
 \caption{\it Simple convection in a quarter of an annulus. Left: Root mean
 square values of the velocity field. The initial spike (off the scale) is due to
-the overturning of the instable layering of the temperature. Convection is suppressed for the
+the overturning of the unstable layering of the temperature. Convection is suppressed for the
 first 800 million years due to the stable layering that results from it. The
 maximal velocity encountered follows generally the same trend and is in the
 range of 2--3 cm/year between 100 and 800 million years, and 4--8 cm/year
@@ -6498,7 +6921,7 @@ beginning, the average temperature \textit{rises}, and apparently there are
 parts of the mantle that become hotter than the 4273 K we have given the core,
 leading to a downward heat flux. This heating can of course only come from the
 shear heating term we have accidentally left in the model: at the beginning, the
-instable layering leads to very large velocities, and large velocities lead to
+unstable layering leads to very large velocities, and large velocities lead to
 large velocity gradients that in turn lead to a lot of shear heating! Once the
 initial overturning has subsided, after say 100 million years (see the mean
 velocity in Fig.~\ref{fig:simple-shell-2d-rms}), the shear heating becomes
@@ -6519,7 +6942,7 @@ always positive, and where the average temperature strictly drops!
 identified as unrealistic in the following sections.
 However, despite all of this, some things are at least at the right order of
 magnitude, confirming that what \aspect{} is computing is reasonable. For
-example, the maximal velocities encounted in our model (after the 800 million
+example, the maximal velocities encountered in our model (after the 800 million
 year boundary) are in the range of 6--7cm per year, with occasional excursions
 up to 11cm. Clearly, something is going in the right direction.
 
@@ -6602,7 +7025,7 @@ graphical output every million years. Computations of this size typically run
 with ~1000 MPI processes, and it is not efficient to let every one of them write
 their own file to disk every time we generate graphical output; rather, we group
 all of these into a single file to keep file systems reasonably happy. Likewise,
-to accomodate the large amount of data, we output depth averaged fields in VTU
+to accommodate the large amount of data, we output depth averaged fields in VTU
 format since it is easier to visualize:
 
 \lstinputlisting[language=prmfile]{cookbooks/shell_simple_3d/postprocess.part.prm.out}
@@ -6715,7 +7138,7 @@ $a_{20}$ $a_{21}$ $b_{21}$ $a_{22}$ $b_{22}$ \\
 $a_{yz}$ is the cosine coefficient of degree $y$ and order $z$ and $b_{yz}$ is 
 the sine coefficient of degree $y$ and order $z$. The depth layers are specified 
 in the file \texttt{Spline\_knots.txt} by a normalized depth value ranging from the CMB (3480km, 
-normalized to -1) to the moho (6346km, normalized to 1). This is the original
+normalized to -1) to the Moho (6346km, normalized to 1). This is the original
 format provided on the homepage. 
 
 Any other perturbation model in this same format can also be used, one only
@@ -6906,7 +7329,7 @@ For this cookbook we will use the parameter file provided in
 \url{cookbooks/gplates-2d.prm} which uses the 2d shell geometry previously
 discussed in Section~\ref{sec:shell-simple-2d}. \aspect{}'s GPlates plugin
 allows for the use of two- and three-dimensional models incorporating the
-GPlates velocities. Since the output by GPlates is threedimensional in any case,
+GPlates velocities. Since the output by GPlates is three-dimensional in any case,
 \aspect{} internally handles the 2D model by rotating the model plane to the
 orientation specified by the user and projecting the plate velocities into this plane. The
 user specifies the orientation of the model plane by prescribing two points that
@@ -7359,7 +7782,7 @@ the end of the first time step after one level of strain rate-based adaptive mes
 \label{sec:cookbooks-continental-extension}
 \textit{This section was contributed by John Naliboff}
 
-In the crustal deformation examples above, the viscosity depends solely on the drucker prager yield criterion defined by the cohesion and internal friction angle. While this approximation works reasonably well for the uppermost crust, deeper portions of the lithosphere may undergo either brittle or viscous deformation, with the latter depending on a combination of composition, temperature, pressure and strain-rate. In effect, a combination of the Drucker-Prager and Diffusion dislocation material models is required. The visco-plastic material model is designed to take into account both brittle (plastic) and non-linear viscous deformation, thus providing a template for modeling complex lithospheric processes. Such a material model can be used in \aspect{} using the following set of input parameters: 
+In the crustal deformation examples above, the viscosity depends solely on the Drucker Prager yield criterion defined by the cohesion and internal friction angle. While this approximation works reasonably well for the uppermost crust, deeper portions of the lithosphere may undergo either brittle or viscous deformation, with the latter depending on a combination of composition, temperature, pressure and strain-rate. In effect, a combination of the Drucker-Prager and Diffusion dislocation material models is required. The visco-plastic material model is designed to take into account both brittle (plastic) and non-linear viscous deformation, thus providing a template for modeling complex lithospheric processes. Such a material model can be used in \aspect{} using the following set of input parameters: 
 
 \lstinputlisting[language=prmfile]{cookbooks/continental_extension/continental_extension_material_model.prm}
 
@@ -7384,7 +7807,7 @@ The initial thermal structure, radiogenic heating model and associated thermal p
   \label{eq:continental-geotherm-1}
   T(z) &= T_T + \frac{q_T}{k}z - \frac{Az^2}{2k}
 \end{align}
-where T is temperature, z is depth, $T_T$ is the temperature at the layer surface (top), $q_T$ is surface heat flux, $k$ is thermal conductivty, and $A$ is radiogenic heat production.
+where T is temperature, z is depth, $T_T$ is the temperature at the layer surface (top), $q_T$ is surface heat flux, $k$ is thermal conductivity, and $A$ is radiogenic heat production.
 
 For a layer thickness $\Delta z$, the basal temperature ($T_B$) and heat flux ($q_B$) are
 \begin{align}
@@ -7397,9 +7820,9 @@ For a layer thickness $\Delta z$, the basal temperature ($T_B$) and heat flux ($
 
 In this example, specifying the top (273 K) and bottom temperature (1573 K), thermal conductivity of each layer and radiogenic heat production in each layer provides enough constraints to successively solve for the temperature and heat flux at the top of the lower crust and mantle.
 
-As noted above, the mechanically weak seed placed within the mantle localizes the majority of deformation onto two conjugate shear bands that propogate from the surface of the seed to the free surface. After 5 million years of extension background `stretching' is clearly visible in the strain-rate field, but deformation is still largely focused within the set of conjugate shear bands originating at the weak seed  (Fig.~\ref{fig:continental_extension_cookbook_strainrate_5e6yr}). As expected, crustal thickness and surface topography patterns reveal a relatively symmetric horst and graben structure, which arises from displacements along the shear bands (Fig.~\ref{fig:continental_extension_cookbook_composition_5e6yr}). While deformation along the two major shear bands dominates at this early stage of extension, additional shear bands often develop within the horst-grabben system leading to small inter-graben topographic variations. This pattern is illustrated in a model with double the numerical resolution (initial 1 km grid spacing) after 10 million years of extension  (Fig.~\ref{fig:continental_extension_cookbook_strainrate_highres_10e6yr}).
+As noted above, the mechanically weak seed placed within the mantle localizes the majority of deformation onto two conjugate shear bands that propagate from the surface of the seed to the free surface. After 5 million years of extension background `stretching' is clearly visible in the strain-rate field, but deformation is still largely focused within the set of conjugate shear bands originating at the weak seed  (Fig.~\ref{fig:continental_extension_cookbook_strainrate_5e6yr}). As expected, crustal thickness and surface topography patterns reveal a relatively symmetric horst and graben structure, which arises from displacements along the shear bands (Fig.~\ref{fig:continental_extension_cookbook_composition_5e6yr}). While deformation along the two major shear bands dominates at this early stage of extension, additional shear bands often develop within the horst-graben system leading to small inter-graben topographic variations. This pattern is illustrated in a model with double the numerical resolution (initial 1 km grid spacing) after 10 million years of extension  (Fig.~\ref{fig:continental_extension_cookbook_strainrate_highres_10e6yr}).
 
-With further extension for millions of years, significant crustal thinning and surface topography development should occur in response to displacement along the conjugate shear bands. However, given that the model only extends to 100 km depth, the simulation will not produce a realistic representation of continental breakup due to the lack of an upwelling asthenospheric layer. Indeed, numerical studies that examine continental breakup, rather than just the initial stages of continental extension, include an asthenospheric layer or modified basal boundary conditions (e.g. Winkler boundary condition \cite[for example]{Bru14})
+With further extension for millions of years, significant crustal thinning and surface topography development should occur in response to displacement along the conjugate shear bands. However, given that the model only extends to 100 km depth, the simulation will not produce a realistic representation of continental breakup due to the lack of an upwelling asthenosphere layer. Indeed, numerical studies that examine continental breakup, rather than just the initial stages of continental extension, include an asthenospheric layer or modified basal boundary conditions (e.g. Winkler boundary condition \cite[for example]{Bru14})
 as temperature variations associated with lithospheric thinning exert a first-order influence on the deformation patterns. As noted below, numerous additional parameters may also affect the temporal evolution of deformation patterns.
 
 \note{It is important to consider that the non-linearity of visco-plastic rheologies and mesh-dependence of brittle shear bands make lithospheric deformation models highly sensitive to a large number of parameters. In order to ensure the conclusions drawn from a series of numerical experiments are robust, one should complete a sensitivity test for a large range of parameters including grid resolution, model geometry, boundary conditions, initial composition and temperature conditions, material properties, composition discretization, CFL number and solver settings. If you are new to modeling lithospheric processes, a reasonable starting point is to try and reproduce results from a relevant previous study and then perform a sensitivity test for the parameters listed above. While highly time consuming, completing this procedure will prove invaluable when you design and assess the results of your own numerical study.}
@@ -7603,7 +8026,7 @@ amounts to the following:
 \begin{enumerate}
  \item Move into the directory of that particular benchmark:
 \begin{verbatim}
- $ cd benchmark/solcx
+ $ cd benchmarks/solcx
 \end{verbatim} 
  \item Set up the project:
 \begin{verbatim}
@@ -7665,8 +8088,8 @@ illustrate this.
 Although van Keken's paper title suggests that the paper is really about
 thermochemical convection, the part we look here can equally be considered as
 thermal or chemical convection: all that is necessary is that we describe the
-fluid's density somehow. We can do that by using an inhomogenous initial
-temperature field, or an inhomogenous initial composition field. We will use the
+fluid's density somehow. We can do that by using an inhomogeneous initial
+temperature field, or an inhomogeneous initial composition field. We will use the
 input file in \url{cookbooks/van-keken-discontinuous.prm} as input, the central
 piece of which is as follows (go to the actual input file
 to see the remainder of the input parameters):
@@ -7917,7 +8340,7 @@ in sign between the implementation and the description in \cite{DMGT11}).
   \end{center}
 \end{figure}
 
-To run this benchmark, the following input file will do (see the files in \url{benchmark/solcx/} to rerun the benchmark):
+To run this benchmark, the following input file will do (see the files in \url{benchmarks/solcx/} to rerun the benchmark):
 \lstinputlisting[language=prmfile]{cookbooks/benchmarks/solcx.prm.out}
 
 Since this is the first cookbook in the benchmarking section, let us go
@@ -8033,7 +8456,7 @@ variation is again $10^6$. The forcing is again chosen by imposing a spatially
 variable density variation. For details, refer again to \cite{DMGT11}.
 
 The following input file, only a small variation of the one in the previous
-section, solves the benchmark (see \url{benchmark/solkz/}):
+section, solves the benchmark (see \url{benchmarks/solkz/}):
 
 \lstinputlisting[language=prmfile]{cookbooks/benchmarks/solkz.prm.out}
 
@@ -8087,7 +8510,7 @@ Fig.~\ref{fig:inclusion}. As before, for details we refer to
   \end{center}
 \end{figure}
 
-The benchmark can be run using the parameter files in \url{benchmark/inclusion/}. The material model, boundary condition, and postprocessor are defined in \url{benchmark/inclusion/inclusion.cc}. Consequently, this code needs to be compiled into a shared lib before you can run the tests.
+The benchmark can be run using the parameter files in \url{benchmarks/inclusion/}. The material model, boundary condition, and postprocessor are defined in \url{benchmarks/inclusion/inclusion.cc}. Consequently, this code needs to be compiled into a shared lib before you can run the tests.
 
 \marginpar{Link to a general section on how you can compile libs for the benchmarks.}
 
@@ -8197,9 +8620,9 @@ completely unphysical), has consequently been incorporated into the
 \texttt{BursteddeGravity} gravity model that is described in the
 \texttt{benchmarks/burstedde/burstedde.cc} file that accompanies this benchmark.
 
-We will use the input file \texttt{benchmark/burstedde/burstedde.prm} as
+We will use the input file \texttt{benchmarks/burstedde/burstedde.prm} as
 input, which is very similar to the input file
-\texttt{benchmark/inclusion/adaptive.prm} discussed above in
+\texttt{benchmarks/inclusion/adaptive.prm} discussed above in
 Section~\ref{sec:benchmark-inclusion}. The major changes for the 3D polynomial
 Stokes benchmark are listed below: 
 
@@ -8261,6 +8684,114 @@ $Q_1$ elements for the pressure.
 \end{figure}
 
 
+\subsubsection{The hollow sphere benchmark}
+
+\label{sec:cookbooks-hollow-sphere}
+
+This benchmark is based on Thieulot [In prep.] in which an analytical solution to the
+isoviscous incompressible Stokes equations is derived in a spherical shell geometry.
+The velocity and pressure fields are as follows:
+
+\begin{eqnarray}
+v_r(r,\theta)      &=& g(r) \cos \theta, \\
+v_\theta(r,\theta) &=& f(r) \sin \theta, \\
+v_\phi(r,\theta)   &=& f(r) \sin \theta, \\
+p(r,\theta)        &=& h(r) \cos \theta ,
+\end{eqnarray}
+where
+\begin{eqnarray}
+f(r) &=& \frac{\alpha}{r^2} + \beta r, \\
+g(r) &=& -\frac{2}{r^2} \left(  \alpha \ln r + \frac{\beta}{3}  r^3  + \gamma \right),   \\
+h(r) &=& \frac{2\mu_0}{r} g(r),
+\end{eqnarray}
+with
+\begin{eqnarray}
+\alpha&=&-\gamma \frac{R_2^3-R_1^3}{R_2^3 \ln R_1 - R_1^3 \ln R_2}, \\
+\beta &=& -3\gamma \frac{\ln R_2 - \ln R_1  }{R_1^3 \ln R_2 - R_2^3 \ln R_1}.
+\end{eqnarray}
+These two parameters are chosen so that $v_r(R_1)=v_r(R_2)=0$, i.e.
+the velocity is tangential to both inner and outer surfaces.
+The gravity vector is radial and of unit length, while the density is given by:
+\begin{equation}
+\rho(r,\theta)=  \left(   \frac{\alpha}{r^4}  (8 \ln r -6) +  \frac{8\beta}{3r}  +8 \frac{\gamma}{r^4}  \right) \cos\theta.
+\end{equation}
+We set $R_1=0.5$, $R_2=1$ and $\gamma=-1$. The pressure is zero on both surfaces so that 
+the surface pressure normalization is used. The boundary conditions that are used are simply 
+the analytical velocity prescribed on both boundaries.
+The velocity and pressure fields are shown in Fig.~\ref{fig:hollow-sphere-vp}.
+
+Fig.~\ref{fig:hollow-sphere-errors} shows the
+velocity and pressure errors in the $L_2$-norm as a function of the mesh size $h$ (taken in this case
+as the radial extent of the elements). As expected we recover a third-order convergence rate for the velocity
+and a second-order convergence rate for the pressure.
+
+\begin{figure}
+\centering
+\includegraphics[width=.3\textwidth]{cookbooks/benchmarks/hollow_sphere/vel}
+\includegraphics[width=.3\textwidth]{cookbooks/benchmarks/hollow_sphere/vel2}
+\includegraphics[width=.3\textwidth]{cookbooks/benchmarks/hollow_sphere/pressure}
+\caption{Velocity and pressure fields for the hollow sphere benchmark.}
+\label{fig:hollow-sphere-vp}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=.7\textwidth]{cookbooks/benchmarks/hollow_sphere/errors_hollowsphere.pdf}
+\caption{Velocity and pressure errors in the $L_2$-norm as a function of the mesh size.}
+\label{fig:hollow-sphere-errors}
+\end{figure}
+
+
+\subsubsection{The 2D annulus benchmark}
+\label{sec:cookbooks-annulus}
+
+This benchmark is based on Thieulot \& Puckett [In prep.] in which an analytical solution to the
+isoviscous incompressible Stokes equations is derived in an annulus geometry.
+The velocity and pressure fields are as follows:
+
+\begin{eqnarray}
+v_r(r,\theta)     &=&  g(r) k \sin(k\theta), \\
+v_\theta(r,\theta)&=&  f(r) \cos(k \theta), \\ 
+p(r,\theta)       &=&  k h(r) \sin(k \theta), \\
+\rho (r,\theta)   &=& \aleph(r) k \sin (k \theta), 
+\end{eqnarray}
+with
+\begin{eqnarray}
+f(r)&=&Ar+B/r, \\
+g(r) &=& \frac{A}{2}r  +  \frac{B}{r} \ln r + \frac{C}{r}, \\
+h(r)&=& \frac{2g(r)-f(r)}{r},  \\
+\aleph(r) &=& g'' - \frac{g'}{r}  - \frac{g}{r^2} (k^2 - 1)  + \frac{f}{r^2}   + \frac{f'}{r}, \\
+A &=& -C\frac{2(\ln R_1 - \ln R_2)} { R_2^2 \ln R_1  - R_1^2 \ln R_2}, \\
+B &=& -C \frac{R_2^2-R_1^2}{R_2^2 \ln R_1 - R_1^2 \ln R_2}.
+\end{eqnarray}
+
+The parameters $A$ and $B$ are chosen so that $v_r(R_1)=v_r(R_2)=0$, i.e.
+the velocity is tangential to both inner and outer surfaces.
+The gravity vector is radial and of unit length.
+
+The parameter $k$ controls the number of convection cells present in the domain,
+as shown in Fig.~\ref{fig:annulus-vp}.
+
+\begin{figure}
+\centering
+\includegraphics[width=.9\textwidth]{cookbooks/benchmarks/annulus/pressures}
+\includegraphics[width=.9\textwidth]{cookbooks/benchmarks/annulus/density}
+\includegraphics[width=.9\textwidth]{cookbooks/benchmarks/annulus/velocities2}
+\caption{Pressure, density and velocity fields for $k=0,1,2,3$ for the 2D annulus benchmark.}
+\label{fig:annulus-vp}
+\end{figure}
+
+In the present case, we set $R_1=1$, $R_2=2$ and $C=-1$. Fig.~\ref{fig:annulus-errors} shows the
+velocity and pressure errors in the $L_2$-norm as a function of the mesh size $h$ (taken in this case
+as the radial extent of the elements). As expected we recover a third-order convergence rate for the velocity
+and a second-order convergence rate for the pressure.
+
+\begin{figure}
+\centering
+\includegraphics[width=.7\textwidth]{cookbooks/benchmarks/annulus/errors_annulus.pdf}
+\caption{Velocity and pressure errors in the $L_2$-norm as a function of the mesh size for the 2D annulus benchmark.}
+\label{fig:annulus-errors}
+\end{figure}
 
 \subsubsection{The ``Stokes' law'' benchmark}
 \label{sec:benchmark-stokes_law}
@@ -8597,7 +9128,7 @@ We can put this in terms of heat flux
   q_r = -k\frac{\partial T}{\partial r}
 \end{equation*}
 through the inner and outer surfaces,
-where $q_r$ is heat flux in the radial direction. Let $Q$ be the total heat that flows throug a surface,
+where $q_r$ is heat flux in the radial direction. Let $Q$ be the total heat that flows through a surface,
 \begin{equation*}
   Q = \int \limits_{0}^{2\pi} q_r\, d\theta,
 \end{equation*}
@@ -8638,7 +9169,7 @@ only interested in the long term, steady state behavior.
 
 The model is relatively straightforward to set up, basing the input file on
 that discussed in Section~\ref{sec:shell-simple-2d}. The full input file can
-be found at \url{benchmark/davies_et_al/case-1.1.prm}, with the interesting
+be found at \url{benchmarks/davies_et_al/case-1.1.prm}, with the interesting
 parts excerpted as follows:
 
 \lstinputlisting[language=prmfile]{cookbooks/benchmarks/davies_et_al/case-1.1.prm.out}
@@ -8672,7 +9203,7 @@ solution, adding a solid body rotation yields another solution. We select
 arbitrarily the one that has no net rotation (see
 Section~\ref{parameters:Model_20settings}). The section in the input file 
 that is relevant is then as follows (the full input file resides at
-\url{benchmark/davies_et_al/case-2.1.prm}):
+\url{benchmarks/davies_et_al/case-2.1.prm}):
 \index[prmindex]{Remove nullspace}
 \index[prmindexfull]{Model settings!Remove nullspace}
 
@@ -8694,7 +9225,7 @@ Case 2.2 is described as follows:
 \end{itemize}
 In other words, we have an increased Rayleigh number and begin with the final
 steady state of case 2.1. To start the model where case 2.1 left off, the
-input file of case 2.1, \url{benchmark/davies_et_al/case-2.1.prm}, instructs
+input file of case 2.1, \url{benchmarks/davies_et_al/case-2.1.prm}, instructs
 \aspect{} to checkpoint itself every few time steps (see
 Section~\ref{sec:checkpoint-restart}). If case 2.2 uses the same
 output directory, we can then resume the computations from this checkpoint with
@@ -8704,7 +9235,7 @@ an input file that prescribes a different Rayleigh number and a later input time
 
 We increase the Rayleigh number to $10^5$ by increasing the magnitude of
 gravity in the input file.  The full script for case 2.2 is located in
-\url{benchmark/davies_et_al/case-2.2.prm}
+\url{benchmarks/davies_et_al/case-2.2.prm}
 
 
 \paragraph{Case 2.3: BA\_Ra103\_vv\_FS.}
@@ -8754,7 +9285,7 @@ Using the method described in Sections~\ref{sec:benchmark-run} and
 the \texttt{benchmarks/davies\_et\_al/case-2.3-plugin}, we can compile our new
 material model into a shared library that we can then reference from the input file.
 The complete input file for case 2.3 is located in
-\url{benchmark/davies_et_al/case-2.3.prm} and contains among others the
+\url{benchmarks/davies_et_al/case-2.3.prm} and contains among others the
 following parts:
 
 \lstinputlisting[language=prmfile]{cookbooks/benchmarks/davies_et_al/case-2.3.prm.out}
@@ -8767,7 +9298,7 @@ discussed above. First, the final steady state temperature fields are shown in
 Fig.~\ref{fig:davies-2DcylinderFSS}. It is immediately obvious how the
 different Rayleigh numbers affect the width of the plumes. If one imagines a
 setup with constant gravity, constant inner and outer temperatures and
-constant thermal expension coefficient (this is not how we describe it in the
+constant thermal expansion coefficient (this is not how we describe it in the
 input files, but we could have done so and it is closer to how we intuit about
 fluids than adjusting the gravity), then the Rayleigh number is inversely
 proportional to the viscosity -- and it is immediately clear that larger
@@ -8812,7 +9343,7 @@ These runs also produce quantitative data that will be published along with
 the concise descriptions of the benchmarks and a comparison with other
 codes. In particular, some of the criteria listed above to judge the accuracy
 of results are listed in Table~\ref{tab:davies-et-al-results}.%
-\footnote{The input files available in the \texttt{benchmark/davies\_et\_al}
+\footnote{The input files available in the \texttt{benchmarks/davies\_et\_al}
   directory use 5 global refinements in order to provide cases that can be run
   without excessive trouble on a normal computer. However, this is not enough
   to achieve reasonable accuracy and both the data shown below and the data
@@ -8941,7 +9472,7 @@ corresponds to background mantle, the second corresponds to the rising blob, and
 corresponds to the viscous lid.
 
 
-Furthermore, the results of this benchmark are sensitive to the mesh refenement and timestepping 
+Furthermore, the results of this benchmark are sensitive to the mesh refinement and timestepping 
 parameters. Here we have nine refinement levels, and refine according to density and the 
 compositional fields.
 
@@ -8980,13 +9511,13 @@ Accuracy also improves with increasing mesh resolution, though its convergence o
 to be excellent.  It is possible that other mesh refinement parameters than we tried in this benchmark 
 could improve the convergence. The primary challenge in accuracy is limiting numerical diffusion 
 of the rising blob. If the blob becomes too diffuse, its ability to lift topography is diminished.
-It would be instructive to compare the results of this benchmark using tracer particles with the 
+It would be instructive to compare the results of this benchmark using particles with the 
 results using compositional fields.
 
 \subsubsection{The solitary wave benchmark}
 \label{sec:benchmark-solitary_wave}
 
-\textit{This section was contributed by Juliane Dannberg and is based on a section in \cite{DH2015} by Juliane Dannberg and Timo Heister.}
+\textit{This section was contributed by Juliane Dannberg and is based on a section in \cite{dannberg_melt} by Juliane Dannberg and Timo Heister.}
 
 One of the most widely used benchmarks for codes that model the migration of melt through a compacting and dilating matrix is the propagation of solitary waves (e.g. \cite{SS11, KMK2013, Schm00}). 
 The benchmark is intended to test the accuracy of the solution of the two-phase flow equations as described in Section \ref{sec:melt_transport} and makes use of the fact that there is an analytical solution for the shape of solitary waves that travel through a partially molten rock with a constant background porosity without changing their shape and with a constant wave speed. 
@@ -9029,14 +9560,14 @@ This is only valid in the limit of small porosity $\phi_0 \ll 1$. Figure~\ref{fi
   \label{fig:setup-solitary-wave}
 \end{figure}
 
-The parameter file and material model for this setup can be found in \url{benchmark/solitary_wave/solitary_wave.prm} and \url{benchmark/solitary_wave/solitary_wave.cc}. The most relevant sections are shown in the following paragraph. 
+The parameter file and material model for this setup can be found in \url{benchmarks/solitary_wave/solitary_wave.prm} and \url{benchmarks/solitary_wave/solitary_wave.cc}. The most relevant sections are shown in the following paragraph. 
 
 \lstinputlisting[language=prmfile]{cookbooks/benchmarks/solitary_wave/solitary_wave.prm}
 
 The benchmark uses a custom model to generate the initial condition for the porosity field as specified by the analytical solution, and its own material model, which includes the additional material properties needed by models with melt migration, such as the permeability, melt density and compaction viscosity. The solitary wave postprocessor compares the porosity and pressure in the model to the analytical solution, and computes the errors for the shape of the porosity, shape of the compaction pressure and the phase speed. 
 We apply the negative phase speed of the solitary wave as a boundary condition for the solid velocity. This changes the reference frame, so that the solitary wave stays in the center of the domain, while the solid moves downwards. The temperature evolution does not play a role in this benchmark, so all temperature and heating-related parameters are disabled or set to zero. 
 
-And extensive discussion of the results and convergence behavior can be found in \cite{DH2015}.
+And extensive discussion of the results and convergence behavior can be found in \cite{dannberg_melt}.
 
 
 \section{Extending \aspect}
@@ -9295,7 +9826,7 @@ you would compute whatever you are interested in (e.g., heat fluxes)
 and return this information in the statistics object that then gets written
 to a file (see Sections~\ref{sec:running-overview} and \ref{sec:viz-stat}).
 A postprocessor may also generate other files if it so likes -- e.g., graphical
-output, a file that stores the locations of tracers, etc.
+output, a file that stores the locations of particles, etc.
 To do so, obviously you need access to the current solution. This is
 stored in a vector somewhere in the core of \aspect{}. However, this
 vector is, by itself, not sufficient: you also need to know the finite
@@ -9623,7 +10154,7 @@ default implementation, as discussed on the documentation page just
 mentioned.
 
 The function \texttt{is\_compressible} returns whether we should consider the
-material as compressible or not, see Section~\ref{sec:boussinesq} on the
+material as compressible or not, see Section~\ref{sec:Boussinesq} on the
 Boussinesq model. As discussed there, incompressibility as described by this function
 does not necessarily imply that the density is constant; rather, it
 may still depend on temperature or pressure. In the current
@@ -10182,9 +10713,9 @@ information from one invocation at one timestep to the next invocation,%
 there is nothing that prohibits postprocessors from doing so. For example, the
 following ideas would fit nicely into the postprocessor framework:
 \begin{itemize}
-\item \textit{Passive tracers:} If one would like to follow the trajectory of
+\item \textit{Passive particles:} If one would like to follow the trajectory of
   material as it is advected along with the flow field, one technique is to
-  use tracer particles. To implement this, one would start with an initial
+  use particles. To implement this, one would start with an initial
   population of particles distributed in a certain way, for example close to
   the core-mantle boundary. At the end of each time step, one would then need
   to move them forward with the flow field by one time increment. As long as
@@ -10192,7 +10723,7 @@ following ideas would fit nicely into the postprocessor framework:
   information that feeds into material properties; in other words, they are
   \textit{passive}), their location could well
   be stored in a postprocessor object and then be output in periodic intervals
-  for visualization. In fact, such a passive tracer postprocessor is already
+  for visualization. In fact, such a passive particle postprocessor is already
   available.
 
 \item \textit{Surface or crustal processes:} Another possibility would be to keep track
@@ -10417,7 +10948,7 @@ class.%
 
 Visualization plugins can come in two flavors:
 \begin{itemize}
-  \item \textit{Plugins that compute things from the solution in a pointwise way:}
+  \item \textit{Plugins that compute things from the solution in a point-wise way:}
    The classes in this group are derived not only from the respective interface class (and possibly
    the \href{doc/doxygen/classaspect_1_1SimulatorAccess.html}{SimulatorAccess} class) but also from the deal.II class
    \texttt{DataPostprocessor} or any of
@@ -10427,12 +10958,12 @@ Visualization plugins can come in two flavors:
    of the solution and other information such as the location of quadrature
    points into the desired quantity to output. A typical case would be
    if the quantity $g(x)$ you want to output can be written as a function
-   $g(x) = G(u(x),\nabla u(x), x, ...)$ in a pointwise sense where $u(x)$
+   $g(x) = G(u(x),\nabla u(x), x, ...)$ in a point-wise sense where $u(x)$
    is the value of the solution vector (i.e., the velocities, pressure,
    temperature, etc) at an evaluation point. In the context
    of this program an example would be to output the density of the medium as
    a spatially variable function since this is a quantity that for realistic
-   media depends pointwise on the values of the solution.
+   media depends point-wise on the values of the solution.
 
 To sum this, slightly confusing multiple inheritance up, visualization
 postprocessors do the following:
@@ -10489,17 +11020,17 @@ postprocessors do the following:
   \texttt{dealii::DataPostprocessorScalar::DataPostprocessorScalar}.
 \end{itemize}
 
-  \item \textit{Plugins that compute things from the solution in a cellwise way:}
+  \item \textit{Plugins that compute things from the solution in a cell-wise way:}
    The second possibility is for a class to not derive from
    \texttt{dealii::DataPostprocessor} but instead from the
    \href{doc/doxygen/classaspect_1_1Postprocess_1_1VisualizationPostprocessors_1_1CellDataVectorCreator.html}{aspect::Postprocess::VisualizationPostprocessors::CellDataVectorCreator}
    class. In this case, a visualization postprocessor would generate
    and return a vector that consists of one element per cell. The
-   intent of this option is to output quantities that are not pointwise
+   intent of this option is to output quantities that are not point-wise
    functions of the solution but instead can only be computed as
    integrals or other functionals on a per-cell basis. A typical
    case would be error estimators that do depend on the solution but
-   not in a pointwise sense; rather, they yield one value per cell of
+   not in a point-wise sense; rather, they yield one value per cell of
    the mesh. See the documentation of the
    \texttt{CellDataVectorCreator} class
    for more information.
@@ -11005,7 +11536,7 @@ time step if coefficients strongly depend on the solution variables.
   solver and/or preconditioner options would seem to be a useful goal.
 
 \item \textit{More, and more realistic material models:} The number of
-  material models available in \aspect{} is sizable, but it does not include
+  material models available in \aspect{} is sizeable, but it does not include
   all models that have in the past been used in the literature. On the other
   hand, how realistic a simulation is depends on how realistic the used
   material model is. We hope to obtain more descriptions of realistic

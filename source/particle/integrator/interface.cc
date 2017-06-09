@@ -82,8 +82,8 @@ namespace aspect
         std_cxx1x::tuple
         <void *,
         void *,
-        internal::Plugins::PluginList<Interface<2> >,
-        internal::Plugins::PluginList<Interface<3> > > registered_plugins;
+        aspect::internal::Plugins::PluginList<Interface<2> >,
+        aspect::internal::Plugins::PluginList<Interface<3> > > registered_plugins;
       }
 
 
@@ -109,7 +109,7 @@ namespace aspect
         std::string name;
         prm.enter_subsection ("Postprocess");
         {
-          prm.enter_subsection ("Tracers");
+          prm.enter_subsection ("Particles");
           {
             name = prm.get ("Integration scheme");
           }
@@ -128,7 +128,7 @@ namespace aspect
         // declare the entry in the parameter file
         prm.enter_subsection ("Postprocess");
         {
-          prm.enter_subsection ("Tracers");
+          prm.enter_subsection ("Particles");
           {
             const std::string pattern_of_names
               = std_cxx1x::get<dim>(registered_plugins).get_pattern_of_names ();
@@ -160,8 +160,8 @@ namespace aspect
                                "\n\n"
                                "As a consequence of these considerations, if you try to "
                                "assess convergence properties of an ODE integrator -- for "
-                               "example to verify that the RK4 integator converges with "
-                               "forth order --, it is important to recall that the "
+                               "example to verify that the RK4 integrator converges with "
+                               "fourth order --, it is important to recall that the "
                                "integrator may not solve the equation you think it "
                                "solves. If, for example, we call the numerical solution "
                                "of the ODE $\\tilde{\\mathbf x}_{k,h}(t)$, then the "

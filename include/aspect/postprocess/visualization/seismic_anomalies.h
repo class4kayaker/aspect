@@ -61,6 +61,42 @@ namespace aspect
           virtual
           std::pair<std::string, Vector<float> *>
           execute () const;
+
+          /**
+           * Declare the parameters this class takes through input files.
+           */
+          static
+          void
+          declare_parameters (ParameterHandler &prm);
+
+          /**
+           * Read the parameters this class declares from the parameter file.
+           */
+          virtual
+          void
+          parse_parameters (ParameterHandler &prm);
+
+        private:
+
+          /**
+           * Scheme chosen to define the average seismic velocity as
+          * a function of depth. Reference profile evaluates the
+          * material model using the P-T profile defined by the reference
+          * adiabatic conditions and the lateral average option calculates
+          * the average velocity within a number n_slices of depth slices.
+           */
+          enum VelocityScheme
+          {
+            reference_profile,
+            lateral_average
+          } average_velocity_scheme;
+
+          /**
+           * Number of depth slices used to define average
+           * seismic shear wave velocities from which anomalies
+           * are calculated.
+           */
+          unsigned int n_slices;
       };
 
 
@@ -93,6 +129,42 @@ namespace aspect
           virtual
           std::pair<std::string, Vector<float> *>
           execute () const;
+
+          /**
+           * Declare the parameters this class takes through input files.
+           */
+          static
+          void
+          declare_parameters (ParameterHandler &prm);
+
+          /**
+           * Read the parameters this class declares from the parameter file.
+           */
+          virtual
+          void
+          parse_parameters (ParameterHandler &prm);
+
+        private:
+
+          /**
+           * Scheme chosen to define the average seismic velocity as
+          * a function of depth. Reference profile evaluates the
+          * material model using the P-T profile defined by the reference
+          * adiabatic conditions and the lateral average option calculates
+          * the average velocity within a number n_slices of depth slices.
+           */
+          enum VelocityScheme
+          {
+            reference_profile,
+            lateral_average
+          } average_velocity_scheme;
+
+          /**
+           * Number of depth slices used to define average
+           * seismic compressional wave velocities from which anomalies
+           * are calculated.
+           */
+          unsigned int n_slices;
       };
     }
   }

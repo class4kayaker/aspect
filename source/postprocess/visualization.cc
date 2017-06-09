@@ -51,16 +51,12 @@ namespace aspect
         public:
           virtual
           void
-          compute_derived_quantities_vector (const std::vector<Vector<double> >              &solution_values,
-                                             const std::vector<std::vector<Tensor<1,dim> > > &,
-                                             const std::vector<std::vector<Tensor<2,dim> > > &,
-                                             const std::vector<Point<dim> > &,
-                                             const std::vector<Point<dim> > &,
-                                             std::vector<Vector<double> >                    &computed_quantities) const
+          evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
+                                std::vector<Vector<double> > &computed_quantities) const
           {
             const double velocity_scaling_factor =
               this->convert_output_to_years() ? year_in_seconds : 1.0;
-            const unsigned int n_q_points = solution_values.size();
+            const unsigned int n_q_points = input_data.solution_values.size();
             for (unsigned int q=0; q<n_q_points; ++q)
               for (unsigned int i=0; i<computed_quantities[q].size(); ++i)
                 {
@@ -68,9 +64,9 @@ namespace aspect
                   if (this->introspection().component_masks.velocities[i] ||
                       (this->include_melt_transport()
                        && this->introspection().variable("fluid velocity").component_mask[i]))
-                    computed_quantities[q][i]=solution_values[q][i] * velocity_scaling_factor;
+                    computed_quantities[q][i] = input_data.solution_values[q][i] * velocity_scaling_factor;
                   else
-                    computed_quantities[q][i]=solution_values[q][i];
+                    computed_quantities[q][i] = input_data.solution_values[q][i];
                 }
           }
 
@@ -136,22 +132,18 @@ namespace aspect
 
           virtual
           void
-          compute_derived_quantities_vector (const std::vector<Vector<double> >              &solution_values,
-                                             const std::vector<std::vector<Tensor<1,dim> > > &,
-                                             const std::vector<std::vector<Tensor<2,dim> > > &,
-                                             const std::vector<Point<dim> > &,
-                                             const std::vector<Point<dim> > &,
-                                             std::vector<Vector<double> >                    &computed_quantities) const
+          evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
+                                std::vector<Vector<double> > &computed_quantities) const
           {
-            //check that the first quadrature point has dim components
+            // check that the first quadrature point has dim components
             Assert( computed_quantities[0].size() == dim,
                     ExcMessage("Unexpected dimension in mesh velocity postprocessor"));
             const double velocity_scaling_factor =
               this->convert_output_to_years() ? year_in_seconds : 1.0;
-            const unsigned int n_q_points = solution_values.size();
+            const unsigned int n_q_points = input_data.solution_values.size();
             for (unsigned int q=0; q<n_q_points; ++q)
               for (unsigned int i=0; i<dim; ++i)
-                computed_quantities[q][i]= solution_values[q][i] * velocity_scaling_factor;
+                computed_quantities[q][i] = input_data.solution_values[q][i] * velocity_scaling_factor;
           }
       };
     }
@@ -163,6 +155,12 @@ namespace aspect
 
       template <int dim>
       Interface<dim>::~Interface ()
+      {}
+
+
+      template <int dim>
+      void
+      Interface<dim>::initialize ()
       {}
 
 
@@ -210,7 +208,7 @@ namespace aspect
       // initialize this to a nonsensical value; set it to the actual time
       // the first time around we get to check it
       last_output_time (std::numeric_limits<double>::quiet_NaN()),
-      output_file_number (0),
+      output_file_number (numbers::invalid_unsigned_int),
       mesh_changed (true)
     {}
 
@@ -251,16 +249,26 @@ namespace aspect
 
       // now also generate a .pvd file that matches simulation
       // time and corresponding .pvtu record
-      times_and_pvtu_names.push_back(std::make_pair
-                                     (time_in_years_or_seconds, "solution/"+pvtu_master_filename));
+      if (this->get_parameters().run_postprocessors_on_nonlinear_iterations)
+        {
+          // in case we output all nonlinear iterations, we only want one
+          // entry per time step, so replace the last line with the current iteration
+          if (this->get_nonlinear_iteration() == 0)
+            times_and_pvtu_names.push_back(std::make_pair
+                                           (time_in_years_or_seconds, "solution/"+pvtu_master_filename));
+          else
+            times_and_pvtu_names.back() = (std::make_pair
+                                           (time_in_years_or_seconds, "solution/"+pvtu_master_filename));
+        }
+      else
+        times_and_pvtu_names.push_back(std::make_pair
+                                       (time_in_years_or_seconds, "solution/"+pvtu_master_filename));
+
       const std::string
       pvd_master_filename = (this->get_output_directory() + "solution.pvd");
       std::ofstream pvd_master (pvd_master_filename.c_str());
-#if DEAL_II_VERSION_GTE(8,5,0)
+
       DataOutBase::write_pvd_record (pvd_master, times_and_pvtu_names);
-#else
-      data_out.write_pvd_record (pvd_master, times_and_pvtu_names);
-#endif
 
       // finally, do the same for Visit via the .visit file for this
       // time step, as well as for all time steps together
@@ -270,11 +278,8 @@ namespace aspect
                                + solution_file_prefix
                                + ".visit");
       std::ofstream visit_master (visit_master_filename.c_str());
-#if DEAL_II_VERSION_GTE(8,5,0)
+
       DataOutBase::write_visit_record (visit_master, filenames);
-#else
-      data_out.write_visit_record (visit_master, filenames);
-#endif
 
       {
         // the global .visit file needs the relative path because it sits a
@@ -286,21 +291,28 @@ namespace aspect
           {
             filenames_with_path.push_back("solution/" + (*it));
           }
-        output_file_names_by_timestep.push_back (filenames_with_path);
+
+        if (this->get_parameters().run_postprocessors_on_nonlinear_iterations)
+          {
+            // in case we output all nonlinear iterations, we only want one
+            // entry per time step, so replace the last line with the current iteration
+            if (this->get_nonlinear_iteration() == 0)
+              output_file_names_by_timestep.push_back (filenames_with_path);
+            else
+              output_file_names_by_timestep.back() = filenames_with_path;
+          }
+        else
+          output_file_names_by_timestep.push_back (filenames_with_path);
       }
 
       std::ofstream global_visit_master ((this->get_output_directory() +
                                           "solution.visit").c_str());
 
-#if DEAL_II_VERSION_GTE(8,5,0)
       std::vector<std::pair<double, std::vector<std::string> > > times_and_output_file_names;
       for (unsigned int timestep=0; timestep<times_and_pvtu_names.size(); ++timestep)
         times_and_output_file_names.push_back(std::make_pair(times_and_pvtu_names[timestep].first,
                                                              output_file_names_by_timestep[timestep]));
       DataOutBase::write_visit_record (global_visit_master, times_and_output_file_names);
-#else
-      data_out.write_visit_record (global_visit_master, output_file_names_by_timestep);
-#endif
     }
 
     template <int dim>
@@ -320,6 +332,14 @@ namespace aspect
           && (this->get_timestep_number() != 0))
         return std::pair<std::string,std::string>();
 
+      // up the counter of the number of the file by one, but not in
+      // the very first output step. if we run postprocessors on all
+      // iterations, only increase file number in the first nonlinear iteration
+      const bool increase_file_number = (this->get_nonlinear_iteration() == 0) || (!this->get_parameters().run_postprocessors_on_nonlinear_iterations);
+      if (output_file_number == numbers::invalid_unsigned_int)
+        output_file_number = 0;
+      else if (increase_file_number)
+        ++output_file_number;
 
       internal::BaseVariablePostprocessor<dim> base_variables;
       base_variables.initialize_simulator (this->get_simulator());
@@ -444,10 +464,13 @@ namespace aspect
                                   DataOut<dim>::no_curved_cells);
         }
       else
-        data_out.build_patches(this->get_mapping()); //Giving the mapping ensures that the case with mesh deformation works correctly.
+        data_out.build_patches(this->get_mapping()); // Giving the mapping ensures that the case with mesh deformation works correctly.
 
       // Now prepare everything for writing the output and choose output format
       std::string solution_file_prefix = "solution-" + Utilities::int_to_string (output_file_number, 5);
+      if (this->get_parameters().run_postprocessors_on_nonlinear_iterations)
+        solution_file_prefix.append("." + Utilities::int_to_string (this->get_nonlinear_iteration(), 4));
+
       const double time_in_years_or_seconds = (this->convert_output_to_years() ?
                                                this->get_time() / year_in_seconds :
                                                this->get_time());
@@ -498,7 +521,13 @@ namespace aspect
               write_master_files (data_out, solution_file_prefix, filenames);
             }
 
-          const unsigned int my_file_id = (group_files == 0) ? my_id : my_id % group_files;
+          const unsigned int n_processes = Utilities::MPI::n_mpi_processes(this->get_mpi_communicator());
+
+          const unsigned int my_file_id = (group_files == 0
+                                           ?
+                                           my_id
+                                           :
+                                           my_id % group_files);
           const std::string filename = this->get_output_directory()
                                        + "solution/"
                                        + solution_file_prefix
@@ -516,7 +545,7 @@ namespace aspect
           // Write as many files as processes. For this case we support writing in a
           // background thread and to a temporary location, so we first write everything
           // into a string that is written to disk in a writer function
-          if (group_files == 0)
+          if ((group_files == 0) || (group_files >= n_processes))
             {
               // Put the content we want to write into a string object that
               // we can then write in the background
@@ -591,9 +620,7 @@ namespace aspect
                             + "solution/"
                             + solution_file_prefix);
 
-      // up the counter of the number of the file by one; also
       // up the next time we need output
-      ++output_file_number;
       set_last_output_time (this->get_time());
 
       // return what should be printed to the screen.
@@ -680,7 +707,7 @@ namespace aspect
       <void *,
       void *,
       aspect::internal::Plugins::PluginList<VisualizationPostprocessors::Interface<2> >,
-      aspect::internal::Plugins::PluginList<VisualizationPostprocessors::Interface<3> > > registered_plugins;
+      aspect::internal::Plugins::PluginList<VisualizationPostprocessors::Interface<3> > > registered_visualization_plugins;
     }
 
 
@@ -706,7 +733,7 @@ namespace aspect
                              Patterns::Selection (DataOutBase::get_output_format_names ()),
                              "The file format to be used for graphical output.");
 
-          prm.declare_entry ("Number of grouped files", "0",
+          prm.declare_entry ("Number of grouped files", "16",
                              Patterns::Integer(0),
                              "VTU file output supports grouping files from several CPUs "
                              "into a given number of files using MPI I/O when writing on a parallel "
@@ -714,7 +741,7 @@ namespace aspect
                              "parallel file output and instead write one file per processor. "
                              "A value of 1 will generate one big file containing the whole "
                              "solution, while a larger value will create that many files "
-                             "(at most as many as there are mpi ranks).");
+                             "(at most as many as there are MPI ranks).");
 
           prm.declare_entry ("Write in background thread", "false",
                              Patterns::Bool(),
@@ -779,7 +806,7 @@ namespace aspect
           // finally also construct a string for Patterns::MultipleSelection that
           // contains the names of all registered visualization postprocessors
           const std::string pattern_of_names
-            = std_cxx11::get<dim>(registered_plugins).get_pattern_of_names ();
+            = std_cxx11::get<dim>(registered_visualization_plugins).get_pattern_of_names ();
           prm.declare_entry("List of output variables",
                             "",
                             Patterns::MultipleSelection(pattern_of_names),
@@ -796,7 +823,7 @@ namespace aspect
                             "to have in your output file.\n\n"
                             "The following postprocessors are available:\n\n"
                             +
-                            std_cxx11::get<dim>(registered_plugins).get_description_string());
+                            std_cxx11::get<dim>(registered_visualization_plugins).get_description_string());
         }
         prm.leave_subsection();
       }
@@ -804,7 +831,7 @@ namespace aspect
 
       // now declare the parameters of each of the registered
       // visualization postprocessors in turn
-      std_cxx11::get<dim>(registered_plugins).declare_parameters (prm);
+      std_cxx11::get<dim>(registered_visualization_plugins).declare_parameters (prm);
     }
 
 
@@ -812,7 +839,7 @@ namespace aspect
     void
     Visualization<dim>::parse_parameters (ParameterHandler &prm)
     {
-      Assert (std_cxx11::get<dim>(registered_plugins).plugins != 0,
+      Assert (std_cxx11::get<dim>(registered_visualization_plugins).plugins != 0,
               ExcMessage ("No postprocessors registered!?"));
       std::vector<std::string> viz_names;
 
@@ -828,6 +855,18 @@ namespace aspect
           output_interval = prm.get_double ("Time between graphical output");
           if (this->convert_output_to_years())
             output_interval *= year_in_seconds;
+
+          if (output_interval > 0.0)
+            {
+              // since we increase the time indicating when to write the next graphical output
+              // every time we execute the visualization postprocessor, there is no good way to
+              // figure out when to write graphical output for the nonlinear iterations if we do
+              // not want to output every time step
+              AssertThrow(this->get_parameters().run_postprocessors_on_nonlinear_iterations == false,
+                          ExcMessage("Postprocessing nonlinear iterations is only supported if every time "
+                                     "step is visualized, or in other words, if the 'Time between graphical "
+                                     "output' in the Visualization postprocessor is set to zero."));
+            }
 
           output_format   = prm.get ("Output format");
           group_files     = prm.get_integer("Number of grouped files");
@@ -864,8 +903,8 @@ namespace aspect
             {
               viz_names.clear();
               for (typename std::list<typename aspect::internal::Plugins::PluginList<VisualizationPostprocessors::Interface<dim> >::PluginInfo>::const_iterator
-                   p = std_cxx11::get<dim>(registered_plugins).plugins->begin();
-                   p != std_cxx11::get<dim>(registered_plugins).plugins->end(); ++p)
+                   p = std_cxx11::get<dim>(registered_visualization_plugins).plugins->begin();
+                   p != std_cxx11::get<dim>(registered_visualization_plugins).plugins->end(); ++p)
                 viz_names.push_back (std_cxx11::get<0>(*p));
             }
         }
@@ -878,7 +917,7 @@ namespace aspect
       for (unsigned int name=0; name<viz_names.size(); ++name)
         {
           VisualizationPostprocessors::Interface<dim> *
-          viz_postprocessor = std_cxx11::get<dim>(registered_plugins)
+          viz_postprocessor = std_cxx11::get<dim>(registered_visualization_plugins)
                               .create_plugin (viz_names[name],
                                               "Visualization plugins");
 
@@ -902,6 +941,7 @@ namespace aspect
             sim->initialize_simulator (this->get_simulator());
 
           postprocessors.back()->parse_parameters (prm);
+          postprocessors.back()->initialize ();
         }
 
       // Finally also set up a listener to check when the mesh changes
@@ -990,10 +1030,10 @@ namespace aspect
                                           void (*declare_parameters_function) (ParameterHandler &),
                                           VisualizationPostprocessors::Interface<dim> *(*factory_function) ())
     {
-      std_cxx11::get<dim>(registered_plugins).register_plugin (name,
-                                                               description,
-                                                               declare_parameters_function,
-                                                               factory_function);
+      std_cxx11::get<dim>(registered_visualization_plugins).register_plugin (name,
+                                                                             description,
+                                                                             declare_parameters_function,
+                                                                             factory_function);
     }
 
 

@@ -250,6 +250,15 @@ namespace aspect
 
           FullMatrix<double>          local_matrix;
           std::vector<types::global_dof_index>   local_dof_indices;
+
+          /**
+           * Extract the values listed in @p all_dof_indices only if
+           * it corresponds to the Stokes component and copy it to the variable
+           * local_dof_indices declared above in the same class as this function
+          */
+          void extract_stokes_dof_indices(const std::vector<types::global_dof_index> &all_dof_indices,
+                                          const Introspection<dim>                   &introspection,
+                                          const dealii::FiniteElement<dim>           &finite_element);
         };
 
 
@@ -711,6 +720,12 @@ namespace aspect
       public SimulatorAccess<dim>
     {
       public:
+
+        /**
+         * Create AdditionalMaterialOutputsStokesRHS if we need to do so.
+         */
+        virtual void create_additional_material_model_outputs(MaterialModel::MaterialModelOutputs<dim> &outputs) const;
+
         /**
          * This function assembles the terms of the Stokes preconditioner matrix for the current cell.
          */

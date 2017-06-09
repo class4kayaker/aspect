@@ -163,10 +163,10 @@ namespace aspect
                        "and then iterates out the solution of the Stokes equation. The 'Stokes only' "
                        "scheme only solves the Stokes system and ignores compositions and the "
                        "temperature equation (careful, the material model must not depend on "
-                       "the temperature; mostly useful for Stokes benchmarks). The 'Advection only'"
+                       "the temperature; mostly useful for Stokes benchmarks). The 'Advection only' "
                        "scheme only solves the temperature and other advection systems and instead "
                        "of solving for the Stokes system, a prescribed velocity and pressure is "
-                       "used");
+                       "used.");
 
     prm.declare_entry ("Nonlinear solver tolerance", "1e-5",
                        Patterns::Double(0,1),
@@ -269,32 +269,43 @@ namespace aspect
 
     prm.declare_entry ("Linear solver A block tolerance", "1e-2",
                        Patterns::Double(0,1),
-                       "A relative tolerance up to which the approximate inverse of the A block "
-                       "of the Stokes system is computed. This approximate A is used in the "
-                       "preconditioning used in the GMRES solver.");
+                       "A relative tolerance up to which the approximate inverse of the $A$ block "
+                       "of the Stokes system is computed. This approximate $A$ is used in the "
+                       "preconditioning used in the GMRES solver. The exact definition of this "
+                       "block preconditioner for the Stokes equation can be found in "
+                       "\\cite{KHB12}.");
 
     prm.declare_entry ("Linear solver S block tolerance", "1e-6",
                        Patterns::Double(0,1),
-                       "A relative tolerance up to which the approximate inverse of the S block "
-                       "(Schur complement matrix, $S = BA^{-1}B^{T}$) of the Stokes system is computed. "
-                       "This approximate inverse of the S block is used in the preconditioning "
-                       "used in the GMRES solver.");
+                       "A relative tolerance up to which the approximate inverse of the $S$ block "
+                       "(i.e., the Schur complement matrix $S = BA^{-1}B^{T}$) of the Stokes "
+                       "system is computed. This approximate inverse of the $S$ block is used "
+                       "in the preconditioning used in the GMRES solver. The exact definition of "
+                       "this block preconditioner for the Stokes equation can be found in "
+                       "\\cite{KHB12}.");
 
-    prm.declare_entry ("Number of cheap Stokes solver steps", "30",
+    prm.declare_entry ("Number of cheap Stokes solver steps", "200",
                        Patterns::Integer(0),
-                       "As explained in the ASPECT paper (Kronbichler, Heister, and Bangerth, "
-                       "GJI 2012) we first try to solve the Stokes system in every time "
-                       "step using a GMRES iteration with a poor but cheap "
+                       "As explained in the paper that describes ASPECT (Kronbichler, Heister, and Bangerth, "
+                       "2012, see \\cite{KHB12}) we first try to solve the Stokes system in every "
+                       "time step using a GMRES iteration with a poor but cheap "
                        "preconditioner. By default, we try whether we can converge the GMRES "
-                       "solver in 30 such iterations before deciding that we need a better "
-                       "preconditioner. This is sufficient for simple problems with constant "
+                       "solver in 200 such iterations before deciding that we need a better "
+                       "preconditioner. This is sufficient for simple problems with variable "
                        "viscosity and we never need the second phase with the more expensive "
                        "preconditioner. On the other hand, for more complex problems, and in "
-                       "particular for problems with strongly varying viscosity, the 30 "
+                       "particular for problems with strongly nonlinear viscosity, the 200 "
                        "cheap iterations don't actually do very much good and one might skip "
                        "this part right away. In that case, this parameter can be set to "
                        "zero, i.e., we immediately start with the better but more expensive "
                        "preconditioner.");
+
+    prm.declare_entry ("Maximum number of expensive Stokes solver steps", "1000",
+                       Patterns::Integer(0),
+                       "This sets the maximum number of iterations used in the expensive Stokes solver. "
+                       "If this value is set too low for the size of the problem, the Stokes solver will "
+                       "not converge and return an error message pointing out that the user didn't allow "
+                       "a sufficiently large number of iterations for the iterative solver to converge.");
 
     prm.declare_entry ("Temperature solver tolerance", "1e-12",
                        Patterns::Double(0,1),
@@ -308,11 +319,76 @@ namespace aspect
                        "the composition system gets solved. See 'linear solver "
                        "tolerance' for more details.");
 
+    prm.enter_subsection ("Solver parameters");
+    {
+      prm.enter_subsection ("Newton solver parameters");
+      {
+        prm.declare_entry ("Nonlinear Newton solver switch tolerance", "1e-5",
+                           Patterns::Double(0,1),
+                           "A relative tolerance with respect to the the residual of the first "
+                           "iteration, up to which the nonlinear Picard solver will iterate, "
+                           "before changing to the newton solver.");
+
+        prm.declare_entry ("Max pre-Newton nonlinear iterations", "10",
+                           Patterns::Integer (0),
+                           "The maximum number of Picard nonlinear iterations to be performed "
+                           "before switching to Newton iterations.");
+
+        prm.declare_entry ("Max Newton line search iterations", "5",
+                           Patterns::Integer (0),
+                           "The maximum number of line search iterations allowed. If the "
+                           "criterion is not reached after this iteration, we apply the scaled "
+                           "increment to the solution and continue.");
+      }
+      prm.leave_subsection ();
+      prm.enter_subsection ("AMG parameters");
+      {
+        prm.declare_entry ("AMG smoother type", "Chebyshev",
+                           Patterns::Selection ("Chebyshev|symmetric Gauss-Seidel"),
+                           "This parameter sets the type of smoother for the AMG. "
+                           "The default is strongly recommended for any normal runs "
+                           "with ASPECT. There are some indications that the symmetric "
+                           "Gaus-Seidel might be better and more stable for the Newton "
+                           "solver. For extensive benchmarking of various settings of the "
+                           "AMG parameters in this secton for the Stokes problem and others, "
+                           "see https://github.com/geodynamics/aspect/pull/234.");
+
+        prm.declare_entry ("AMG smoother sweeps", "2",
+                           Patterns::Integer(0),
+                           "Determines how many sweeps of the smoother should be performed. When the flag elliptic "
+                           "is set to true, (which is true for ASPECT), the polynomial degree of "
+                           "the Chebyshev smoother is set to smoother_sweeps. The term sweeps refers to the number of "
+                           "matrix-vector products performed in the Chebyshev case. In the non-elliptic case, "
+                           "smoother_sweeps sets the number of SSOR relaxation sweeps for post-smoothing to be performed. "
+                           "The default is strongly recommended. There are indications that for the Newton solver a different "
+                           "value might be better. For extensive benchmarking of various settings of the "
+                           "AMG parameters in this secton for the Stokes problem and others, "
+                           "see https://github.com/geodynamics/aspect/pull/234.");
+
+        prm.declare_entry ("AMG aggregation threshold", "0.001",
+                           Patterns::Double(0,1),
+                           "This threshold tells the AMG setup how the coarsening should be performed. "
+                           "In the AMG used by ML, all points that strongly couple with the tentative coarse-level "
+                           "point form one aggregate. The term strong coupling is controlled by the variable "
+                           "aggregation_threshold, meaning that all elements that are not smaller than "
+                           "aggregation_threshold times the diagonal element do couple strongly. "
+                           "The default is strongly recommended. There are indications that for the Newton solver a different "
+                           "value might be better. For extensive benchmarking of various settings of the "
+                           "AMG parameters in this secton for the Stokes problem and others, "
+                           "see https://github.com/geodynamics/aspect/pull/234.");
+
+        prm.declare_entry ("AMG output details", "false",
+                           Patterns::Bool(),
+                           "Turns on extra information on the AMG solver. Note that this will generate much more output.");
+      }
+      prm.leave_subsection ();
+    }
+    prm.leave_subsection ();
 
     prm.enter_subsection("Formulation");
     {
       prm.declare_entry ("Formulation", "custom",
-                         Patterns::Selection ("isothermal compression|custom|anelastic liquid approximation|boussinesq approximation"),
+                         Patterns::Selection ("isothermal compression|custom|anelastic liquid approximation|Boussinesq approximation"),
                          "Select a formulation for the basic equations. Different "
                          "published formulations are available in ASPECT (see the list of "
                          "possible values for this parameter in the manual for available options). "
@@ -328,7 +404,11 @@ namespace aspect
                          "implemented for advanced users that want full control over the "
                          "equations solved. It is possible to choose inconsistent formulations "
                          "and no error checking is performed on the consistency of the resulting "
-                         "equations.}");
+                         "equations.}\n\n"
+                         "\\note{The `anelastic liquid approximation' option here can also be "
+                         "used to set up the `truncated anelastic liquid approximation' as long as "
+                         "this option is chosen together with a material model that defines a "
+                         "density that depends on temperature and depth and not on the pressure.}");
 
       prm.declare_entry ("Mass conservation", "ask material model",
                          Patterns::Selection ("incompressible|isothermal compression|"
@@ -454,7 +534,7 @@ namespace aspect
                          "use in your model.");
       prm.declare_entry ("Prescribed velocity boundary indicators", "",
                          Patterns::Map (Patterns::Anything(),
-                                        Patterns::Selection(VelocityBoundaryConditions::get_names<dim>())),
+                                        Patterns::Selection(BoundaryVelocity::get_names<dim>())),
                          "A comma separated list denoting those boundaries "
                          "on which the velocity is prescribed, i.e., where unknown "
                          "external forces act to prescribe a particular velocity. This is "
@@ -487,7 +567,7 @@ namespace aspect
                          "to true, velocity should be given in m/yr. ");
       prm.declare_entry ("Prescribed traction boundary indicators", "",
                          Patterns::Map (Patterns::Anything(),
-                                        Patterns::Selection(TractionBoundaryConditions::get_names<dim>())),
+                                        Patterns::Selection(BoundaryTraction::get_names<dim>())),
                          "A comma separated list denoting those boundaries "
                          "on which a traction force is prescribed, i.e., where "
                          "known external forces act, resulting in an unknown velocity. This is "
@@ -536,6 +616,13 @@ namespace aspect
                          "\n\n"
                          "Note that while more than one operation can be selected it only makes sense to "
                          "pick one rotational and one translational operation.");
+      prm.declare_entry ("Enable additional Stokes RHS", "false",
+                         Patterns::Bool (),
+                         "Whether to ask the material model for additional terms for the right-hand side "
+                         "of the Stokes equation. This feature is likely only used when implementing force "
+                         "vectors for manufactured solution problems and requires filling additional outputs "
+                         "of type AdditionalMaterialOutputsStokesRHS.");
+
     }
     prm.leave_subsection ();
 
@@ -589,9 +676,22 @@ namespace aspect
                          "seconds otherwise.");
       prm.declare_entry ("Run postprocessors on initial refinement", "false",
                          Patterns::Bool (),
-                         "Whether or not the postproccessors should be executed after "
+                         "Whether or not the postprocessors should be executed after "
                          "each of the initial adaptive refinement cycles that are run at "
                          "the start of the simulation.");
+    }
+    prm.leave_subsection();
+
+    prm.enter_subsection ("Postprocess");
+    {
+      prm.declare_entry ("Run postprocessors on nonlinear iterations", "false",
+                         Patterns::Bool (),
+                         "Whether or not the postprocessors should be executed after "
+                         "each of the nonlinear iterations done within one time step. "
+                         "As this is mainly an option for the purposes of debugging, "
+                         "it is not supported when the 'Time between graphical output' "
+                         "is larger than zero, or when the postprocessor is not intended "
+                         "to be run more than once per timestep.");
     }
     prm.leave_subsection();
 
@@ -622,7 +722,7 @@ namespace aspect
                          "other words, we are using a Taylor-Hood element for the Stokes "
                          "equations and this parameter indicates the polynomial degree of it. "
                          "As an example, a value of 2 for this parameter will yield the "
-                         "element $Q_2^d \times Q_1$ for the $d$ velocity components and the "
+                         "element $Q_2^d \\times Q_1$ for the $d$ velocity components and the "
                          "pressure, respectively (unless the `Use locally conservative "
                          "discretization' parameter is set, which modifies the pressure "
                          "element). "
@@ -691,7 +791,7 @@ namespace aspect
       {
         prm.declare_entry ("Use artificial viscosity smoothing", "false",
                            Patterns::Bool (),
-                           "If set to false, the artificial viscosity of a cell is computed and"
+                           "If set to false, the artificial viscosity of a cell is computed and "
                            "is computed on every cell separately as discussed in \\cite{KHB12}. "
                            "If set to true, the maximum of the artificial viscosity in "
                            "the cell as well as the neighbors of the cell is computed and used "
@@ -700,7 +800,7 @@ namespace aspect
                            Patterns::Integer (1, 2),
                            "The exponent $\\alpha$ in the entropy viscosity stabilization. Valid "
                            "options are 1 or 2. The recommended setting is 2. (This parameter does "
-                           "not correspond to any variable in the 2012 GJI paper by Kronbichler, "
+                           "not correspond to any variable in the 2012 paper by Kronbichler, "
                            "Heister and Bangerth that describes ASPECT, see \\cite{KHB12}. "
                            "Rather, the paper always uses 2 as the exponent in the definition "
                            "of the entropy, following equation (15) of the paper. The full "
@@ -711,8 +811,9 @@ namespace aspect
                            Patterns::Double (0),
                            "The $c_R$ factor in the entropy viscosity "
                            "stabilization. (For historical reasons, the name used here is different "
-                           "from the one used in the 2012 GJI paper by Kronbichler, "
-                           "Heister and Bangerth that describes ASPECT. This parameter corresponds "
+                           "from the one used in the 2012 paper by Kronbichler, "
+                           "Heister and Bangerth that describes ASPECT, see \\cite{KHB12}. "
+                           "This parameter corresponds "
                            "to the factor $\\alpha_E$ in the formulas following equation (15) of "
                            "the paper. After further experiments, we have also chosen to use a "
                            "different value than described there.) Units: None.");
@@ -721,8 +822,9 @@ namespace aspect
                            "The $\\beta$ factor in the artificial viscosity "
                            "stabilization. An appropriate value for 2d is 0.078 "
                            "and 0.117 for 3d. (For historical reasons, the name used here is different "
-                           "from the one used in the 2012 GJI paper by Kronbichler, "
-                           "Heister and Bangerth that describes ASPECT. This parameter corresponds "
+                           "from the one used in the 2012 paper by Kronbichler, "
+                           "Heister and Bangerth that describes ASPECT, see \\cite{KHB12}. "
+                           "This parameter corresponds "
                            "to the factor $\\alpha_\\text {max}$ in the formulas following equation (15) of "
                            "the paper. After further experiments, we have also chosen to use a "
                            "different value than described there: It can be chosen as stated there for "
@@ -733,8 +835,9 @@ namespace aspect
                            "The strain rate scaling factor in the artificial viscosity "
                            "stabilization. This parameter determines how much the strain rate (in addition "
                            "to the velocity) should influence the stabilization. (This parameter does "
-                           "not correspond to any variable in the 2012 GJI paper by Kronbichler, "
-                           "Heister and Bangerth that describes ASPECT. Rather, the paper always uses "
+                           "not correspond to any variable in the 2012 paper by Kronbichler, "
+                           "Heister and Bangerth that describes ASPECT, see \\cite{KHB12}. "
+                           "Rather, the paper always uses "
                            "0, i.e. they specify the maximum dissipation $\\nu_h^\\text{max}$ as "
                            "$\\nu_h^\\text{max}\\vert_K = \\alpha_\\text{max} h_K \\|\\mathbf u\\|_{\\infty,K}$. "
                            "Here, we use "
@@ -752,7 +855,7 @@ namespace aspect
         prm.declare_entry ("Use limiter for discontinuous temperature solution", "false",
                            Patterns::Bool (),
                            "Whether to apply the bound preserving limiter as a correction after computing "
-                           "the discontinous temperature solution. Currently we apply this only to the "
+                           "the discontinuous temperature solution. Currently we apply this only to the "
                            "temperature solution if the 'Global temperature maximum' and "
                            "'Global temperature minimum' are already defined in the .prm file. "
                            "This limiter keeps the discontinuous solution in the range given by "
@@ -760,7 +863,7 @@ namespace aspect
         prm.declare_entry ("Use limiter for discontinuous composition solution", "false",
                            Patterns::Bool (),
                            "Whether to apply the bound preserving limiter as a correction after having "
-                           "the discontinous composition solution. Currently we apply this only to the "
+                           "the discontinuous composition solution. Currently we apply this only to the "
                            "compositional solution if the 'Global composition maximum' and "
                            "'Global composition minimum' are already defined in the .prm file. "
                            "This limiter keeps the discontinuous solution in the range given by "
@@ -780,15 +883,15 @@ namespace aspect
                            Patterns::List(Patterns::Double ()),
                            "The maximum global composition values that will be used in the bound preserving "
                            "limiter for the discontinuous solutions from composition advection fields. "
-                           "The number of the input 'Global composition maximum' values seperated by ',' has to be "
-                           "the same as the number of the compositional fileds");
+                           "The number of the input 'Global composition maximum' values separated by ',' has to be "
+                           "the same as the number of the compositional fields");
         prm.declare_entry ("Global composition minimum",
                            boost::lexical_cast<std::string>(-std::numeric_limits<double>::max()),
                            Patterns::List(Patterns::Double ()),
                            "The minimum global composition value that will be used in the bound preserving "
                            "limiter for the discontinuous solutions from composition advection fields. "
-                           "The number of the input 'Global composition minimum' values seperated by ',' has to be "
-                           "the same as the number of the compositional fileds");
+                           "The number of the input 'Global composition minimum' values separated by ',' has to be "
+                           "the same as the number of the compositional fields");
       }
       prm.leave_subsection ();
     }
@@ -918,6 +1021,26 @@ namespace aspect
     else
       AssertThrow (false, ExcNotImplemented());
 
+    prm.enter_subsection ("Solver parameters");
+    {
+      prm.enter_subsection ("Newton solver parameters");
+      {
+        nonlinear_switch_tolerance = prm.get_double("Nonlinear Newton solver switch tolerance");
+        max_pre_newton_nonlinear_iterations = prm.get_integer ("Max pre-Newton nonlinear iterations");
+        max_newton_line_search_iterations = prm.get_integer ("Max Newton line search iterations");
+      }
+      prm.leave_subsection ();
+      prm.enter_subsection ("AMG parameters");
+      {
+        AMG_smoother_type                      = prm.get ("AMG smoother type");
+        AMG_smoother_sweeps                    = prm.get_integer ("AMG smoother sweeps");
+        AMG_aggregation_threshold              = prm.get_double ("AMG aggregation threshold");
+        AMG_output_details                     = prm.get_bool ("AMG output details");
+      }
+      prm.leave_subsection ();
+    }
+    prm.leave_subsection ();
+
     nonlinear_tolerance = prm.get_double("Nonlinear solver tolerance");
 
     max_nonlinear_iterations = prm.get_integer ("Max nonlinear iterations");
@@ -965,6 +1088,7 @@ namespace aspect
     linear_solver_A_block_tolerance = prm.get_double ("Linear solver A block tolerance");
     linear_solver_S_block_tolerance = prm.get_double ("Linear solver S block tolerance");
     n_cheap_stokes_solver_steps     = prm.get_integer ("Number of cheap Stokes solver steps");
+    n_expensive_stokes_solver_steps = prm.get_integer ("Maximum number of expensive Stokes solver steps");
     temperature_solver_tolerance    = prm.get_double ("Temperature solver tolerance");
     composition_solver_tolerance    = prm.get_double ("Composition solver tolerance");
 
@@ -1002,6 +1126,11 @@ namespace aspect
     }
     prm.leave_subsection ();
 
+    prm.enter_subsection ("Postprocess");
+    {
+      run_postprocessors_on_nonlinear_iterations = prm.get_bool("Run postprocessors on nonlinear iterations");
+    }
+    prm.leave_subsection ();
 
     prm.enter_subsection ("Formulation");
     {
@@ -1040,6 +1169,7 @@ namespace aspect
     prm.enter_subsection ("Model settings");
     {
       include_melt_transport = prm.get_bool ("Include melt transport");
+      enable_additional_stokes_rhs = prm.get_bool ("Enable additional Stokes RHS");
 
       {
         nullspace_removal = NullspaceRemoval::none;
@@ -1685,15 +1815,15 @@ namespace aspect
     GeometryModel::declare_parameters <dim>(prm);
     InitialTopographyModel::declare_parameters <dim>(prm);
     GravityModel::declare_parameters<dim> (prm);
-    InitialConditions::declare_parameters<dim> (prm);
-    CompositionalInitialConditions::declare_parameters<dim> (prm);
+    InitialTemperature::Manager<dim>::declare_parameters (prm);
+    InitialComposition::Manager<dim>::declare_parameters (prm);
     VoFInitialConditions::declare_parameters<dim> (prm);
     PrescribedStokesSolution::declare_parameters<dim> (prm);
     BoundaryTemperature::declare_parameters<dim> (prm);
     BoundaryComposition::declare_parameters<dim> (prm);
     AdiabaticConditions::declare_parameters<dim> (prm);
-    VelocityBoundaryConditions::declare_parameters<dim> (prm);
-    TractionBoundaryConditions::declare_parameters<dim> (prm);
+    BoundaryVelocity::declare_parameters<dim> (prm);
+    BoundaryTraction::declare_parameters<dim> (prm);
   }
 }
 

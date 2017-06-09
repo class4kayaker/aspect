@@ -74,9 +74,9 @@ namespace aspect
       if (this->get_time() < last_output_time + output_interval)
         return std::pair<std::string,std::string>();
 
-      //Set up the header for the requested output variables
+      // Set up the header for the requested output variables
       std::vector<std::string> variables;
-      //we have to parse the list in this order to match the output below
+      // we have to parse the list in this order to match the output below
       {
         if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "temperature") != output_variables.end() )
           variables.push_back("temperature");
@@ -120,56 +120,56 @@ namespace aspect
       data_point.time       = this->get_time();
       data_point.values.resize(variables.size(), std::vector<double> (n_depth_zones));
 
-      //Add all the requested fields
+      // Add all the requested fields
       {
         unsigned int index = 0;
 
-        //temperature
+        // temperature
         if ( std::find( variables.begin(), variables.end(), "temperature") != variables.end() )
           this->get_lateral_averaging().get_temperature_averages(data_point.values[index++]);
 
-        //composition (search output_variables for this, since it has a different name in varibles)
+        // composition (search output_variables for this, since it has a different name in variables)
         if ( output_all_variables || std::find( output_variables.begin(), output_variables.end(), "composition") != output_variables.end() )
           for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
             this->get_lateral_averaging().get_composition_averages(c, data_point.values[index++]);
 
-        //adiabatic temperature
+        // adiabatic temperature
         if ( std::find( variables.begin(), variables.end(), "adiabatic_temperature") != variables.end() )
           this->get_adiabatic_conditions().get_adiabatic_temperature_profile(data_point.values[index++]);
 
-        //adiabatic pressure
+        // adiabatic pressure
         if ( std::find( variables.begin(), variables.end(), "adiabatic_pressure") != variables.end() )
           this->get_adiabatic_conditions().get_adiabatic_pressure_profile(data_point.values[index++]);
 
-        //adiabatic density
+        // adiabatic density
         if ( std::find( variables.begin(), variables.end(), "adiabatic_density") != variables.end() )
           this->get_adiabatic_conditions().get_adiabatic_density_profile(data_point.values[index++]);
 
-        //adiabatic density derivative
+        // adiabatic density derivative
         if ( std::find( variables.begin(), variables.end(), "adiabatic_density_derivative") != variables.end() )
           this->get_adiabatic_conditions().get_adiabatic_density_derivative_profile(data_point.values[index++]);
 
-        //velocity magnitude
+        // velocity magnitude
         if ( std::find( variables.begin(), variables.end(), "velocity_magnitude") != variables.end() )
           this->get_lateral_averaging().get_velocity_magnitude_averages(data_point.values[index++]);
 
-        //sinking velocity
+        // sinking velocity
         if ( std::find( variables.begin(), variables.end(), "sinking_velocity") != variables.end() )
           this->get_lateral_averaging().get_sinking_velocity_averages(data_point.values[index++]);
 
-        //Vs
+        // Vs
         if ( std::find( variables.begin(), variables.end(), "Vs") != variables.end() )
           this->get_lateral_averaging().get_Vs_averages(data_point.values[index++]);
 
-        //Vp
+        // Vp
         if ( std::find( variables.begin(), variables.end(), "Vp") != variables.end() )
           this->get_lateral_averaging().get_Vp_averages(data_point.values[index++]);
 
-        //viscosity
+        // viscosity
         if ( std::find( variables.begin(), variables.end(), "viscosity") != variables.end() )
           this->get_lateral_averaging().get_viscosity_averages(data_point.values[index++]);
 
-        //vertical heat flux
+        // vertical heat flux
         if ( std::find( variables.begin(), variables.end(), "vertical_heat_flux") != variables.end() )
           this->get_lateral_averaging().get_vertical_heat_flux_averages(data_point.values[index++]);
       }
@@ -178,7 +178,7 @@ namespace aspect
       const double max_depth = this->get_geometry_model().maximal_depth();
 
       // On the root process, write out the file. do this using the DataOutStack
-      // class on a piecewise constant finite element space on
+      // class on a piece-wise constant finite element space on
       // a 1d mesh with the correct subdivisions
       std::string filename;
       if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == 0)
@@ -252,13 +252,13 @@ namespace aspect
               filename = (this->get_output_directory() + "depth_average.txt");
               std::ofstream f(filename.c_str(), std::ofstream::out);
 
-              //Write the header
+              // Write the header
               f << "#       time" << "        depth";
               for ( unsigned int i = 0; i < variables.size(); ++i)
                 f << " " << variables[i];
               f << std::endl;
 
-              //Output each data point in the entries object
+              // Output each data point in the entries object
               for (typename std::vector<DataPoint>::const_iterator point = entries.begin();
                    point != entries.end(); ++point)
                 {
@@ -329,9 +329,9 @@ namespace aspect
             "viscosity|vertical heat flux";
           prm.declare_entry("List of output variables", "all",
                             Patterns::MultipleSelection(variables.c_str()),
-                            "A comma separated list which specifies which quantites to "
+                            "A comma separated list which specifies which quantities to "
                             "average in each depth slice. It defaults to averaging all "
-                            "availabe quantities, but this can be an expensive operation, "
+                            "available quantities, but this can be an expensive operation, "
                             "so you may want to select only a few.\n\n"
                             "List of options:\n"
                             +variables);
@@ -354,6 +354,18 @@ namespace aspect
           if (this->convert_output_to_years())
             output_interval *= year_in_seconds;
           n_depth_zones = prm.get_integer ("Number of zones");
+
+          if (output_interval > 0.0)
+            {
+              // since we increase the time indicating when to write the next graphical output
+              // every time we execute the depth average postprocessor, there is no good way to
+              // figure out when to write graphical output for the nonlinear iterations if we do
+              // not want to output every time step
+              AssertThrow(this->get_parameters().run_postprocessors_on_nonlinear_iterations == false,
+                          ExcMessage("Postprocessing nonlinear iterations is only supported if every time "
+                                     "step is visualized, or in other words, if the 'Time between graphical "
+                                     "output' in the Depth average postprocessor is set to zero."));
+            }
 
           output_variables = Utilities::split_string_list(prm.get("List of output variables"));
           AssertThrow(Utilities::has_unique_entries(output_variables),

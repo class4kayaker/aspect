@@ -53,7 +53,7 @@ namespace aspect
       std::ostringstream output;
       std::vector<std::pair<Point<dim>,double> > stored_values;
 
-      // loop over all of the surface cells and evaluate the heatflux
+      // loop over all of the surface cells and evaluate the heat flux
       typename DoFHandler<dim>::active_cell_iterator
       cell = this->get_dof_handler().begin_active(),
       endc = this->get_dof_handler().end();
@@ -65,7 +65,7 @@ namespace aspect
               {
                 fe_face_values.reinit (cell, f);
 
-                //evaluate position of heatflow to write into output file
+                // evaluate position of heat flow to write into output file
                 const Point<dim> midpoint_at_surface = cell->face(f)->center();
 
                 // get the various components of the solution, then
@@ -116,7 +116,7 @@ namespace aspect
 
                 const double flux_density = normal_flux / face_area;
 
-                //store final position and heatflow
+                // store final position and heat flow
                 stored_values.push_back (std::make_pair(midpoint_at_surface, flux_density));
 
               }
@@ -133,9 +133,11 @@ namespace aspect
 
 
 
-      const std::string filename = this->get_output_directory() +
-                                   "heat_flux." +
-                                   Utilities::int_to_string(this->get_timestep_number(), 5);
+      std::string filename = this->get_output_directory() +
+                             "heat_flux." +
+                             Utilities::int_to_string(this->get_timestep_number(), 5);
+      if (this->get_parameters().run_postprocessors_on_nonlinear_iterations)
+        filename.append("." + Utilities::int_to_string (this->get_nonlinear_iteration(), 4));
 
       const unsigned int max_data_length = Utilities::MPI::max (output.str().size()+1,
                                                                 this->get_mpi_communicator());
@@ -208,7 +210,7 @@ namespace aspect
                                   "normal. Note that the quantity so computed does not include "
                                   "any energy transported across the boundary by material "
                                   "transport in cases where $\\mathbf u \\cdot \\mathbf n \\neq 0$. "
-                                  "The integrated heatflux for each boundary can be obtained "
+                                  "The integrated heat flux for each boundary can be obtained "
                                   "from the heat flux statistics postprocessor.")
   }
 }

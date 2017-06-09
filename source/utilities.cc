@@ -74,6 +74,71 @@ namespace aspect
         }
     }
 
+
+    /**
+    * This is an internal deal.II function stolen from dof_tools.cc
+    *
+    * Return an array that for each dof on the reference cell lists the
+    * corresponding vector component.
+    */
+    template <int dim, int spacedim>
+    std::vector<unsigned char>
+    get_local_component_association (const FiniteElement<dim,spacedim>  &fe,
+                                     const ComponentMask        & /*component_mask*/)
+    {
+      std::vector<unsigned char> local_component_association (fe.dofs_per_cell,
+                                                              (unsigned char)(-1));
+
+      // compute the component each local dof belongs to.
+      // if the shape function is primitive, then this
+      // is simple and we can just associate it with
+      // what system_to_component_index gives us
+      for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+        {
+          // see the deal.II version if we ever need non-primitive FEs.
+          Assert (fe.is_primitive(i), ExcNotImplemented());
+          local_component_association[i] =
+            fe.system_to_component_index(i).first;
+        }
+
+      Assert (std::find (local_component_association.begin(),
+                         local_component_association.end(),
+                         (unsigned char)(-1))
+              ==
+              local_component_association.end(),
+              ExcInternalError());
+
+      return local_component_association;
+    }
+
+
+    template <int dim>
+    IndexSet extract_locally_active_dofs_with_component(const DoFHandler<dim> &dof_handler,
+                                                        const ComponentMask &component_mask)
+    {
+      std::vector<unsigned char> local_asoc =
+        get_local_component_association (dof_handler.get_fe(),
+                                         ComponentMask(dof_handler.get_fe().n_components(), true));
+
+      IndexSet ret(dof_handler.n_dofs());
+
+      unsigned int dofs_per_cell = dof_handler.get_fe().dofs_per_cell;
+      std::vector<types::global_dof_index> indices(dofs_per_cell);
+      for (typename DoFHandler<dim>::active_cell_iterator cell=dof_handler.begin_active();
+           cell!=dof_handler.end(); ++cell)
+        if (cell->is_locally_owned())
+          {
+            cell->get_dof_indices(indices);
+            for (unsigned int i=0; i<dofs_per_cell; ++i)
+              if (component_mask[local_asoc[i]])
+                ret.add_index(indices[i]);
+          }
+
+      return ret;
+    }
+
+
+
     namespace Coordinates
     {
 
@@ -210,6 +275,25 @@ namespace aspect
                          ((1 - eccentricity * eccentricity) * R_bar + d) * std::sin(theta));
 
       }
+
+
+
+      CoordinateSystem
+      string_to_coordinate_system(const std::string &coordinate_system)
+      {
+        if (coordinate_system == "cartesian")
+          return cartesian;
+        else if (coordinate_system == "spherical")
+          return spherical;
+        else if (coordinate_system == "depth")
+          return Coordinates::depth;
+        else
+          AssertThrow(false, ExcNotImplemented());
+
+        return Coordinates::invalid;
+      }
+
+
     }
 
     template <int dim>
@@ -229,13 +313,15 @@ namespace aspect
        * Users of this code must verify correctness for their application.
        *
        * The main functional difference between the original code and this
-       * code is that all the boundaries are condidered to be inside the
-       * polygon.
+       * code is that all the boundaries are considered to be inside the
+       * polygon. One should of course realize that with floating point
+       * arithmetic no guarantees can be made for the borders, but for
+       * exact arithmetic this algorithm would work (also see polygon
+       * in point test).
        */
       int pointNo = point_list.size();
       int    wn = 0;    // the  winding number counter
       int   j=pointNo-1;
-
 
       // loop through all edges of the polygon
       for (int i=0; i<pointNo; i++)
@@ -244,28 +330,134 @@ namespace aspect
           if (point_list[j][1] <= point[1])
             {
               // start y <= P.y
-              if (point_list[i][1]  >= point[1])      // an upward crossing
-                if (( (point_list[i][0] - point_list[j][0]) * (point[1] - point_list[j][1])
-                      - (point[0] -  point_list[j][0]) * (point_list[i][1] - point_list[j][1]) ) >= 0)
-                  {
-                    // P left of  edge
-                    ++wn;            // have  a valid up intersect
-                  }
+              if (point_list[i][1] >= point[1])      // an upward crossing
+                {
+                  const double is_left = (point_list[i][0] - point_list[j][0]) * (point[1] - point_list[j][1])
+                                         - (point[0] -  point_list[j][0]) * (point_list[i][1] - point_list[j][1]);
+
+                  if ( is_left > 0 && point_list[i][1] > point[1])
+                    {
+                      // P left of  edge
+                      ++wn;            // have  a valid up intersect
+                    }
+                  else if ( is_left == 0)
+                    {
+                      // The point is exactly on the infinite line.
+                      // determine if it is on the segment
+                      const double dot_product = (point - point_list[j])*(point_list[i] - point_list[j]);
+
+                      if (dot_product >= 0)
+                        {
+                          const double squaredlength = (point_list[i] - point_list[j]).norm_square();
+
+                          if (dot_product <= squaredlength)
+                            {
+                              return true;
+                            }
+                        }
+                    }
+                }
             }
           else
             {
               // start y > P.y (no test needed)
               if (point_list[i][1]  <= point[1])     // a downward crossing
-                if (( (point_list[i][0] - point_list[j][0]) * (point[1] - point_list[j][1])
-                      - (point[0] -  point_list[j][0]) * (point_list[i][1] - point_list[j][1]) ) <= 0)
-                  {
-                    // P right of  edge
-                    --wn;            // have  a valid down intersect
-                  }
+                {
+                  const double is_left = (point_list[i][0] - point_list[j][0]) * (point[1] - point_list[j][1])
+                                         - (point[0] -  point_list[j][0]) * (point_list[i][1] - point_list[j][1]);
+
+                  if ( is_left < 0)
+                    {
+                      // P right of  edge
+                      --wn;            // have  a valid down intersect
+                    }
+                  else if ( is_left == 0)
+                    {
+                      // This code is to make sure that the boundaries are included in the polygon.
+                      // The point is exactly on the infinite line.
+                      // determine if it is on the segment
+                      const double dot_product = (point - point_list[j])*(point_list[i] - point_list[j]);
+
+                      if (dot_product >= 0)
+                        {
+                          const double squaredlength = (point_list[i] - point_list[j]).norm_square();
+
+                          if (dot_product <= squaredlength)
+                            {
+                              return true;
+                            }
+                        }
+                    }
+                }
             }
           j=i;
         }
+
       return (wn != 0);
+    }
+
+    template <int dim>
+    double
+    signed_distance_to_polygon(const std::vector<Point<2> > &point_list,
+                               const dealii::Point<2> &point)
+    {
+      // If the point lies outside polygon, we give it a negative sign,
+      // inside a positive sign.
+      const double sign = polygon_contains_point<dim>(point_list, point) ? 1.0 : -1.0;
+
+      /**
+       * This code is based on http://geomalgorithms.com/a02-_lines.html#Distance-to-Infinite-Line,
+       * and therefore requires the following copyright notice:
+       *
+       * Copyright 2000 softSurfer, 2012 Dan Sunday
+       * This code may be freely used and modified for any purpose
+       * providing that this copyright notice is included with it.
+       * SoftSurfer makes no warranty for this code, and cannot be held
+       * liable for any real or imagined damage resulting from its use.
+       * Users of this code must verify correctness for their application.
+       *
+       */
+
+      const unsigned int n_poly_points = point_list.size();
+      AssertThrow(n_poly_points >= 3, ExcMessage("Not enough polygon points were specified."));
+
+      // Initialize a vector of distances for each point of the polygon with a very large distance
+      std::vector<double> distances(n_poly_points, 1e23);
+
+      // Create another polygon but with all points shifted 1 position to the right
+      std::vector<Point<2> > shifted_point_list(n_poly_points);
+      shifted_point_list[0] = point_list[n_poly_points-1];
+
+      for (unsigned int i = 0; i < n_poly_points-1; ++i)
+        shifted_point_list[i+1] = point_list[i];
+
+      for (unsigned int i = 0; i < n_poly_points; ++i)
+        {
+          // Create vector along the polygon line segment
+          Tensor<1,2> vector_segment = shifted_point_list[i] - point_list[i];
+          // Create vector from point to the second segment point
+          Tensor<1,2> vector_point_segment = point - point_list[i];
+
+          // Compute dot products to get angles
+          const double c1 = vector_point_segment * vector_segment;
+          const double c2 = vector_segment * vector_segment;
+
+          // point lies closer to not-shifted polygon point, but perpendicular base line lies outside segment
+          if (c1 <= 0.0)
+            distances[i] = (Tensor<1,2> (point_list[i] - point)).norm();
+          // point lies closer to shifted polygon point, but perpendicular base line lies outside segment
+          else if (c2 <= c1)
+            distances[i] = (Tensor<1,2> (shifted_point_list[i] - point)).norm();
+          // perpendicular base line lies on segment
+          else
+            {
+              const Point<2> point_on_segment = point_list[i] + (c1/c2) * vector_segment;
+              distances[i] = (Tensor<1,2> (point - point_on_segment)).norm();
+            }
+        }
+
+      // Return the minimum of the distances of the point to all polygon segments
+      return *std::min_element(distances.begin(),distances.end()) * sign;
     }
 
     template <int dim>
@@ -329,14 +521,14 @@ namespace aspect
     }
 
 
-    //Evaluate the cosine and sine terms of a real spherical harmonic.
-    //This is a fully normalized harmonic, that is to say, inner products
-    //of these functions should integrate to a kronecker delta over
-    //the surface of a sphere.
-    std::pair<double,double> real_spherical_harmonic( const unsigned int l, //degree
-                                                      const unsigned int m, //order
-                                                      const double theta,   //colatitude (radians)
-                                                      const double phi )    //longitude (radians)
+//Evaluate the cosine and sine terms of a real spherical harmonic.
+//This is a fully normalized harmonic, that is to say, inner products
+//of these functions should integrate to a kronecker delta over
+//the surface of a sphere.
+    std::pair<double,double> real_spherical_harmonic( const unsigned int l, // degree
+                                                      const unsigned int m, // order
+                                                      const double theta,   // colatitude (radians)
+                                                      const double phi )    // longitude (radians)
     {
       const double sqrt_2 = numbers::SQRT2;
       const std::complex<double> sph_harm_val = boost::math::spherical_harmonic( l, m, theta, phi );
@@ -485,7 +677,7 @@ namespace aspect
         }
       else
         {
-          // Wait to recieve error code, and throw QuietException if directory
+          // Wait to receive error code, and throw QuietException if directory
           // creation has failed
           MPI_Bcast (&error, 1, MPI_INT, 0, comm);
           if (error!=0)
@@ -493,10 +685,10 @@ namespace aspect
         }
     }
 
-    // tk does the cubic spline interpolation that can be used between different spherical layers in the mantle.
-    // This interpolation is based on the script spline.h, which was downloaded from
-    // http://kluge.in-chemnitz.de/opensource/spline/spline.h   //
-    // copyright (C) 2011, 2014 Tino Kluge (ttk448 at gmail.com)
+// tk does the cubic spline interpolation that can be used between different spherical layers in the mantle.
+// This interpolation is based on the script spline.h, which was downloaded from
+// http://kluge.in-chemnitz.de/opensource/spline/spline.h   //
+// copyright (C) 2011, 2014 Tino Kluge (ttk448 at gmail.com)
     namespace tk
     {
       /**
@@ -545,7 +737,7 @@ namespace aspect
           /**
            * Read-only access
            */
-          double   operator () (int i, int j) const;
+          double operator () (int i, int j) const;
 
           /**
            * second diagonal (used in LU decomposition), saved in m_lower[0]
@@ -555,7 +747,7 @@ namespace aspect
           /**
            * second diagonal (used in LU decomposition), saved in m_lower[0]
            */
-          double  saved_diag(int i) const;
+          double saved_diag(int i) const;
 
           /**
            * LU-Decomposition of a band matrix
@@ -596,9 +788,9 @@ namespace aspect
 
       void band_matrix::resize(int dim, int n_u, int n_l)
       {
-        assert(dim>0);
-        assert(n_u>=0);
-        assert(n_l>=0);
+        assert(dim > 0);
+        assert(n_u >= 0);
+        assert(n_l >= 0);
         m_upper.resize(n_u+1);
         m_lower.resize(n_l+1);
         for (size_t i=0; i<m_upper.size(); i++)
@@ -625,11 +817,11 @@ namespace aspect
 
       double &band_matrix::operator () (int i, int j)
       {
-        int k=j-i;       // what band is the entry
-        assert( (i>=0) && (i<dim()) && (j>=0) && (j<dim()) );
-        assert( (-num_lower()<=k) && (k<=num_upper()) );
+        int k = j - i;       // what band is the entry
+        assert( (i >= 0) && (i<dim()) && (j >= 0) && (j < dim()) );
+        assert( (-num_lower() <= k) && (k <= num_upper()) );
         // k=0 -> diagonal, k<0 lower left part, k>0 upper right part
-        if (k>=0)
+        if (k >= 0)
           return m_upper[k][i];
         else
           return m_lower[-k][i];
@@ -638,10 +830,10 @@ namespace aspect
       double band_matrix::operator () (int i, int j) const
       {
         int k=j-i;       // what band is the entry
-        assert( (i>=0) && (i<dim()) && (j>=0) && (j<dim()) );
-        assert( (-num_lower()<=k) && (k<=num_upper()) );
+        assert( (i >= 0) && (i < dim()) && (j >= 0) && (j < dim()) );
+        assert( (-num_lower() <= k) && (k <= num_upper()) );
         // k=0 -> diagonal, k<0 lower left part, k>0 upper right part
-        if (k>=0)
+        if (k >= 0)
           return m_upper[k][i];
         else
           return m_lower[-k][i];
@@ -649,51 +841,51 @@ namespace aspect
 
       double band_matrix::saved_diag(int i) const
       {
-        assert( (i>=0) && (i<dim()) );
+        assert( (i >= 0) && (i < dim()) );
         return m_lower[0][i];
       }
 
       double &band_matrix::saved_diag(int i)
       {
-        assert( (i>=0) && (i<dim()) );
+        assert( (i >= 0) && (i < dim()) );
         return m_lower[0][i];
       }
 
       void band_matrix::lu_decompose()
       {
-        int  i_max,j_max;
-        int  j_min;
+        int i_max,j_max;
+        int j_min;
         double x;
 
         // preconditioning
-        //             // normalize column i so that a_ii=1
-        for (int i=0; i<this->dim(); i++)
+        // normalize column i so that a_ii=1
+        for (int i = 0; i < this->dim(); i++)
           {
-            assert(this->operator()(i,i)!=0.0);
-            this->saved_diag(i)=1.0/this->operator()(i,i);
-            j_min=std::max(0,i-this->num_lower());
-            j_max=std::min(this->dim()-1,i+this->num_upper());
-            for (int j=j_min; j<=j_max; j++)
+            assert(this->operator()(i,i) != 0.0);
+            this->saved_diag(i) = 1.0/this->operator()(i,i);
+            j_min = std::max(0,i-this->num_lower());
+            j_max = std::min(this->dim()-1,i+this->num_upper());
+            for (int j = j_min; j <= j_max; j++)
               {
                 this->operator()(i,j) *= this->saved_diag(i);
               }
-            this->operator()(i,i)=1.0;          // prevents rounding errors
+            this->operator()(i,i) = 1.0;          // prevents rounding errors
           }
 
         // Gauss LR-Decomposition
-        for (int k=0; k<this->dim(); k++)
+        for (int k = 0; k < this->dim(); k++)
           {
-            i_max=std::min(this->dim()-1,k+this->num_lower());  // num_lower not a mistake!
-            for (int i=k+1; i<=i_max; i++)
+            i_max = std::min(this->dim()-1,k+this->num_lower());  // num_lower not a mistake!
+            for (int i = k+1; i <= i_max; i++)
               {
-                assert(this->operator()(k,k)!=0.0);
-                x=-this->operator()(i,k)/this->operator()(k,k);
-                this->operator()(i,k)=-x;                         // assembly part of L
-                j_max=std::min(this->dim()-1,k+this->num_upper());
-                for (int j=k+1; j<=j_max; j++)
+                assert(this->operator()(k,k) != 0.0);
+                x = -this->operator()(i,k)/this->operator()(k,k);
+                this->operator()(i,k) = -x;                         // assembly part of L
+                j_max = std::min(this->dim()-1, k + this->num_upper());
+                for (int j = k+1; j <= j_max; j++)
                   {
                     // assembly part of R
-                    this->operator()(i,j)=this->operator()(i,j)+x*this->operator()(k,j);
+                    this->operator()(i,j) = this->operator()(i,j)+x*this->operator()(k,j);
                   }
               }
           }
@@ -701,16 +893,16 @@ namespace aspect
 
       std::vector<double> band_matrix::l_solve(const std::vector<double> &b) const
       {
-        assert( this->dim()==(int)b.size() );
+        assert( this->dim() == (int)b.size() );
         std::vector<double> x(this->dim());
         int j_start;
         double sum;
-        for (int i=0; i<this->dim(); i++)
+        for (int i = 0; i < this->dim(); i++)
           {
-            sum=0;
-            j_start=std::max(0,i-this->num_lower());
-            for (int j=j_start; j<i; j++) sum += this->operator()(i,j)*x[j];
-            x[i]=(b[i]*this->saved_diag(i)) - sum;
+            sum = 0;
+            j_start = std::max(0,i-this->num_lower());
+            for (int j = j_start; j < i; j++) sum += this->operator()(i,j)*x[j];
+            x[i] = (b[i]*this->saved_diag(i)) - sum;
           }
         return x;
       }
@@ -718,16 +910,16 @@ namespace aspect
 
       std::vector<double> band_matrix::r_solve(const std::vector<double> &b) const
       {
-        assert( this->dim()==(int)b.size() );
+        assert( this->dim() == (int)b.size() );
         std::vector<double> x(this->dim());
         int j_stop;
         double sum;
-        for (int i=this->dim()-1; i>=0; i--)
+        for (int i = this->dim()-1; i >= 0; i--)
           {
-            sum=0;
-            j_stop=std::min(this->dim()-1,i+this->num_upper());
-            for (int j=i+1; j<=j_stop; j++) sum += this->operator()(i,j)*x[j];
-            x[i]=( b[i] - sum ) / this->operator()(i,i);
+            sum = 0;
+            j_stop = std::min(this->dim()-1, i + this->num_upper());
+            for (int j = i+1; j <= j_stop; j++) sum += this->operator()(i,j)*x[j];
+            x[i] = (b[i] - sum) / this->operator()(i,i);
           }
         return x;
       }
@@ -735,65 +927,122 @@ namespace aspect
       std::vector<double> band_matrix::lu_solve(const std::vector<double> &b,
                                                 bool is_lu_decomposed)
       {
-        assert( this->dim()==(int)b.size() );
+        assert(this->dim() == (int)b.size());
         std::vector<double>  x,y;
         // TODO: this is completely unsafe because you rely on the user
         // if the function is called more than once.
-        if (is_lu_decomposed==false)
+        if (is_lu_decomposed == false)
           {
             this->lu_decompose();
           }
-        y=this->l_solve(b);
-        x=this->r_solve(y);
+        y = this->l_solve(b);
+        x = this->r_solve(y);
         return x;
       }
 
 
       void spline::set_points(const std::vector<double> &x,
                               const std::vector<double> &y,
-                              bool cubic_spline)
+                              bool cubic_spline,
+                              bool monotone_spline)
       {
-        assert(x.size()==y.size());
-        m_x=x;
-        m_y=y;
-        int   n=x.size();
-        for (int i=0; i<n-1; i++)
+        assert(x.size() == y.size());
+        m_x = x;
+        m_y = y;
+        const unsigned int n = x.size();
+        for (unsigned int i = 0; i < n-1; i++)
           {
-            assert(m_x[i]<m_x[i+1]);
+            assert(m_x[i] < m_x[i+1]);
           }
 
-        if (cubic_spline==true)  // cubic spline interpolation
+        if (cubic_spline == true)  // cubic spline interpolation
           {
-            // setting up the matrix and right hand side of the equation system
-            // for the parameters b[]
-            band_matrix A(n,1,1);
-            std::vector<double>  rhs(n);
-            for (int i=1; i<n-1; i++)
+            if (monotone_spline == true)
               {
-                A(i,i-1)=1.0/3.0*(x[i]-x[i-1]);
-                A(i,i)=2.0/3.0*(x[i+1]-x[i-1]);
-                A(i,i+1)=1.0/3.0*(x[i+1]-x[i]);
-                rhs[i]=(y[i+1]-y[i])/(x[i+1]-x[i]) - (y[i]-y[i-1])/(x[i]-x[i-1]);
+                /**
+                 * This monotone spline algorithm is based on the javascript version
+                 * at https://en.wikipedia.org/wiki/Monotone_cubic_interpolation. The
+                 * parameters from this algorithm prevent overshooting in the
+                 * interpolation spline.
+                 */
+                std::vector<double> dys(n-1), dxs(n-1), ms(n-1);
+                for (unsigned int i=0; i < n-1; i++)
+                  {
+                    dxs[i] = x[i+1]-x[i];
+                    dys[i] = y[i+1]-y[i];
+                    ms[i] = dys[i]/dxs[i];
+                  }
+
+                // get m_a parameter
+                m_c.resize(n);
+                m_c[0] = 0;
+
+                for (unsigned int i = 0; i < n-2; i++)
+                  {
+                    const double m0 = ms[i];
+                    const double m1 = ms[i+1];
+
+                    if (m0 * m1 <= 0)
+                      {
+                        m_c[i+1] = 0;
+                      }
+                    else
+                      {
+                        const double dx0 = dxs[i];
+                        const double dx1 = dxs[i+1];
+                        const double common = dx0 + dx1;
+                        m_c[i+1] = 3*common/((common + dx0)/m0 + (common + dx1)/m1);
+                      }
+                  }
+                m_c[n-1] = ms[n-2];
+
+                // Get b and c coefficients
+                m_a.resize(n);
+                m_b.resize(n);
+                for (unsigned int i = 0; i < m_c.size()-1; i++)
+                  {
+                    const double c1 = m_c[i];
+                    const double m0 = ms[i];
+
+                    const double invDx = 1/dxs[i];
+                    const double common0 = c1 + m_c[i+1] - m0 - m0;
+                    m_b[i] = (m0 - c1 - common0) * invDx;
+                    m_a[i] = common0 * invDx * invDx;
+                  }
               }
-            // boundary conditions, zero curvature b[0]=b[n-1]=0
-            A(0,0)=2.0;
-            A(0,1)=0.0;
-            rhs[0]=0.0;
-            A(n-1,n-1)=2.0;
-            A(n-1,n-2)=0.0;
-            rhs[n-1]=0.0;
-
-            // solve the equation system to obtain the parameters b[]
-            m_b=A.lu_solve(rhs);
-
-            // calculate parameters a[] and c[] based on b[]
-            m_a.resize(n);
-            m_c.resize(n);
-            for (int i=0; i<n-1; i++)
+            else
               {
-                m_a[i]=1.0/3.0*(m_b[i+1]-m_b[i])/(x[i+1]-x[i]);
-                m_c[i]=(y[i+1]-y[i])/(x[i+1]-x[i])
-                       - 1.0/3.0*(2.0*m_b[i]+m_b[i+1])*(x[i+1]-x[i]);
+                // setting up the matrix and right hand side of the equation system
+                // for the parameters b[]
+                band_matrix A(n,1,1);
+                std::vector<double>  rhs(n);
+                for (unsigned int i = 1; i<n-1; i++)
+                  {
+                    A(i,i-1) = 1.0/3.0*(x[i]-x[i-1]);
+                    A(i,i) = 2.0/3.0*(x[i+1]-x[i-1]);
+                    A(i,i+1) = 1.0/3.0*(x[i+1]-x[i]);
+                    rhs[i] = (y[i+1]-y[i])/(x[i+1]-x[i]) - (y[i]-y[i-1])/(x[i]-x[i-1]);
+                  }
+                // boundary conditions, zero curvature b[0]=b[n-1]=0
+                A(0,0) = 2.0;
+                A(0,1) = 0.0;
+                rhs[0] = 0.0;
+                A(n-1,n-1) = 2.0;
+                A(n-1,n-2) = 0.0;
+                rhs[n-1] = 0.0;
+
+                // solve the equation system to obtain the parameters b[]
+                m_b = A.lu_solve(rhs);
+
+                // calculate parameters a[] and c[] based on b[]
+                m_a.resize(n);
+                m_c.resize(n);
+                for (unsigned int i = 0; i<n-1; i++)
+                  {
+                    m_a[i] = 1.0/3.0*(m_b[i+1]-m_b[i])/(x[i+1]-x[i]);
+                    m_c[i] = (y[i+1]-y[i])/(x[i+1]-x[i])
+                             - 1.0/3.0*(2.0*m_b[i]+m_b[i+1])*(x[i+1]-x[i]);
+                  }
               }
           }
         else     // linear interpolation
@@ -801,46 +1050,49 @@ namespace aspect
             m_a.resize(n);
             m_b.resize(n);
             m_c.resize(n);
-            for (int i=0; i<n-1; i++)
+            for (unsigned int i = 0; i<n-1; i++)
               {
-                m_a[i]=0.0;
-                m_b[i]=0.0;
-                m_c[i]=(m_y[i+1]-m_y[i])/(m_x[i+1]-m_x[i]);
+                m_a[i] = 0.0;
+                m_b[i] = 0.0;
+                m_c[i] = (m_y[i+1]-m_y[i])/(m_x[i+1]-m_x[i]);
               }
           }
 
         // for the right boundary we define
         // f_{n-1}(x) = b*(x-x_{n-1})^2 + c*(x-x_{n-1}) + y_{n-1}
-        double h=x[n-1]-x[n-2];
+        double h = x[n-1]-x[n-2];
         // m_b[n-1] is determined by the boundary condition
-        m_a[n-1]=0.0;
-        m_c[n-1]=3.0*m_a[n-2]*h*h+2.0*m_b[n-2]*h+m_c[n-2];   // = f'_{n-2}(x_{n-1})
+        if (!monotone_spline)
+          {
+            m_a[n-1] = 0.0;
+            m_c[n-1] = 3.0*m_a[n-2]*h*h+2.0*m_b[n-2]*h+m_c[n-2];   // = f'_{n-2}(x_{n-1})
+          }
       }
 
       double spline::operator() (double x) const
       {
-        size_t n=m_x.size();
+        size_t n = m_x.size();
         // find the closest point m_x[idx] < x, idx=0 even if x<m_x[0]
         std::vector<double>::const_iterator it;
-        it=std::lower_bound(m_x.begin(),m_x.end(),x);
-        int idx=std::max( int(it-m_x.begin())-1, 0);
+        it = std::lower_bound(m_x.begin(),m_x.end(),x);
+        int idx = std::max( int(it-m_x.begin())-1, 0);
 
-        double h=x-m_x[idx];
+        double h = x-m_x[idx];
         double interpol;
         if (x<m_x[0])
           {
             // extrapolation to the left
-            interpol=((m_b[0])*h + m_c[0])*h + m_y[0];
+            interpol = ((m_b[0])*h + m_c[0])*h + m_y[0];
           }
         else if (x>m_x[n-1])
           {
             // extrapolation to the right
-            interpol=((m_b[n-1])*h + m_c[n-1])*h + m_y[n-1];
+            interpol = ((m_b[n-1])*h + m_c[n-1])*h + m_y[n-1];
           }
         else
           {
             // interpolation
-            interpol=((m_a[idx]*h + m_b[idx])*h + m_c[idx])*h + m_y[idx];
+            interpol = ((m_a[idx]*h + m_b[idx])*h + m_c[idx])*h + m_y[idx];
           }
         return interpol;
       }
@@ -1414,7 +1666,7 @@ namespace aspect
                 :
                 current_file_number + 1;
 
-              //Calculate new file_number
+              // Calculate new file_number
               current_file_number =
                 (decreasing_file_order) ?
                 first_data_file_number
@@ -1515,7 +1767,7 @@ namespace aspect
               || dynamic_cast<const GeometryModel::Chunk<dim>*> (&this->get_geometry_model()) != 0)
             {
               const std_cxx11::array<double,dim> spherical_position =
-                ::aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
+                Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
               for (unsigned int i = 0; i < dim; i++)
                 internal_position[i] = spherical_position[i];
@@ -1652,7 +1904,7 @@ namespace aspect
           || (dynamic_cast<const GeometryModel::Chunk<dim>*> (&this->get_geometry_model())) != 0)
         {
           const std_cxx11::array<double,dim> spherical_position =
-            ::aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
+            Utilities::Coordinates::cartesian_to_spherical_coordinates(position);
 
           for (unsigned int i = 0; i < dim; i++)
             internal_position[i] = spherical_position[i];
@@ -1702,6 +1954,22 @@ namespace aspect
     }
 
     template <int dim>
+    unsigned int
+    AsciiDataProfile<dim>::maybe_get_column_index_from_name(const std::string &column_name) const
+    {
+      try
+        {
+          // read the entries in if they exist
+          return lookup->get_column_index_from_name(column_name);
+        }
+      catch (...)
+        {
+          // return an invalid unsigned int entry if the column does not exist
+          return numbers::invalid_unsigned_int;
+        }
+    }
+
+    template <int dim>
     std::string
     AsciiDataProfile<dim>::get_column_name_from_index(const unsigned int column_index) const
     {
@@ -1718,7 +1986,341 @@ namespace aspect
       return lookup->get_data(position,component);
     }
 
-    // Explicit instantiations
+
+
+    double
+    weighted_p_norm_average ( const std::vector<double> &weights,
+                              const std::vector<double> &values,
+                              const double p)
+    {
+      // TODO: prevent division by zero for all
+      double averaged_parameter = 0.0;
+
+      // first look at the special cases which can be done faster
+      if (p <= -1000)
+        {
+          // Minimum
+          double min_value = 0;
+          unsigned int first_element_with_nonzero_weight = 0;
+          for (; first_element_with_nonzero_weight < weights.size(); ++first_element_with_nonzero_weight)
+            if (weights[first_element_with_nonzero_weight] > 0)
+              {
+                min_value = values[first_element_with_nonzero_weight];
+                break;
+              }
+          Assert (first_element_with_nonzero_weight < weights.size(),
+                  ExcMessage ("There are only zero (or smaller) weights in the weights vector."));
+
+          for (unsigned int i=first_element_with_nonzero_weight+1; i < weights.size(); ++i)
+            if (weights[i] != 0)
+              if (values[i] < min_value)
+                min_value = values[i];
+
+          return min_value;
+        }
+      else if (p == -1)
+        {
+          // Harmonic average
+          for (unsigned int i=0; i< weights.size(); ++i)
+            {
+              /**
+               * if the value is zero, we get a division by zero. To prevent this
+               * we look at what should happen in this case. When a value is zero,
+               * and the correspondent weight is non-zero, this corresponds to no
+               * resistance in a parallel system. This means that this will dominate,
+               * and we should return zero. If the value is zero and the weight is
+               * zero, we just ignore it.
+               */
+              if (values[i] == 0 && weights[i] > 0)
+                return 0;
+              else if (values[i] != 0)
+                averaged_parameter += weights[i]/values[i];
+            }
+
+          Assert (averaged_parameter > 0, ExcMessage ("The sum of the weights/values may not be smaller or equal to zero."));
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          return sum_of_weights/averaged_parameter;
+        }
+      else if (p == 0)
+        {
+          // Geometric average
+          for (unsigned int i=0; i < weights.size(); ++i)
+            averaged_parameter += weights[i]*std::log(values[i]);
+
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          Assert (sum_of_weights != 0,
+                  ExcMessage ("The sum of the weights may not be equal to zero, because we need to divide through it."));
+          return std::exp(averaged_parameter/sum_of_weights);
+        }
+      else if (p == 1)
+        {
+          // Arithmetic average
+          for (unsigned int i=0; i< weights.size(); ++i)
+            averaged_parameter += weights[i]*values[i];
+
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          Assert (sum_of_weights != 0,
+                  ExcMessage ("The sum of the weights may not be equal to zero, because we need to divide through it."));
+          return averaged_parameter/sum_of_weights;
+        }
+      else if (p == 2)
+        {
+          // Quadratic average (RMS)
+          for (unsigned int i=0; i< weights.size(); ++i)
+            averaged_parameter += weights[i]*values[i]*values[i];
+
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          Assert (sum_of_weights != 0,
+                  ExcMessage ("The sum of the weights may not be equal to zero, because we need to divide through it."));
+          Assert (averaged_parameter/sum_of_weights > 0, ExcMessage ("The sum of the weights is smaller or equal to zero."));
+          return std::sqrt(averaged_parameter/sum_of_weights);
+        }
+      else if (p == 3)
+        {
+          // Cubic average
+          for (unsigned int i=0; i< weights.size(); ++i)
+            averaged_parameter += weights[i]*values[i]*values[i]*values[i];
+
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          Assert (sum_of_weights != 0,
+                  ExcMessage ("The sum of the weights may not be equal to zero, because we need to divide through it."));
+          return cbrt(averaged_parameter/sum_of_weights);
+        }
+      else if (p >= 1000)
+        {
+          // Maximum
+          double max_value = 0;
+          unsigned int first_element_with_nonzero_weight = 0;
+          for (; first_element_with_nonzero_weight < weights.size(); ++first_element_with_nonzero_weight)
+            if (weights[first_element_with_nonzero_weight] > 0)
+              {
+                max_value = values[first_element_with_nonzero_weight];
+                break;
+              }
+          Assert (first_element_with_nonzero_weight < weights.size(),
+                  ExcMessage ("There are only zero (or smaller) weights in the weights vector."));
+
+          for (unsigned int i=first_element_with_nonzero_weight+1; i < weights.size(); ++i)
+            if (weights[i] != 0)
+              if (values[i] > max_value)
+                max_value = values[i];
+
+          return max_value;
+        }
+      else
+        {
+          for (unsigned int i=0; i< weights.size(); ++i)
+            {
+              /**
+               * When a value is zero or smaller, the exponent is smaller then one and the
+               * correspondent  weight is non-zero, this corresponds to no resistance in a
+               * parallel system.  This means that this 'path' will be followed, and we
+               * return zero.
+               */
+              if (values[i] <= 0 && p < 0)
+                return 0;
+              averaged_parameter += weights[i] * std::pow(values[i],p);
+            }
+
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+
+          Assert (sum_of_weights > 0, ExcMessage ("The sum of the weights may not be smaller or equal to zero."));
+          Assert (averaged_parameter > 0,
+                  ExcMessage ("The sum of the weights times the values to the power p may not be smaller or equal to zero."));
+          return std::pow(averaged_parameter/sum_of_weights, 1/p);
+        }
+    }
+
+
+
+    template <typename T>
+    T
+    derivative_of_weighted_p_norm_average (const double /*averaged_parameter*/,
+                                           const std::vector<double> &weights,
+                                           const std::vector<double> &values,
+                                           const std::vector<T> &derivatives,
+                                           const double p)
+    {
+      // TODO: use averaged_parameter to speed up computation?
+      // TODO: add special cases p = 2 and p = 3
+      double averaged_parameter_derivative_part_1 = 0.0;
+      T averaged_parameter_derivative_part_2 = T();
+
+      // first look at the special cases which can be done faster
+      if (p <= -1000)
+        {
+          // Minimum
+          double min_value = 0;
+          unsigned int element_with_minimum_value = 0;
+          unsigned int first_element_with_nonzero_weight = 0;
+          for (; first_element_with_nonzero_weight < weights.size(); ++first_element_with_nonzero_weight)
+            if (weights[first_element_with_nonzero_weight] > 0)
+              {
+                min_value = values[first_element_with_nonzero_weight];
+                element_with_minimum_value = first_element_with_nonzero_weight;
+                break;
+              }
+          Assert (first_element_with_nonzero_weight < weights.size(),
+                  ExcMessage ("There are only zero (or smaller) weights in the weights vector."));
+
+          for (unsigned int i=first_element_with_nonzero_weight+1; i < weights.size(); ++i)
+            if (weights[i] != 0)
+              if (values[i] < min_value)
+                {
+                  min_value = values[i];
+                  element_with_minimum_value = i;
+                }
+          return derivatives[element_with_minimum_value];
+        }
+      else if (p == -1)
+        {
+          // Harmonic average
+          for (unsigned int i=0; i< weights.size(); ++i)
+            {
+              /**
+               * if the value is zero, we get a division by zero. To prevent this
+               * we look at what should happen in this case. When a value is zero,
+               * and the correspondent weight is non-zero, this corresponds to no
+               * resistance in a parallel system. This means that this will dominate,
+               * and we should return this derivative. If the value is zero and the
+               * weight is zero, we just ignore it.
+               */
+              if (values[i] == 0 && weights[i] > 0)
+                return derivatives[i];
+              else if (values[i] != 0)
+                {
+                  averaged_parameter_derivative_part_1 += weights[i] / values[i];
+                  averaged_parameter_derivative_part_2 += weights[i] * (1/(values[i] * values[i])) * derivatives[i];
+                }
+            }
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          Assert (sum_of_weights > 0, ExcMessage ("The sum of the weights may not be smaller or equal to zero."));
+          return std::pow(averaged_parameter_derivative_part_1/sum_of_weights,-2) * averaged_parameter_derivative_part_2/sum_of_weights;
+        }
+      else if (p == 0)
+        {
+          // Geometric average
+          for (unsigned int i=0; i < weights.size(); ++i)
+            {
+              averaged_parameter_derivative_part_1 += weights[i]*std::log(values[i]);
+              averaged_parameter_derivative_part_2 += weights[i]*(1/values[i])*derivatives[i];
+            }
+
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          Assert (sum_of_weights != 0,
+                  ExcMessage ("The sum of the weights may not be equal to zero, because we need to divide through it."));
+          return std::exp(averaged_parameter_derivative_part_1/sum_of_weights) * averaged_parameter_derivative_part_2/sum_of_weights;
+        }
+      else if (p == 1)
+        {
+          // Arithmetic average
+          for (unsigned int i=0; i< weights.size(); ++i)
+            averaged_parameter_derivative_part_2 += weights[i]*derivatives[i];
+
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          Assert (sum_of_weights != 0,
+                  ExcMessage ("The sum of the weights may not be equal to zero, because we need to divide through it."));
+          return averaged_parameter_derivative_part_2/sum_of_weights;
+        }
+      else if (p >= 1000)
+        {
+          // Maximum
+          double max_value = 0;
+          unsigned int element_with_maximum_value = 0;
+          unsigned int first_element_with_nonzero_weight = 0;
+          for (; first_element_with_nonzero_weight < weights.size(); ++first_element_with_nonzero_weight)
+            if (weights[first_element_with_nonzero_weight] > 0)
+              {
+                max_value = values[first_element_with_nonzero_weight];
+                element_with_maximum_value = first_element_with_nonzero_weight;
+                break;
+              }
+          Assert (first_element_with_nonzero_weight < weights.size(),
+                  ExcMessage ("There are only zero (or smaller) weights in the weights vector."));
+
+          for (unsigned int i=first_element_with_nonzero_weight+1; i < weights.size(); ++i)
+            if (weights[i] != 0)
+              if (values[i] > max_value)
+                {
+                  max_value = values[i];
+                  element_with_maximum_value = i;
+                }
+
+          return derivatives[element_with_maximum_value];
+        }
+      else
+        {
+          // The general case: We can simplify the equation by stating that (1/p) * p = 1
+          // TODO: This can probably be optimized by using:
+          // averaged_parameter_derivative_part_2 += weights[i]*values_p[i]*(1/values[i])*derivatives[i]; and
+          // averaged_parameter_derivative = averaged_parameter * (1/averaged_parameter_derivative_part_1) * averaged_parameter_derivative_part_2;
+          for (unsigned int i=0; i< weights.size(); ++i)
+            {
+              /**
+               * When a value is zero or smaller, the exponent is smaller then one and the
+               * correspondent  weight is non-zero, this corresponds to no resistance in a
+               * parallel system. This means that this 'path' will be followed, and we
+               * return that derivative.
+               */
+              if (values[i] <= 0 && p < 0)
+                return derivatives[i];
+              averaged_parameter_derivative_part_1 += weights[i] * std::pow(values[i],p);
+              averaged_parameter_derivative_part_2 += weights[i] * std::pow(values[i],p-1) * derivatives[i];
+            }
+          const double sum_of_weights = std::accumulate(weights.begin(), weights.end(), 0.0);
+          Assert (sum_of_weights > 0, ExcMessage ("The sum of the weights may not be smaller or equal to zero."));
+          Assert (averaged_parameter_derivative_part_1/sum_of_weights > 0,
+                  ExcMessage ("The sum of the weights times the values to the power p may not be smaller or equal to zero."));
+          return std::pow(averaged_parameter_derivative_part_1/sum_of_weights,(1/p)-1) * averaged_parameter_derivative_part_2/sum_of_weights;
+          // TODO: find a way to check if value is finite for any type? Or just leave this kind of checking up to the user?
+        }
+    }
+
+
+
+    template<int dim>
+    double compute_spd_factor(const double eta,
+                              const SymmetricTensor<2,dim> &strain_rate,
+                              const SymmetricTensor<2,dim> &dviscosities_dstrain_rate,
+                              const double safety_factor)
+    {
+      // if the strain rate is zero, or the derivative is zero, then
+      // the exact choice of alpha factor does not matter because the
+      // factor that it multiplies is zero -- so return the best value
+      // (i.e., one)
+      if ((strain_rate.norm() == 0) || (dviscosities_dstrain_rate.norm() == 0))
+        return 1;
+
+      const double norm_a_b = std::sqrt((strain_rate*strain_rate)*(dviscosities_dstrain_rate*dviscosities_dstrain_rate));
+      const double contract_a_b = (strain_rate*dviscosities_dstrain_rate);
+      const double one_minus_part = 1 - (contract_a_b / norm_a_b);
+      const double denom = one_minus_part * one_minus_part * norm_a_b;
+
+      if (denom == 0)
+        return 1.0;
+      else
+        {
+          const double alpha = (2.0*eta)/denom;
+          if (alpha >= 1.0)
+            return 1.0;
+          else
+            return std::max(0.0,safety_factor*alpha);
+        }
+    }
+
+
+
+// Explicit instantiations
+
+#define INSTANTIATE(dim) \
+  template \
+  IndexSet extract_locally_active_dofs_with_component(const DoFHandler<dim> &, \
+                                                      const ComponentMask &);
+
+    ASPECT_INSTANTIATE(INSTANTIATE)
+
+
+
     template class AsciiDataLookup<1>;
     template class AsciiDataLookup<2>;
     template class AsciiDataLookup<3>;
@@ -1745,8 +2347,43 @@ namespace aspect
     template bool polygon_contains_point<2>(const std::vector<Point<2> > &pointList, const dealii::Point<2> &point);
     template bool polygon_contains_point<3>(const std::vector<Point<2> > &pointList, const dealii::Point<2> &point);
 
+    template double signed_distance_to_polygon<2>(const std::vector<Point<2> > &pointList, const dealii::Point<2> &point);
+    template double signed_distance_to_polygon<3>(const std::vector<Point<2> > &pointList, const dealii::Point<2> &point);
+
 
     template std_cxx11::array<Tensor<1,2>,1> orthogonal_vectors (const Tensor<1,2> &v);
     template std_cxx11::array<Tensor<1,3>,2> orthogonal_vectors (const Tensor<1,3> &v);
+
+    template double
+    derivative_of_weighted_p_norm_average (const double averaged_parameter,
+                                           const std::vector<double> &weights,
+                                           const std::vector<double> &values,
+                                           const std::vector<double> &derivatives,
+                                           const double p);
+
+    template dealii::SymmetricTensor<2, 2, double>
+    derivative_of_weighted_p_norm_average (const double averaged_parameter,
+                                           const std::vector<double> &weights,
+                                           const std::vector<double> &values,
+                                           const std::vector<dealii::SymmetricTensor<2, 2, double> > &derivatives,
+                                           const double p);
+
+    template dealii::SymmetricTensor<2, 3, double>
+    derivative_of_weighted_p_norm_average (const double averaged_parameter,
+                                           const std::vector<double> &weights,
+                                           const std::vector<double> &values,
+                                           const std::vector<dealii::SymmetricTensor<2, 3, double> > &derivatives,
+                                           const double p);
+
+    template double compute_spd_factor(const double eta,
+                                       const SymmetricTensor<2,2> &strain_rate,
+                                       const SymmetricTensor<2,2> &dviscosities_dstrain_rate,
+                                       const double safety_factor);
+
+    template double compute_spd_factor(const double eta,
+                                       const SymmetricTensor<2,3> &strain_rate,
+                                       const SymmetricTensor<2,3> &dviscosities_dstrain_rate,
+                                       const double safety_factor);
+
   }
 }

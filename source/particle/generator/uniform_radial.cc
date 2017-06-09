@@ -48,7 +48,7 @@ namespace aspect
             for (unsigned int i = 0; i < radial_layers; ++i)
               {
                 const double radius = P_min[0] + (radial_spacing * i);
-                particles_per_layer[i] = round(n_tracers * radius / total_radius);
+                particles_per_layer[i] = round(n_particles * radius / total_radius);
               }
           }
         else if (dim == 3)
@@ -59,7 +59,7 @@ namespace aspect
             for (unsigned int i = 0; i < radial_layers; ++i)
               {
                 const double area = std::pow(P_min[0] + (radial_spacing * i),2);
-                particles_per_layer[i] = round(n_tracers * area / total_area);
+                particles_per_layer[i] = round(n_particles * area / total_area);
               }
           }
         else
@@ -102,7 +102,7 @@ namespace aspect
                   {
                     spherical_coordinates[2] = P_min[2] + j * theta_spacing;
 
-                    //Average value of sin(n) from 0 to 180 degrees is (2/pi)
+                    // Average value of sin(n) from 0 to 180 degrees is (2/pi)
                     const unsigned int adjusted_phi_particles = std::max(static_cast<unsigned int> (phi_particles * std::sin(spherical_coordinates[2])),(unsigned int) 1);
                     const double phi_spacing = (P_max[1] - P_min[1]) / fmax(adjusted_phi_particles-1,1);
                     for (unsigned int k = 0; k < adjusted_phi_particles; ++k)
@@ -134,11 +134,11 @@ namespace aspect
       {
         prm.enter_subsection("Postprocess");
         {
-          prm.enter_subsection("Tracers");
+          prm.enter_subsection("Particles");
           {
-            prm.declare_entry ("Number of tracers", "1000",
+            prm.declare_entry ("Number of particles", "1000",
                                Patterns::Double (0),
-                               "Total number of tracers to create (not per processor or per element). "
+                               "Total number of particles to create (not per processor or per element). "
                                "The number is parsed as a floating point number (so that one can "
                                "specify, for example, '1e4' particles) but it is interpreted as "
                                "an integer, of course.");
@@ -150,42 +150,42 @@ namespace aspect
                 prm.declare_entry ("Center x", "0",
                                    Patterns::Double (),
                                    "x coordinate for the center of the spherical region, "
-                                   "where tracers are generated.");
+                                   "where particles are generated.");
                 prm.declare_entry ("Center y", "0",
                                    Patterns::Double (),
                                    "y coordinate for the center of the spherical region, "
-                                   "where tracers are generated.");
+                                   "where particles are generated.");
                 prm.declare_entry ("Center z", "0",
                                    Patterns::Double (),
                                    "z coordinate for the center of the spherical region, "
-                                   "where tracers are generated.");
+                                   "where particles are generated.");
                 prm.declare_entry ("Minimum radius", "0",
                                    Patterns::Double (0),
-                                   "Minimum radial coordinate for the region of tracers. "
+                                   "Minimum radial coordinate for the region of particles. "
                                    "Measured from the center position.");
                 prm.declare_entry ("Maximum radius", "1",
                                    Patterns::Double (),
-                                   "Maximum radial coordinate for the region of tracers. "
+                                   "Maximum radial coordinate for the region of particles. "
                                    "Measured from the center position.");
                 prm.declare_entry ("Minimum longitude", "0",
                                    Patterns::Double (0,360),
-                                   "Minimum longitude coordinate for the region of tracers "
+                                   "Minimum longitude coordinate for the region of particles "
                                    "in degrees. Measured from the center position.");
                 prm.declare_entry ("Maximum longitude", "3.1415",
                                    Patterns::Double (0,360),
-                                   "Maximum longitude coordinate for the region of tracers "
+                                   "Maximum longitude coordinate for the region of particles "
                                    "in degrees. Measured from the center position.");
                 prm.declare_entry ("Minimum latitude", "0",
                                    Patterns::Double (0,180),
-                                   "Minimum latitude coordinate for the region of tracers "
+                                   "Minimum latitude coordinate for the region of particles "
                                    "in degrees. Measured from the center position.");
                 prm.declare_entry ("Maximum latitude", "3.1415",
                                    Patterns::Double (0,180),
-                                   "Maximum latitude coordinate for the region of tracers "
+                                   "Maximum latitude coordinate for the region of particles "
                                    "in degrees. Measured from the center position.");
                 prm.declare_entry ("Radial layers", "1",
                                    Patterns::Integer(1),
-                                   "The number of radial shells of particles that will be generated"
+                                   "The number of radial shells of particles that will be generated "
                                    "around the central point.");
               }
               prm.leave_subsection();
@@ -204,9 +204,9 @@ namespace aspect
       {
         prm.enter_subsection("Postprocess");
         {
-          prm.enter_subsection("Tracers");
+          prm.enter_subsection("Particles");
           {
-            n_tracers    = static_cast<types::particle_index>(prm.get_double ("Number of tracers"));
+            n_particles    = static_cast<types::particle_index>(prm.get_double ("Number of particles"));
 
             prm.enter_subsection("Generator");
             {
@@ -222,7 +222,7 @@ namespace aspect
 
                 AssertThrow(P_max[1] > P_min[1],
                             ExcMessage("The maximum longitude you prescribed in the uniform radial"
-                                       "tracer generator has to be higher than the minimum longitude."));
+                                       "particle generator has to be higher than the minimum longitude."));
 
                 if (dim ==3)
                   {
@@ -233,7 +233,7 @@ namespace aspect
 
                     AssertThrow(P_max[2] > P_min[2],
                                 ExcMessage("The maximum latitude you prescribed in the uniform radial"
-                                           "tracer generator has to be higher than the minimum latitude."));
+                                           "particle generator has to be higher than the minimum latitude."));
                   }
 
                 radial_layers   = prm.get_integer("Radial layers");
@@ -260,7 +260,7 @@ namespace aspect
     {
       ASPECT_REGISTER_PARTICLE_GENERATOR(UniformRadial,
                                          "uniform radial",
-                                         "Generate a uniform distribution of particles"
+                                         "Generate a uniform distribution of particles "
                                          "over a spherical domain in 2D or 3D. Uniform here means "
                                          "the particles will be generated with an equal spacing in "
                                          "each spherical spatial dimension, i.e., the particles are "
@@ -268,7 +268,7 @@ namespace aspect
                                          "spacing in radius, colatitude and longitude around a "
                                          "certain center point. Note that in order "
                                          "to produce a regular distribution the number of generated "
-                                         "tracers might not exactly match the one specified in the "
+                                         "particles might not exactly match the one specified in the "
                                          "input file.")
     }
   }

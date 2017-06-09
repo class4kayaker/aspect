@@ -42,34 +42,19 @@ namespace aspect
       template <int dim>
       void
       ThermalDiffusivity<dim>::
-      compute_derived_quantities_vector (const std::vector<Vector<double> >              &solution_values,
-                                         const std::vector<std::vector<Tensor<1,dim> > > &,
-                                         const std::vector<std::vector<Tensor<2,dim> > > &,
-                                         const std::vector<Point<dim> > &,
-                                         const std::vector<Point<dim> >                  &evaluation_points,
-                                         std::vector<Vector<double> >                    &computed_quantities) const
+      evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
+                            std::vector<Vector<double> > &computed_quantities) const
       {
-        const unsigned int n_quadrature_points = solution_values.size();
+        const unsigned int n_quadrature_points = input_data.solution_values.size();
         Assert (computed_quantities.size() == n_quadrature_points,    ExcInternalError());
         Assert (computed_quantities[0].size() == 1,                   ExcInternalError());
-        Assert (solution_values[0].size() == this->introspection().n_components,           ExcInternalError());
+        Assert (input_data.solution_values[0].size() == this->introspection().n_components,           ExcInternalError());
 
-        MaterialModel::MaterialModelInputs<dim> in(n_quadrature_points,
-                                                   this->n_compositional_fields());
+        // Set use_strain_rates to false since we have no need for viscosity.
+        MaterialModel::MaterialModelInputs<dim> in(input_data,
+                                                   this->introspection(), false);
         MaterialModel::MaterialModelOutputs<dim> out(n_quadrature_points,
                                                      this->n_compositional_fields());
-
-        in.position = evaluation_points;
-        in.strain_rate.resize(0); // we do not need the viscosity
-        for (unsigned int q=0; q<n_quadrature_points; ++q)
-          {
-            in.pressure[q]=solution_values[q][this->introspection().component_indices.pressure];
-            in.temperature[q]=solution_values[q][this->introspection().component_indices.temperature];
-
-            for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-              in.composition[q][c] = solution_values[q][this->introspection().component_indices.compositional_fields[c]];
-
-          }
 
         this->get_material_model().evaluate(in, out);
 

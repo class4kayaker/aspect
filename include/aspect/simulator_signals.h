@@ -84,10 +84,18 @@ namespace aspect
     edit_finite_element_variables;
 
     /**
+     * A signal that is called before setting up the initial conditions.
+     *
+     * The functions (slots) that can attach to this signal need to take one
+     * argument: A SimulatorAccess object that describes the simulator.
+     */
+    boost::signals2::signal<void (typename parallel::distributed::Triangulation<dim> &)>  pre_set_initial_state;
+
+    /**
      * A signal that is called after setting up the initial conditions.
      *
      * The functions (slots) that can attach to this signal need to take one
-     * argument: A SimulatorAccess object that descibes the simulator.
+     * argument: A SimulatorAccess object that describes the simulator.
      */
     boost::signals2::signal<void (const SimulatorAccess<dim> &)>  post_set_initial_state;
 
@@ -141,6 +149,34 @@ namespace aspect
      * will point to the triangulation used by the Simulator class.
      */
     boost::signals2::signal<void (typename parallel::distributed::Triangulation<dim> &)>  post_refinement_load_user_data;
+
+    /**
+     * A signal that is called before the computation of tangential boundary
+     * conditions for which normal vectors are needed, i.e. calls to the
+     * compute_no_normal_flux_constraints function for both the
+     * velocity variable in the main simulator and the mesh velocity
+     * variable in the free surface model.
+     *
+     * The functions that connect to this signal must take a reference
+     * to a parallel::distributed::Triangulation object as
+     * argument. This argument will point to the triangulation used by
+     * the Simulator class.
+     */
+    boost::signals2::signal<void (typename parallel::distributed::Triangulation<dim> &)>  pre_compute_no_normal_flux_constraints;
+
+    /**
+     * A signal that is called after the computation of tangential boundary
+     * conditions for which normal vectors are needed, i.e. calls to the
+     * compute_no_normal_flux_constraints function for both the
+     * velocity variable in the main simulator and the mesh velocity
+     * variable in the free surface model.
+     *
+     * The functions that connect to this signal must take a reference
+     * to a parallel::distributed::Triangulation object as
+     * argument. This argument will point to the triangulation used by
+     * the Simulator class.
+     */
+    boost::signals2::signal<void (typename parallel::distributed::Triangulation<dim> &)>  post_compute_no_normal_flux_constraints;
 
     /**
      * A signal that is called before the creation of every checkpoint.  This
@@ -197,15 +233,30 @@ namespace aspect
 
     /**
      * A signal that is fired when the iterative Stokes solver is done.
-     * Parameters are a reference to the SimulatorAccess, a bool indicating
-     * success or failure, and a vector with linear residuals in each solver
-     * step. If the solver switches from the cheap to the expensive solver, a
-     * -1.0 is inserted.
+     * Parameters are a reference to the SimulatorAccess, the number of
+     * preconditioner inner solver iterations for the S and A block of the
+     * system, and two information objects that contain information
+     * about the success of the solve, the number of outer GMRES iterations
+     * and the residual history for the cheap and expensive solver phase.
      */
     boost::signals2::signal<void (const SimulatorAccess<dim> &,
-                                  const bool,
-                                  const std::vector<double> &)> post_stokes_solver;
+                                  const unsigned int number_S_iterations,
+                                  const unsigned int number_A_iterations,
+                                  const SolverControl &solver_control_cheap,
+                                  const SolverControl &solver_control_expensive)> post_stokes_solver;
 
+    /**
+     * A signal that is fired when the iterative advection solver is done.
+     * Parameters are a reference to the SimulatorAccess, a bool indicating
+     * whether the temperature field or a compositional field was solved,
+     * a composition index that describes which compositional field
+     * was solved, and an information object that contains information
+     * about the number of iterations and history of residuals.
+     */
+    boost::signals2::signal<void (const SimulatorAccess<dim> &,
+                                  const bool solved_temperature_field,
+                                  const unsigned int compositional_index,
+                                  const SolverControl &solver_control)> post_advection_solver;
 
     /**
      * A signal that is fired at the end of the set_assemblers() function that

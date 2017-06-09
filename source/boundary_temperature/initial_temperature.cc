@@ -34,7 +34,7 @@ namespace aspect
     boundary_temperature (const types::boundary_id,
                           const Point<dim> &position) const
     {
-      return this->get_initial_conditions().initial_temperature(position);
+      return this->get_initial_temperature_manager().initial_temperature(position);
     }
 
 
@@ -113,7 +113,7 @@ namespace aspect
                                                "know certain pieces of information such as the "
                                                "minimal and maximal temperature on the boundary. "
                                                "For operations that require this, for example in "
-                                               "postprocessing, this boundary temperature model "
+                                               "post-processing, this boundary temperature model "
                                                "must therefore be told what the minimal and "
                                                "maximal values on the boundary are. This is done "
                                                "using parameters set in section ``Boundary temperature model/Initial temperature''.")

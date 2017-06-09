@@ -78,6 +78,19 @@ namespace aspect
                          const IndexSet &whole_set,
                          std::vector<IndexSet> &partitioned);
 
+
+    /**
+     * Returns an IndexSet that contains all locally active DoFs that belong to
+     * the given component_mask.
+     *
+     * This function should be moved into deal.II at some point.
+     */
+    template <int dim>
+    IndexSet extract_locally_active_dofs_with_component(const DoFHandler<dim> &dof_handler,
+                                                        const ComponentMask &component_mask);
+
+
+
     namespace Coordinates
     {
 
@@ -110,7 +123,7 @@ namespace aspect
       spherical_to_cartesian_coordinates(const std_cxx11::array<double,dim> &scoord);
 
       /**
-       * Returns ellispoidal coordinates of a Cartesian point. The returned array
+       * Returns ellipsoidal coordinates of a Cartesian point. The returned array
        * is filled with phi, theta and radius.
        *
        */
@@ -121,7 +134,7 @@ namespace aspect
                                            const double eccentricity);
 
       /**
-       * Return the Cartesian point of a ellispoidal position defined by phi,
+       * Return the Cartesian point of a ellipsoidal position defined by phi,
        * phi and radius.
        */
       template <int dim>
@@ -129,7 +142,35 @@ namespace aspect
       ellipsoidal_to_cartesian_coordinates(const std_cxx11::array<double,3> &phi_theta_d,
                                            const double semi_major_axis_a,
                                            const double eccentricity);
+
+      /**
+       * This enum lists available coordinate systems that can be used for
+       * the function variables. Allowed values are 'cartesian',
+       * 'spherical', and 'depth'. 'spherical' coordinates follow: r, phi
+       * (2D) or r, phi, theta (3D); where r is radius, phi is longitude,
+       * and theta is the polar angle (colatitude). The 'depth' is a
+       * one-dimensional coordinate system in which only the distance
+       * below the 'top' surface (depth) as defined by each geometry model,
+       * is used.
+       */
+      enum CoordinateSystem
+      {
+        depth,
+        cartesian,
+        spherical,
+        invalid
+      };
+
+
+      /**
+       * A function that takes a string representation of the name of a
+       * coordinate system (as represented by the CoordinateSystem enum)
+       * and returns the corresponding value.
+       */
+      CoordinateSystem
+      string_to_coordinate_system (const std::string &);
     }
+
 
     /**
      * Given a 2d point and a list of points which form a polygon, computes if the point
@@ -139,6 +180,16 @@ namespace aspect
     bool
     polygon_contains_point(const std::vector<Point<2> > &point_list,
                            const dealii::Point<2> &point);
+
+    /**
+     * Given a 2d point and a list of points which form a polygon, compute the smallest
+     * distance of the point to the polygon. The sign is negative for points outside of
+     * the polygon and positive for points inside the polygon.
+     */
+    template <int dim>
+    double
+    signed_distance_to_polygon(const std::vector<Point<2> > &point_list,
+                               const dealii::Point<2> &point);
 
     /**
      * Given a vector @p v in @p dim dimensional space, return a set
@@ -177,7 +228,7 @@ namespace aspect
      * variants of the real spherical harmonic at the same time. That is the approach taken
      * here, where we return a pair of numbers, the first corresponding the cosine part and the
      * second corresponding to the sine part. Given this, it is no longer necessary to distinguish
-     * between postitive and negative $m$, so this function only accepts $ m \ge 0$.
+     * between positive and negative $m$, so this function only accepts $ m \ge 0$.
      * For $m = 0$, there is only one part, which is stored in the first entry of the pair.
      *
      * @note This function uses the Boost spherical harmonics implementation internally,
@@ -186,10 +237,10 @@ namespace aspect
      * For more information, see:
      * http://www.boost.org/doc/libs/1_49_0/libs/math/doc/sf_and_dist/html/math_toolkit/special/sf_poly/sph_harm.html
      */
-    std::pair<double,double> real_spherical_harmonic( unsigned int l, //degree
-                                                      unsigned int m, //order
-                                                      double theta,   //colatitude (radians)
-                                                      double phi );   //longitude (radians)
+    std::pair<double,double> real_spherical_harmonic( unsigned int l, // degree
+                                                      unsigned int m, // order
+                                                      double theta,   // colatitude (radians)
+                                                      double phi );   // longitude (radians)
 
     /**
      * A struct to enable numerical output with a comma as thousands separator
@@ -277,10 +328,13 @@ namespace aspect
            * @param x X coordinates of interpolation points.
            * @param y Values in the interpolation points.
            * @param cubic_spline Whether to construct a cubic spline or just do linear interpolation
+           * @param monotone_spline Whether the cubic spline should be a monotone cubic spline.
+           * Requires cubic_spline to be set to true.
            */
           void set_points(const std::vector<double> &x,
                           const std::vector<double> &y,
-                          bool cubic_spline = true);
+                          const bool cubic_spline = true,
+                          const bool monotone_spline = false);
           /**
            * Evaluate spline at point @p x.
            */
@@ -399,7 +453,7 @@ namespace aspect
          * in the data file. If a list of data components is provided in the
          * data file it is checked that the length of this list is consistent
          * with this number of components. This constructor is mostly provided
-         * for backwards compatilibity. Not prescribing the number of components
+         * for backwards compatibility. Not prescribing the number of components
          * and instead reading them from the input file allows for more
          * flexible files.
          */
@@ -790,11 +844,19 @@ namespace aspect
 
         /**
          * Returns the column index of a column with the given name
-         * @p column_name. Returns numbers::invalid_unsigned_int if no such
+         * @p column_name. Throws an exception if no such
          * column exists or no names were provided in the file.
          */
         unsigned int
         get_column_index_from_name(const std::string &column_name) const;
+
+        /**
+         * Returns the column index of a column with the given name
+         * @p column_name. Returns an invalid unsigned int if no such
+         * column exists or no names were provided in the file.
+         */
+        unsigned int
+        maybe_get_column_index_from_name(const std::string &column_name) const;
 
         /**
          * Returns a string that contains the name of the column with index
@@ -810,6 +872,89 @@ namespace aspect
          */
         std_cxx11::unique_ptr<aspect::Utilities::AsciiDataLookup<1> > lookup;
     };
+
+
+    /**
+     * This function computes the weighted average $\bar y$ of $y_i$  for a weighted p norm. This
+     * leads for a general p to:
+     * $\bar y = \left(\frac{\sum_{i=1}^k w_i y_i^p}{\sum_{i=1}^k w_i}\right)^{\frac{1}{p}}$.
+     * When p = 0 we take the geometric average:
+     * $\bar y = \exp\left(\frac{\sum_{i=1}^k w_i \log\left(y_i\right)}{\sum_{i=1}^k w_i}\right)$,
+     * and when $p \le -1000$ or $p \ge 1000$ we take the minimum and maximum norm respectively.
+     * This means that the smallest and largest value is respectively taken taken.
+     *
+     * This function has been set up to be very tolerant to strange values, such as negative weights.
+     * The only things we require in for the general p is that the sum of the weights and the sum of
+     * the weights times the values to the power p may not be smaller or equal to zero. Furthermore,
+     * when a value is zero, the exponent is smaller then one and the correspondent weight is non-zero,
+     * this corresponds to no resistance in a parallel system. This means that this 'path' will be followed,
+     * and we return zero.
+     *
+     * The implemented special cases (which are minimum (p <= -1000), harmonic average (p = -1), geometric
+     * average (p = 0), arithmetic average (p = 1), quadratic average (RMS) (p = 2), cubic average (p = 3)
+     * and maximum (p >= 1000) ) is, except for the harmonic and quadratic averages even more tolerant of
+     * negative values, because they only require the sum of weights to be non-zero.
+     */
+    double weighted_p_norm_average (const std::vector<double> &weights,
+                                    const std::vector<double> &values,
+                                    const double p);
+
+
+    /**
+     * This function computes the derivative ($\frac{\partial\bar y}{\partial x}$) of an average
+     * of the values $y_i(x)$ with regard to $x$, using $\frac{\partial y_i(x)}{\partial x}$.
+     * This leads for a general p to:
+     * $\frac{\partial\bar y}{\partial x} =
+     * \frac{1}{p}\left(\frac{\sum_{i=1}^k w_i y_i^p}{\sum_{i=1}^k w_i}\right)^{\frac{1}{p}-1}
+     * \frac{\sum_{i=1}^k w_i p y_i^{p-1} y'_i}{\sum_{i=1}^k w_i}$.
+     * When p = 0 we take the geometric average as a reference, which results in:
+     * $\frac{\partial\bar y}{\partial x} =
+     * \exp\left(\frac{\sum_{i=1}^k w_i \log\left(y_i\right)}{\sum_{i=1}^k w_i}\right)
+     * \frac{\sum_{i=1}^k\frac{w_i y'_i}{y_i}}{\sum_{i=1}^k w_i}$
+     * and when $p \le -1000$ or $p \ge 1000$ we take the min and max norm respectively.
+     * This means that the derivative is taken which has the min/max value.
+     *
+     * This function has, like the function weighted_p_norm_average been set up to be very tolerant to
+     * strange values, such as negative weights. The only things we require in for the general p is that
+     * the sum of the weights and the sum of the weights times the values to the power p may not be smaller
+     * or equal to zero. Furthermore, when a value is zero, the exponent is smaller then one and the
+     * correspondent weight is non-zero, this corresponds to no resistance in a parallel system. This means
+     * that this 'path' will be followed, and we return the corresponding derivative.
+     *
+     * The implemented special cases (which are minimum (p <= -1000), harmonic average (p = -1), geometric
+     * average (p = 0), arithmetic average (p = 1), and maximum (p >= 1000) ) is, except for the harmonic
+     * average even more tolerant of negative values, because they only require the sum of weights to be non-zero.
+     */
+    template<typename T>
+    T derivative_of_weighted_p_norm_average (const double averaged_parameter,
+                                             const std::vector<double> &weights,
+                                             const std::vector<double> &values,
+                                             const std::vector<T> &derivatives,
+                                             const double p);
+    /**
+     * This function computes a factor which can be used to make sure that the
+     * Jacobian remains positive definite.
+     *
+     * The goal of this function is to find a factor $\alpha$ so that
+     * $2\eta(\varepsilon(\bm u)) I \otimes I +  \alpha\left[a \otimes b + b \otimes a\right]$ remains a
+     * positive definite matrix. Here, $a=\varepsilon(\bm u)$ is the @p strain_rate
+     * and $b=\frac{\partial\eta(\varepsilon(\bm u),p)}{\partial \varepsilon}$ is the derivative of the viscosity
+     * with respect to the strain rate and is given by @p dviscosities_dstrain_rate. Since the viscosity $\eta$
+     * must be positive, there is always a value of $\alpha$ (possibly small) so that the result is a positive
+     * definite matrix. In the best case, we want to choose $\alpha=1$ because that corresponds to the full Newton step,
+     * and so the function never returns anything larger than one.
+     *
+     * The factor is defined by:
+     * $\frac{2\eta(\varepsilon(\bm u))}{\left[1-\frac{b:a}{\|a\| \|b\|} \right]^2\|a\|\|b\|}$. Alpha is
+     * reset to a maximum of one, and if it is smaller then one, a safety_factor scales the alpha to make
+     * sure that the 1-alpha won't get to close to zero.
+     */
+    template<int dim>
+    double compute_spd_factor(const double eta,
+                              const SymmetricTensor<2,dim> &strain_rate,
+                              const SymmetricTensor<2,dim> &dviscosities_dstrain_rate,
+                              const double safety_factor);
+
   }
 }
 

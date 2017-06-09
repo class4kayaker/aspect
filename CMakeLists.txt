@@ -29,7 +29,11 @@ INCLUDE_DIRECTORIES(include)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 
-FIND_PACKAGE(deal.II 8.4.0 QUIET
+LIST(APPEND CMAKE_MODULE_PATH
+  ${CMAKE_SOURCE_DIR}
+  )
+
+FIND_PACKAGE(deal.II 8.5.0 QUIET
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})
@@ -135,9 +139,44 @@ ADD_CUSTOM_TARGET(setup_tests
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   COMMENT "Enabling all tests ...")
 
+SET(ASPECT_TEST_GENERATOR "Unix Makefiles" CACHE STRING 
+  "Generator to use for the test cmake project. Using ninja instead of make is not recommended.")
+
 IF(EXISTS ${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt)
-  ENABLE_TESTING()
-  ADD_SUBDIRECTORY(tests)
+  FILE(WRITE ${CMAKE_BINARY_DIR}/CTestTestfile.cmake "SUBDIRS(tests)")
+
+  FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests)
+
+  SET(aspect_binary ${CMAKE_BINARY_DIR}/aspect)
+
+  MESSAGE(STATUS "Setting up test project, see tests/setup_tests.log for details.")
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -G ${ASPECT_TEST_GENERATOR}
+	-D ASPECT_RUN_ALL_TESTS=${ASPECT_RUN_ALL_TESTS}
+	-D ASPECT_DIR=${CMAKE_BINARY_DIR}
+	-D CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+	-D ASPECT_BINARY=${aspect_binary}
+	${CMAKE_CURRENT_SOURCE_DIR}/tests
+    OUTPUT_FILE setup_tests.log
+    RESULT_VARIABLE test_cmake_result
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests
+   )
+  IF(NOT test_cmake_result EQUAL 0)
+    MESSAGE(FATAL_ERROR "ERROR: Test project could not be configured.")
+  ENDIF()
+
+
+  IF(POLICY CMP0037)
+    # allow to override "test" target
+    CMAKE_POLICY(SET CMP0037 OLD)
+  ENDIF()
+
+  ADD_CUSTOM_TARGET(test
+    COMMAND ${CMAKE_COMMAND} --build . --target test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests
+    DEPENDS aspect
+    COMMENT "Running tests ...")
+
 ENDIF()
 
 
@@ -150,7 +189,7 @@ ADD_CUSTOM_TARGET(generate_reference_output
 ADD_CUSTOM_TARGET(indent
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND ./doc/indent
-  COMMENT "Indenting all source files..."
+  COMMENT "Indenting all ASPECT header and source files..."
   )
 
 
@@ -214,6 +253,19 @@ IF (ASPECT_HAVE_LINK_H)
   ENDFOREACH()
 ENDIF()
 
+# Check if we want to use cotire to precompile header files and prepare a
+# unity build target. This speeds up compile time, but can fail on some
+# machines, therefore it is disabled by default.
+SET(ASPECT_PRECOMPILE_HEADERS OFF CACHE BOOL "Precompile external header files using cotire to speedup compile time.")
+
+IF (ASPECT_PRECOMPILE_HEADERS)
+# For the unity build we need to compile helper_functions.cc before core.cc
+# ensure this by reordering the files
+  FIND_FILE(HELPER_PATH helper_functions.cc HINTS "${CMAKE_SOURCE_DIR}/source/simulator")
+  LIST(REMOVE_ITEM TARGET_SRC ${HELPER_PATH})
+  LIST(INSERT TARGET_SRC 0 ${HELPER_PATH})
+ENDIF()
+
 
 DEAL_II_INVOKE_AUTOPILOT()
 
@@ -248,12 +300,53 @@ IF (ASPECT_USE_FP_EXCEPTIONS)
   ENDIF()
 ENDIF()
 
+IF (ASPECT_PRECOMPILE_HEADERS)
+  MESSAGE(STATUS "Enabling cotire to precompile external header files.")
+  INCLUDE(cmake/cotire)
 
+  # Set some properties that are necessary for the header precompilations 
+  # and unity build to pass. We need to exclude some headers that
+  # frequently cause problems, and undefine some macros between source 
+  # files that would otherwise interfere with each other.
+  set_target_properties (aspect PROPERTIES
+      COTIRE_PREFIX_HEADER_IGNORE_PATH
+      "/usr/include/;${CMAKE_SOURCE_DIR};${CMAKE_BINARY_DIR}")
+  set_source_files_properties (${TARGET_SRC} PROPERTIES
+      COTIRE_UNITY_SOURCE_POST_UNDEFS "INSTANTIATE")
+
+  # This line activates the cotire module for the aspect target, 
+  # and therefore the whole precompilation
+  cotire(aspect)
+ELSE()
+  MESSAGE(STATUS "Disabling cotire.")
+ENDIF()
+
+# Find the deal.II parameter GUI and install helper script
+FIND_PROGRAM(PARAMETER_GUI_EXECUTABLE
+	parameter_gui
+	HINTS $ENV{PARAMETER_GUI_DIR} ${PARAMETER_GUI_DIR} ${PARAMETER_GUI_DIR}/bin
+	PATH bin)
+MARK_AS_ADVANCED(CLEAR PARAMETER_GUI_EXECUTABLE)
+
+# did the user specify something that doesn't exist?
+IF (PARAMETER_GUI_EXECUTABLE 
+	AND
+    (NOT EXISTS ${PARAMETER_GUI_EXECUTABLE} OR IS_DIRECTORY ${PARAMETER_GUI_EXECUTABLE}))
+  MESSAGE(STATUS "Warning: PARAMETER_GUI_EXECUTABLE '${PARAMETER_GUI_EXECUTABLE}' does not exist")
+  SET(PARAMETER_GUI_EXECUTABLE "PARAMETER_GUI_EXECUTABLE-NOTFOUND" CACHE FILEPATH "" FORCE)
+ENDIF()
+
+IF (NOT PARAMETER_GUI_EXECUTABLE)
+  MESSAGE(STATUS "Parameter GUI not found: install and provide a hint using -D PARAMETER_GUI_DIR or set -D PARAMETER_GUI_EXECUTABLE directly.")
+ELSE()
+  MESSAGE(STATUS "Found parameter GUI at: ${PARAMETER_GUI_EXECUTABLE}")
+  CONFIGURE_FILE(
+  ${CMAKE_SOURCE_DIR}/doc/aspect-gui
+  ${CMAKE_BINARY_DIR}/aspect-gui
+  @ONLY
+  )
+ENDIF()
 
 MESSAGE(STATUS "Writing config into detailed.log...")
-LIST(APPEND CMAKE_MODULE_PATH
-  ${CMAKE_SOURCE_DIR}
-  )
-
 INCLUDE(cmake/write_config)
 

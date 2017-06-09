@@ -7,7 +7,6 @@
 
 #include <deal.II/fe/fe_dgq.h>
 #include <iostream>
-#include <typeinfo>
 
 using namespace dealii;
 
@@ -42,7 +41,7 @@ namespace aspect
 
   template <int dim>
   class MeltMaterial:
-    public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>
   {
       virtual bool is_compressible () const
       {
@@ -52,6 +51,13 @@ namespace aspect
       virtual double reference_viscosity () const
       {
         return 1.0;
+      }
+
+      virtual double reference_darcy_coefficient () const
+      {
+        const double porosity = 0.01;
+        const double permeability = 1.0 * std::pow(porosity, 3) * std::pow(1.0-porosity, 2);
+        return permeability / 0.1;
       }
 
       virtual void evaluate(const typename MaterialModel::Interface<dim>::MaterialModelInputs &in,

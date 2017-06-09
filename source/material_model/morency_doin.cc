@@ -35,25 +35,25 @@ namespace aspect
     {
       std::vector<double> volume_fractions( compositional_fields.size()+1);
 
-      //clip the compositional fields so they are between zero and one
+      // clip the compositional fields so they are between zero and one
       std::vector<double> x_comp = compositional_fields;
       for ( unsigned int i=0; i < x_comp.size(); ++i)
         x_comp[i] = std::min(std::max(x_comp[i], 0.0), 1.0);
 
-      //sum the compositional fields for normalization purposes
+      // sum the compositional fields for normalization purposes
       double sum_composition = 0.0;
       for ( unsigned int i=0; i < x_comp.size(); ++i)
         sum_composition += x_comp[i];
 
       if (sum_composition >= 1.0)
         {
-          volume_fractions[0] = 0.0;  //background mantle
+          volume_fractions[0] = 0.0;  // background mantle
           for ( unsigned int i=1; i <= x_comp.size(); ++i)
             volume_fractions[i] = x_comp[i-1]/sum_composition;
         }
       else
         {
-          volume_fractions[0] = 1.0 - sum_composition; //background mantle
+          volume_fractions[0] = 1.0 - sum_composition; // background mantle
           for ( unsigned int i=1; i <= x_comp.size(); ++i)
             volume_fractions[i] = x_comp[i-1];
         }
@@ -123,8 +123,8 @@ namespace aspect
             double density = 0.0;
             for (unsigned int j=0; j < volume_fractions.size(); ++j)
               {
-                //not strictly correct if thermal expansivities are different, since we are interpreting
-                //these compositions as volume fractions, but the error introduced should not be too bad.
+                // not strictly correct if thermal expansivities are different, since we are interpreting
+                // these compositions as volume fractions, but the error introduced should not be too bad.
                 const double temperature_factor = (1.0 - thermal_expansivities[j] * (temperature - reference_T));
                 density += volume_fractions[j] * densities[j] * temperature_factor;
               }
@@ -228,7 +228,7 @@ namespace aspect
     void
     MorencyDoin<dim>::parse_parameters (ParameterHandler &prm)
     {
-      //increment by one for background:
+      // increment by one for background:
       const unsigned int n_fields = this->n_compositional_fields() + 1;
 
       prm.enter_subsection("Material model");
@@ -313,35 +313,35 @@ namespace aspect
   {
     ASPECT_REGISTER_MATERIAL_MODEL(MorencyDoin,
                                    "Morency and Doin",
-                                   "An implementation of the visco-plastic rheology described by (Morency"
-                                   " and Doin, 2004). Compositional fields can each be assigned individual"
-                                   " activation energies, reference densities, thermal expansivities, and"
-                                   " stress exponents. The effective viscosity is defined as"
-                                   " \\[v_{eff} = \\left(\\frac{1}{v_{eff}^v}+\\frac{1}{v_{eff}^p}\\right)^{-1}\\]"
-                                   " where"
-                                   " \\[v_{eff}^v = B \\left(\\frac{\\dot{\\epsilon}}{\\dot{\\epsilon}_{ref}}"
-                                   " \\right)^{-1+1/n_v} exp\\left(\\frac{E_a +V_a \\rho_m g z}{n_v R T}\\right) \\]"
-                                   " \\[v_{eff}^p = (\\tau_0 + \\gamma \\rho_m g z) \\left( \\frac{\\dot{\\epsilon}^{-1+1/n_p}}"
-                                   " {\\dot{\\epsilon}_{ref}^{1/n_p}} \\right) \\]"
-                                   " where $B$ is a scaling constant; $\\dot{\\epsilon}$ is defined as"
-                                   " the quadratic sum of the second invariant of the strain rate tensor and"
-                                   " a minimum strain rate, $\\dot{\\epsilon}_0$; $\\dot{\\epsilon}_{ref}$"
-                                   " is a reference strain rate; $n_v$, and $n_p$ are stress exponents; $E_a$"
-                                   " is the activation energy; $V_a$ is the activation volume; $\\rho_m$ is the"
-                                   " mantle density; $R$ is the gas constant; $T$ is temperature; $\\tau_0$ is"
-                                   " the cohestive strength of rocks at the surface; $\\gamma$ is a coefficient"
-                                   " of yield stress increase with depth; and $z$ is depth."
-                                   " \n\n"
-                                   " Note: (Morency and Doin, 2004) defines the second invariant of the strain"
-                                   " rate in a nonstandard way. The formulation in the paper is given as"
-                                   " $\\epsilon_{II} = \\sqrt{\\frac{1}{2} (\\epsilon_{11}^2 +"
-                                   " \\epsilon_{12}^2)}$ where $\\epsilon$ is the strain rate tensor."
-                                   " For consistency, that is also the formulation implemented in this material model."
-                                   " \n\n"
-                                   " Morency, C., and M‐P. Doin. \"Numerical simulations of the mantle lithosphere delamination.\""
-                                   " Journal of Geophysical Research: Solid Earth (1978–2012) 109.B3 (2004)."
-                                   " \n\n"
-                                   " The value for the components of this formula and additional parameters are"
-                                   " read from the parameter file in subsection 'Material model/Morency and Doin'.")
+                                   "An implementation of the visco-plastic rheology described by (Morency "
+                                   "and Doin, 2004). Compositional fields can each be assigned individual "
+                                   "activation energies, reference densities, thermal expansivities, and "
+                                   "stress exponents. The effective viscosity is defined as "
+                                   "\\[v_{eff} = \\left(\\frac{1}{v_{eff}^v}+\\frac{1}{v_{eff}^p}\\right)^{-1}\\] "
+                                   "where "
+                                   "\\[v_{eff}^v = B \\left(\\frac{\\dot{\\epsilon}}{\\dot{\\epsilon}_{ref}} "
+                                   "\\right)^{-1+1/n_v} exp\\left(\\frac{E_a +V_a \\rho_m g z}{n_v R T}\\right) \\] "
+                                   "\\[v_{eff}^p = (\\tau_0 + \\gamma \\rho_m g z) \\left( \\frac{\\dot{\\epsilon}^{-1+1/n_p}} "
+                                   "{\\dot{\\epsilon}_{ref}^{1/n_p}} \\right) \\] "
+                                   "where $B$ is a scaling constant; $\\dot{\\epsilon}$ is defined as "
+                                   "the quadratic sum of the second invariant of the strain rate tensor and "
+                                   "a minimum strain rate, $\\dot{\\epsilon}_0$; $\\dot{\\epsilon}_{ref}$ "
+                                   "is a reference strain rate; $n_v$, and $n_p$ are stress exponents; $E_a$ "
+                                   "is the activation energy; $V_a$ is the activation volume; $\\rho_m$ is the "
+                                   "mantle density; $R$ is the gas constant; $T$ is temperature; $\\tau_0$ is "
+                                   "the cohesive strength of rocks at the surface; $\\gamma$ is a coefficient "
+                                   "of yield stress increase with depth; and $z$ is depth. "
+                                   "\n\n"
+                                   "Note: (Morency and Doin, 2004) defines the second invariant of the strain "
+                                   "rate in a nonstandard way. The formulation in the paper is given as "
+                                   "$\\epsilon_{II} = \\sqrt{\\frac{1}{2} (\\epsilon_{11}^2 +"
+                                   "\\epsilon_{12}^2)}$ where $\\epsilon$ is the strain rate tensor. "
+                                   "For consistency, that is also the formulation implemented in this material model."
+                                   "\n\n"
+                                   "Morency, C., and M‐P. Doin. \"Numerical simulations of the mantle lithosphere delamination.\" "
+                                   "Journal of Geophysical Research: Solid Earth (1978–2012) 109.B3 (2004)."
+                                   "\n\n"
+                                   "The value for the components of this formula and additional parameters are "
+                                   "read from the parameter file in subsection 'Material model/Morency and Doin'.")
   }
 }

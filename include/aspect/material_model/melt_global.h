@@ -44,7 +44,7 @@ namespace aspect
      * @ingroup MaterialModels
      */
     template <int dim>
-    class MeltGlobal : public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>, public MaterialModel::MeltFractionModel<dim>
+    class MeltGlobal : public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>, public MaterialModel::MeltFractionModel<dim>
     {
       public:
         /**
@@ -57,17 +57,28 @@ namespace aspect
          */
         virtual bool is_compressible () const;
 
+        virtual void evaluate(const typename Interface<dim>::MaterialModelInputs &in,
+                              typename Interface<dim>::MaterialModelOutputs &out) const;
+
+        /**
+         * Compute the equilibrium melt fractions for the given input conditions.
+         * @p in and @p melt_fractions need to have the same size.
+         *
+         * @param in Object that contains the current conditions.
+         * @param melt_fractions Vector of doubles that is filled with the
+         * equilibrium melt fraction for each given input conditions.
+         */
+        virtual void melt_fractions (const MaterialModel::MaterialModelInputs<dim> &in,
+                                     std::vector<double> &melt_fractions) const;
+
         /**
          * @name Reference quantities
          * @{
          */
         virtual double reference_viscosity () const;
 
-        virtual void evaluate(const typename Interface<dim>::MaterialModelInputs &in,
-                              typename Interface<dim>::MaterialModelOutputs &out) const;
+        virtual double reference_darcy_coefficient () const;
 
-        virtual void melt_fractions (const MaterialModel::MaterialModelInputs<dim> &in,
-                                     std::vector<double> &melt_fractions) const;
 
         /**
          * @}

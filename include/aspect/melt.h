@@ -26,7 +26,7 @@
 #include <aspect/global.h>
 #include <aspect/assembly.h>
 #include <aspect/material_model/interface.h>
-#include <aspect/fluid_pressure_boundary_conditions/interface.h>
+#include <aspect/boundary_fluid_pressure/interface.h>
 
 namespace aspect
 {
@@ -96,6 +96,14 @@ namespace aspect
     class MeltFractionModel
     {
       public:
+        /**
+         * Compute the equilibrium melt fractions for the given input conditions.
+         * @p in and @p melt_fractions need to have the same size.
+         *
+         * @param in Object that contains the current conditions.
+         * @param melt_fractions Vector of doubles that is filled with the
+         * equilibrium melt fraction for each given input conditions.
+         */
         virtual void melt_fractions (const MaterialModel::MaterialModelInputs<dim> &in,
                                      std::vector<double> &melt_fractions) const = 0;
 
@@ -106,6 +114,21 @@ namespace aspect
         virtual ~MeltFractionModel ()
         {};
     };
+
+    /**
+     * Base class for material models to be used with melt transport enabled.
+     */
+    template <int dim>
+    class MeltInterface: public MaterialModel::Interface<dim>
+    {
+      public:
+        /**
+          * Reference value for the Darcy coefficient, which is defined as
+          * permeability divided by fluid viscosity. Units: m^2/Pa/s.
+          */
+        virtual double reference_darcy_coefficient () const = 0;
+    };
+
 
   }
 
@@ -325,7 +348,7 @@ namespace aspect
        * initialization can be done together with the other objects related to melt
        * transport.
        */
-      std_cxx11::unique_ptr<FluidPressureBoundaryConditions::Interface<dim> > fluid_pressure_boundary_conditions;
+      std_cxx11::unique_ptr<BoundaryFluidPressure::Interface<dim> > boundary_fluid_pressure;
   };
 
 }

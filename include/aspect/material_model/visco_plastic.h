@@ -114,7 +114,9 @@ namespace aspect
         void
         parse_parameters (ParameterHandler &prm);
 
-      private:
+        double get_min_strain_rate() const;
+
+      protected:
 
         double reference_T;
 
@@ -137,7 +139,7 @@ namespace aspect
          * Enumeration for selecting which viscosity averaging scheme to use.
          * Select between harmonic, arithmetic, geometric, and
          * maximum_composition. The max composition scheme simply uses the
-         * viscosity of whichever field has the highes volume fraction.
+         * viscosity of whichever field has the highest volume fraction.
          * For each quadrature point, averaging is conducted over the
          * N compositional fields plus the background field.
          */
@@ -162,7 +164,7 @@ namespace aspect
 
         /**
          * Enumeration for selecting which type of yield mechanism to use.
-         * Select between drucker prager and stress limiter.
+         * Select between Drucker Prager and stress limiter.
          */
         enum YieldScheme
         {
@@ -184,6 +186,7 @@ namespace aspect
                                           const YieldScheme &yield_type) const;
 
         bool use_strain_weakening;
+        bool use_finite_strain_tensor;
         std::vector<double> start_strain_weakening_intervals;
         std::vector<double> end_strain_weakening_intervals;
         std::vector<double> viscous_strain_weakening_factors;

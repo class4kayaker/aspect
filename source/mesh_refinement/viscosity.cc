@@ -59,7 +59,7 @@ namespace aspect
                                quadrature,
                                update_quadrature_points | update_values | update_gradients);
 
-      // the values of the compositional fields are stored as blockvectors for each field
+      // the values of the compositional fields are stored as block vectors for each field
       // we have to extract them in this structure
       std::vector<std::vector<double> > prelim_composition_values (this->n_compositional_fields(),
                                                                    std::vector<double> (quadrature.size()));
@@ -76,30 +76,7 @@ namespace aspect
         if (cell->is_locally_owned())
           {
             fe_values.reinit(cell);
-
-            fe_values[this->introspection().extractors.pressure].get_function_values (this->get_solution(),
-                                                                                      in.pressure);
-            fe_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(),
-                                                                                         in.temperature);
-            fe_values[this->introspection().extractors.velocities].get_function_symmetric_gradients (this->get_solution(),
-                in.strain_rate);
-            fe_values[this->introspection().extractors.velocities].get_function_values (this->get_solution(),
-                                                                                        in.velocity);
-            fe_values[this->introspection().extractors.pressure].get_function_gradients (this->get_solution(),
-                                                                                         in.pressure_gradient);
-
-            for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-              fe_values[this->introspection().extractors.compositional_fields[c]].get_function_values (this->get_solution(),
-                  prelim_composition_values[c]);
-
-            in.position = fe_values.get_quadrature_points();
-            for (unsigned int i=0; i<quadrature.size(); ++i)
-              {
-                for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-                  in.composition[i][c] = prelim_composition_values[c][i];
-              }
-            in.cell = &cell;
-
+            in.reinit(fe_values, &cell, this->introspection(), this->get_solution());
             this->get_material_model().evaluate(in, out);
 
             cell->get_dof_indices (local_dof_indices);

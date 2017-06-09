@@ -21,6 +21,7 @@
 
 #include <aspect/melt.h>
 #include <aspect/simulator.h>
+#include <deal.II/base/signaling_nan.h>
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/lac/sparsity_tools.h>
@@ -88,6 +89,21 @@ namespace aspect
     MeltEquations<dim>::create_additional_material_model_outputs(MaterialModel::MaterialModelOutputs<dim> &outputs) const
     {
       MeltHandler<dim>::create_material_model_outputs(outputs);
+
+      const unsigned int n_points = outputs.viscosities.size();
+
+      if (this->get_parameters().enable_additional_stokes_rhs
+          && outputs.template get_additional_output<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> >() == NULL)
+        {
+          outputs.additional_outputs.push_back(
+            std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> >
+            (new MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> (n_points)));
+        }
+
+      Assert(!this->get_parameters().enable_additional_stokes_rhs
+             ||
+             outputs.template get_additional_output<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> >()->rhs_u.size()
+             == n_points, ExcInternalError());
     }
 
 
@@ -104,6 +120,9 @@ namespace aspect
       const unsigned int   n_q_points      = scratch.finite_element_values.n_quadrature_points;
 
       MaterialModel::MeltOutputs<dim> *melt_outputs = scratch.material_model_outputs.template get_additional_output<MaterialModel::MeltOutputs<dim> >();
+
+      Assert(dynamic_cast<const MaterialModel::MeltInterface<dim>*>(&this->get_material_model()) !=
+             NULL, ExcMessage("Error: The current material model needs to be derived from MeltInterface to use melt transport."));
 
       const FEValuesExtractors::Scalar ex_p_f = introspection.variable("fluid pressure").extractor_scalar();
       const FEValuesExtractors::Scalar ex_p_c = introspection.variable("compaction pressure").extractor_scalar();
@@ -215,6 +234,11 @@ namespace aspect
       const unsigned int p_c_component_index = introspection.variable("compaction pressure").first_component_index;
 
       MaterialModel::MeltOutputs<dim> *melt_outputs = scratch.material_model_outputs.template get_additional_output<MaterialModel::MeltOutputs<dim> >();
+      const MaterialModel::AdditionalMaterialOutputsStokesRHS<dim>
+      *force = scratch.material_model_outputs.template get_additional_output<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> >();
+
+      Assert(dynamic_cast<const MaterialModel::MeltInterface<dim>*>(&this->get_material_model()) !=
+             NULL, ExcMessage("Error: The current material model needs to be derived from MeltInterface to use melt transport."));
 
       for (unsigned int i=0, i_stokes=0; i_stokes<stokes_dofs_per_cell; /*increment at end of loop*/)
         {
@@ -300,6 +324,13 @@ namespace aspect
               data.local_rhs(i) += (
                                      (bulk_density * gravity * scratch.phi_u[i])
                                      +
+                                     // add a force to the RHS if present
+                                     (force!=NULL ?
+                                      (force->rhs_u[q] * scratch.phi_u[i]
+                                       + pressure_scaling * force->rhs_p[q] * scratch.phi_p[i]
+                                       + pressure_scaling * force->rhs_melt_pc[q] * scratch.phi_p_c[i])
+                                      : 0.0)
+                                     +
                                      // add the term that results from the compressibility. compared
                                      // to the manual, this term seems to have the wrong sign, but this
                                      // is because we negate the entire equation to make sure we get
@@ -382,11 +413,15 @@ namespace aspect
       MaterialModel::MeltOutputs<dim> *melt_outputs = scratch.face_material_model_outputs.template get_additional_output<MaterialModel::MeltOutputs<dim> >();
 
       std::vector<double> grad_p_f(n_face_q_points);
-      this->get_melt_handler().fluid_pressure_boundary_conditions->fluid_pressure_gradient(
+      this->get_melt_handler().boundary_fluid_pressure->fluid_pressure_gradient(
         cell->face(face_no)->boundary_id(),
         scratch.face_material_model_inputs,
         scratch.face_material_model_outputs,
+#if DEAL_II_VERSION_GTE(9,0,0)
+        scratch.face_finite_element_values.get_normal_vectors(),
+#else
         scratch.face_finite_element_values.get_all_normal_vectors(),
+#endif
         grad_p_f);
 
       for (unsigned int q=0; q<n_face_q_points; ++q)
@@ -448,6 +483,11 @@ namespace aspect
       const FEValuesExtractors::Scalar solution_field = advection_field.scalar_extractor(introspection);
 
       MaterialModel::MeltOutputs<dim> *melt_outputs = scratch.material_model_outputs.template get_additional_output<MaterialModel::MeltOutputs<dim> >();
+
+      Assert(melt_outputs->compaction_viscosities[0] > 0.0,
+             ExcMessage ("MeltOutputs have to be filled for models with melt transport. "
+                         "At the moment, these outputs are not filled, or they do not have "
+                         "reasonable values."));
 
       std::vector<Tensor<1,dim> > fluid_velocity_values(n_q_points);
       const FEValuesExtractors::Vector ex_u_f = introspection.variable("fluid velocity").extractor_vector();
@@ -536,7 +576,7 @@ namespace aspect
               (density_c_P + latent_heat_LHS);
 
           Tensor<1,dim> current_u = scratch.current_velocity_values[q];
-          //Subtract off the mesh velocity for ALE corrections if necessary
+          // Subtract off the mesh velocity for ALE corrections if necessary
           if (this->get_parameters().free_surface_enabled)
             current_u -= scratch.mesh_velocity_values[q];
 
@@ -911,6 +951,7 @@ namespace aspect
 
       MaterialModel::MaterialModelInputs<dim> in(quadrature.size(), this->n_compositional_fields());
       MaterialModel::MaterialModelOutputs<dim> out(quadrature.size(), this->n_compositional_fields());
+
       create_material_model_outputs(out);
 
       typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active(),
@@ -930,11 +971,13 @@ namespace aspect
 
             fe_values[this->introspection().variable("fluid pressure").extractor_scalar()].get_function_gradients (
               solution, grad_p_f_values);
-            this->compute_material_model_input_values (solution,
-                                                       fe_values,
-                                                       cell,
-                                                       true,
-                                                       in);
+
+
+            in.reinit(fe_values,
+                      &cell,
+                      this->introspection(),
+                      this->get_solution());
+
 
             this->get_material_model().evaluate(in, out);
 
@@ -978,7 +1021,7 @@ namespace aspect
 #ifdef ASPECT_USE_PETSC
       Amg_data.symmetric_operator = false;
 #else
-      //Amg_data.constant_modes = constant_modes;
+      // Amg_data.constant_modes = constant_modes;
       Amg_data.elliptic = true;
       Amg_data.higher_order_elements = false;
       Amg_data.smoother_sweeps = 2;
@@ -997,7 +1040,7 @@ namespace aspect
       solution.block(block_idx) = distributed_solution.block(block_idx);
     }
 
-    //compute solid pressure
+    // compute solid pressure
     {
       const unsigned int block_p = this->introspection().block_indices.pressure;
 
@@ -1129,7 +1172,7 @@ namespace aspect
     }
     prm.leave_subsection();
 
-    FluidPressureBoundaryConditions::declare_parameters<dim> (prm);
+    BoundaryFluidPressure::declare_parameters<dim> (prm);
   }
 
   template <int dim>
@@ -1143,9 +1186,9 @@ namespace aspect
   MeltHandler<dim>::initialize_simulator (const Simulator<dim> &simulator_object)
   {
     this->SimulatorAccess<dim>::initialize_simulator(simulator_object);
-    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(fluid_pressure_boundary_conditions.get()))
+    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(boundary_fluid_pressure.get()))
       sim->initialize_simulator (simulator_object);
-    fluid_pressure_boundary_conditions->initialize ();
+    boundary_fluid_pressure->initialize ();
   }
 
   template <int dim>
@@ -1160,8 +1203,8 @@ namespace aspect
     }
     prm.leave_subsection();
 
-    fluid_pressure_boundary_conditions.reset(FluidPressureBoundaryConditions::create_fluid_pressure_boundary<dim>(prm));
-    fluid_pressure_boundary_conditions->parse_parameters (prm);
+    boundary_fluid_pressure.reset(BoundaryFluidPressure::create_boundary_fluid_pressure<dim>(prm));
+    boundary_fluid_pressure->parse_parameters (prm);
   }
 
 

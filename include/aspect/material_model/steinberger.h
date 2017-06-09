@@ -42,7 +42,7 @@ namespace aspect
      *
      * The viscosity of this model is based on the paper
      * Steinberger/Calderwood 2006: "Models of large-scale viscous flow in the
-     * Earth's mantle with contraints from mineral physics and surface
+     * Earth's mantle with constraints from mineral physics and surface
      * observations". The thermal conductivity is constant and the other
      * parameters are provided via lookup tables from the software PERPLEX.
      *
@@ -172,26 +172,52 @@ namespace aspect
          * @}
          */
 
+        virtual
+        void
+        create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const;
+
+
       private:
         bool interpolation;
         bool latent_heat;
         bool use_lateral_average_temperature;
+
+        /**
+         * Reference viscosity. Only used for pressure scaling purposes.
+         */
         double reference_eta;
+
+        /**
+         * The value for thermal conductivity. This model only
+         * implements a constant thermal conductivity for the whole domain.
+         */
+        double thermal_conductivity_value;
+
+        /**
+         * Information about lateral temperature averages.
+         */
         std::vector<double> avg_temp;
         unsigned int n_lateral_slices;
+
+        /**
+         * Minimum and maximum allowed viscosity, as well as the maximum allowed
+         * viscosity variation compared to the average radial viscosity.
+         */
         double min_eta;
         double max_eta;
         double max_lateral_eta_variation;
+
+        /**
+         * Information about the location of data files.
+         */
         std::string data_directory;
         std::vector<std::string> material_file_names;
-        unsigned int n_material_data;
         std::string radial_viscosity_file_name;
         std::string lateral_viscosity_file_name;
 
         /**
          * List of pointers to objects that read and process data we get from
-         * Perplex files. There is one pointer/object per compositional field
-         * data provided.
+         * Perplex files.
          */
         std::vector<std_cxx11::shared_ptr<internal::MaterialLookup> > material_lookup;
 

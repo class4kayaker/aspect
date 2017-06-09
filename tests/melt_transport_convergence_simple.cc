@@ -1,6 +1,6 @@
 #include <aspect/material_model/interface.h>
-#include <aspect/velocity_boundary_conditions/interface.h>
-#include <aspect/fluid_pressure_boundary_conditions/interface.h>
+#include <aspect/boundary_velocity/interface.h>
+#include <aspect/boundary_fluid_pressure/interface.h>
 #include <aspect/simulator_access.h>
 #include <aspect/global.h>
 #include <aspect/melt.h>
@@ -19,7 +19,7 @@ namespace aspect
 {
   template <int dim>
   class TestMeltMaterial:
-    public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>
   {
     public:
       virtual bool is_compressible () const
@@ -30,6 +30,13 @@ namespace aspect
       virtual double reference_viscosity () const
       {
         return 1.0;
+      }
+
+      virtual double reference_darcy_coefficient () const
+      {
+        const double porosity = 0.01;
+        const double permeability = porosity * porosity;
+        return permeability / 1.0;
       }
 
       virtual void evaluate(const typename MaterialModel::Interface<dim>::MaterialModelInputs &in,
@@ -92,12 +99,12 @@ namespace aspect
         double z = p(1);
         const double porosity = 0.15 + 1.0/20.0 * (numbers::PI/2.0 + std::atan(x + 2*z));
 
-        values[0]= 1.0;       //x vel
-        values[1]= 1.0;    //z vel
+        values[0]= 1.0;       // x vel
+        values[1]= 1.0;    // z vel
         values[2]= std::exp(z/10.0);  // p_f
         values[3]= 0;  // p_c
-        values[4]= 1.0;       //x melt vel
-        values[5]= 1.0;    //y melt vel
+        values[4]= 1.0;       // x melt vel
+        values[5]= 1.0;    // y melt vel
         values[6]= std::exp(z/10.0);  // p_s
         values[7]= 0; // T
         values[8]= porosity;
@@ -126,7 +133,7 @@ namespace aspect
   ConvergenceMeltPostprocessor<dim>::execute (TableHandler &statistics)
   {
     RefFunction<dim> ref_func;
-    const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.velocities).degree+2);
+    const QGauss<dim> quadrature_formula (this->introspection().polynomial_degree.velocities +2);
 
     const unsigned int n_total_comp = this->introspection().n_components;
 
@@ -211,7 +218,7 @@ namespace aspect
   template <int dim>
   class PressureBdry:
 
-    public FluidPressureBoundaryConditions::Interface<dim>
+    public BoundaryFluidPressure::Interface<dim>
   {
     public:
       virtual
@@ -254,10 +261,10 @@ namespace aspect
                                 "solution derived for incompressible melt transport in a 2D box as described "
                                 "in the manuscript and reports the error.")
 
-  ASPECT_REGISTER_FLUID_PRESSURE_BOUNDARY_CONDITIONS(PressureBdry,
-                                                     "PressureBdry",
-                                                     "A fluid pressure boundary condition that prescribes the "
-                                                     "gradient of the fluid pressure at the boundaries as "
-                                                     "calculated in the analytical solution. ")
+  ASPECT_REGISTER_BOUNDARY_FLUID_PRESSURE_MODEL(PressureBdry,
+                                                "PressureBdry",
+                                                "A fluid pressure boundary condition that prescribes the "
+                                                "gradient of the fluid pressure at the boundaries as "
+                                                "calculated in the analytical solution. ")
 
 }

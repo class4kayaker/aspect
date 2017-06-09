@@ -33,7 +33,7 @@
 
 /**
  * This geometry model implements an (3d) ellipsoidal_chunk geometry which can be non-coordinate parallel.
- * @author This plugin is a joined effort of Menno Fraters, D Sarah Stamps and Wolfgang Bangerth
+ * @author This plugin is a joint effort of Menno Fraters, D Sarah Stamps and Wolfgang Bangerth
  */
 
 namespace aspect
@@ -56,6 +56,7 @@ namespace aspect
       bottom_depth (-1)
     {}
 
+
     template <int dim>
     void
     EllipsoidalChunk<dim>::EllipsoidalChunkGeometry::set_manifold_parameters(const double para_semi_major_axis_a,
@@ -75,6 +76,8 @@ namespace aspect
     Point<3>
     EllipsoidalChunk<dim>::EllipsoidalChunkGeometry::push_forward_ellipsoid(const Point<3> &phi_theta_d, const double semi_major_axis_a, const double eccentricity) const
     {
+      AssertThrow (dim == 3,ExcMessage ("This can currently only be used in 3d."));
+
       const double phi   = phi_theta_d[0]; // Longitude in radians
       const double theta = phi_theta_d[1]; // Latitude in radians
       const double d     = phi_theta_d[2]; // The negative depth (a depth of 10 meters is -10)
@@ -91,6 +94,8 @@ namespace aspect
     Point<3>
     EllipsoidalChunk<dim>::EllipsoidalChunkGeometry::pull_back_ellipsoid(const Point<3> &x, const double semi_major_axis_a, const double eccentricity) const
     {
+      AssertThrow (dim == 3,ExcMessage ("This can currently only be used in 3d."));
+
       const double R    = semi_major_axis_a;
       const double b      = std::sqrt(R * R * (1 - eccentricity * eccentricity));
       const double ep     = std::sqrt((R * R - b * b) / (b * b));
@@ -110,11 +115,49 @@ namespace aspect
       return phi_theta_d;
     }
 
+    template <int dim>
+    Point<3>
+    EllipsoidalChunk<dim>::EllipsoidalChunkGeometry::push_forward_topography(const Point<3> &phi_theta_d_hat) const
+    {
+      AssertThrow (dim == 3,ExcMessage ("This can currently only be used in 3d."));
+
+      const double d_hat = phi_theta_d_hat[2]; // long, lat, depth
+      Point<dim-1> phi_theta;
+      const double rad_to_degree = 180/numbers::PI;
+      if (dim == 3)
+        phi_theta = Point<dim-1>(phi_theta_d_hat[0] * rad_to_degree,phi_theta_d_hat[1] * rad_to_degree);
+      const double h = topography->value(phi_theta);
+      const double d = d_hat + (d_hat + bottom_depth)/bottom_depth*h;
+      const Point<3> phi_theta_d (phi_theta_d_hat[0],
+                                  phi_theta_d_hat[1],
+                                  d);
+      return phi_theta_d;
+    }
+
+    template <int dim>
+    Point<3>
+    EllipsoidalChunk<dim>::EllipsoidalChunkGeometry::pull_back_topography(const Point<3> &phi_theta_d) const
+    {
+      AssertThrow (dim == 3,ExcMessage ("This can currently only be used in 3d."));
+
+      const double d = phi_theta_d[2];
+      const double rad_to_degree = 180/numbers::PI;
+      Point<dim-1> phi_theta;
+      if (dim == 3)
+        phi_theta = Point<dim-1>(phi_theta_d[0] * rad_to_degree,phi_theta_d[1] * rad_to_degree);
+      const double h = topography->value(phi_theta);
+      const double d_hat = bottom_depth * (d-h)/(bottom_depth+h);
+      const Point<3> phi_theta_d_hat (phi_theta_d[0],
+                                      phi_theta_d[1],
+                                      d_hat);
+      return phi_theta_d_hat;
+    }
+
     /**
      * TODO: These functions (pull back and push forward) should be changed that they always
      * take an return 3D points, because 2D points make no sense for an ellipsoid, even with
      * a 2D triangulation. To do this correctly we need to add the spacedim to the triangulation
-     * in ASPECT. What is now presented is just a temporary fix to get acces to the pull back
+     * in ASPECT. What is now presented is just a temporary fix to get access to the pull back
      * function from outside. The push forward function can't be fixed in this way, because
      * it is used by a bind statement.
      */
@@ -123,7 +166,7 @@ namespace aspect
     EllipsoidalChunk<dim>::EllipsoidalChunkGeometry::pull_back(const Point<3> &space_point) const
     {
       AssertThrow (dim == 3,ExcMessage ("This can not be done with 2D points."));
-      return pull_back_ellipsoid (space_point, semi_major_axis_a, eccentricity);
+      return pull_back_topography(pull_back_ellipsoid (space_point, semi_major_axis_a, eccentricity));
 
     }
 
@@ -141,7 +184,21 @@ namespace aspect
     EllipsoidalChunk<dim>::EllipsoidalChunkGeometry::push_forward(const Point<3> &chart_point) const
     {
       AssertThrow (dim == 3,ExcMessage ("This can not be done with 2D points."));
-      return push_forward_ellipsoid (chart_point, semi_major_axis_a, eccentricity);
+      return push_forward_ellipsoid (push_forward_topography(chart_point), semi_major_axis_a, eccentricity);
+    }
+
+    template <int dim>
+    void
+    EllipsoidalChunk<dim>::initialize()
+    {
+      manifold.initialize(&(this->get_initial_topography_model()));
+    }
+
+    template <int dim>
+    void
+    EllipsoidalChunk<dim>::EllipsoidalChunkGeometry::initialize(const InitialTopographyModel::Interface<dim> *topography_)
+    {
+      topography = topography_;
     }
 
     template <>
@@ -279,25 +336,25 @@ namespace aspect
                             "",
                             Patterns::Anything(),
                             "Longitude:latitude in degrees of the North-East corner point of model region."
-                            "The North-East direction is positive. If one of the three corners is not provided"
+                            "The North-East direction is positive. If one of the three corners is not provided "
                             "the missing corner value will be calculated so all faces are parallel.");
           prm.declare_entry("NW corner",
                             "",
                             Patterns::Anything(),
                             "Longitude:latitude in degrees of the North-West corner point of model region. "
-                            "The North-East direction is positive. If one of the three corners is not provided"
+                            "The North-East direction is positive. If one of the three corners is not provided "
                             "the missing corner value will be calculated so all faces are parallel.");
           prm.declare_entry("SW corner",
                             "",
                             Patterns::Anything(),
                             "Longitude:latitude in degrees of the South-West corner point of model region. "
-                            "The North-East direction is positive. If one of the three corners is not provided"
+                            "The North-East direction is positive. If one of the three corners is not provided "
                             "the missing corner value will be calculated so all faces are parallel.");
           prm.declare_entry("SE corner",
                             "",
                             Patterns::Anything(),
                             "Longitude:latitude in degrees of the South-East corner point of model region. "
-                            "The North-East direction is positive. If one of the three corners is not provided"
+                            "The North-East direction is positive. If one of the three corners is not provided "
                             "the missing corner value will be calculated so all faces are parallel.");
           prm.declare_entry("Depth",
                             "500000.0",
@@ -452,11 +509,11 @@ namespace aspect
 
               if (present[0] == true && present[2] == true)
                 AssertThrow (corners[0][0] > corners[2][0] && corners[0][1] > corners[2][1],
-                             ExcMessage ("The North-East corner (" + boost::lexical_cast<std::string>(corners[0][0]) + ":"  + boost::lexical_cast<std::string>(corners[0][1]) + ") must be stricly North and East of the South-West corner (" + boost::lexical_cast<std::string>(corners[2][0]) + ":"  + boost::lexical_cast<std::string>(corners[2][1]) + ") when only two points are given."));
+                             ExcMessage ("The North-East corner (" + boost::lexical_cast<std::string>(corners[0][0]) + ":"  + boost::lexical_cast<std::string>(corners[0][1]) + ") must be strictly North and East of the South-West corner (" + boost::lexical_cast<std::string>(corners[2][0]) + ":"  + boost::lexical_cast<std::string>(corners[2][1]) + ") when only two points are given."));
 
               if (present[1] == true && present[3] == true)
                 AssertThrow (corners[1][0] < corners[3][0] && corners[1][1] > corners[3][1],
-                             ExcMessage ("The North-West corner (" + boost::lexical_cast<std::string>(corners[1][0]) + ":"  + boost::lexical_cast<std::string>(corners[1][1]) + ") must be stricly North and West of the South-East corner (" + boost::lexical_cast<std::string>(corners[3][0]) + ":"  + boost::lexical_cast<std::string>(corners[3][1]) + ") when only two points are given."));
+                             ExcMessage ("The North-West corner (" + boost::lexical_cast<std::string>(corners[1][0]) + ":"  + boost::lexical_cast<std::string>(corners[1][1]) + ") must be strictly North and West of the South-East corner (" + boost::lexical_cast<std::string>(corners[3][0]) + ":"  + boost::lexical_cast<std::string>(corners[3][1]) + ") when only two points are given."));
             }
 
 
@@ -678,6 +735,7 @@ namespace aspect
                                    "parallel ellipsoidal chunk will be created. The points are defined in the input "
                                    "file by longitude:latitude. It is also possible to define additional subdivisions of the "
                                    "mesh in each direction. Faces of the model are defined as 0, west; 1,east; 2, south; 3, "
-                                   "north; 4, inner; 5, outer. ")
+                                   "north; 4, inner; 5, outer.\n\n"
+                                   "This geometry model supports initial topography for deforming the initial mesh.")
   }
 }

@@ -39,22 +39,25 @@ namespace aspect
     {}
 
 
+
     template<int dim>
     std::map<std::string,types::boundary_id>
     Interface<dim>::get_symbolic_boundary_names_map() const
     {
-      //return an empty map in the base class
+      // return an empty map in the base class
       return std::map<std::string,types::boundary_id>();
     }
+
 
 
     template<int dim>
     std::set< std::pair< std::pair<types::boundary_id, types::boundary_id>, unsigned int > >
     Interface<dim>::get_periodic_boundary_pairs() const
     {
-      //return an empty set in the base class
+      // return an empty set in the base class
       return std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int > >();
     }
+
 
 
     template <int dim>
@@ -65,11 +68,37 @@ namespace aspect
     }
 
 
+
+    template <int dim>
+    std_cxx11::array<double,dim>
+    Interface<dim>::cartesian_to_natural_coordinates(const Point<dim> &) const
+    {
+      Assert (false,
+              ExcMessage ("The cartesian_to_natural_coordinates function has "
+                          "not been implemented in this geometry model."));
+      return std_cxx11::array<double,dim>();
+    }
+
+
+
+    template <int dim>
+    Point<dim>
+    Interface<dim>::natural_to_cartesian_coordinates(const std_cxx11::array<double,dim> &) const
+    {
+      Assert (false,
+              ExcMessage ("The natural_to_cartesian_coordinates function has "
+                          "not been implemented in this geometry model."));
+      return Point<dim>();
+    }
+
+
+
     template <int dim>
     void
     Interface<dim>::
     declare_parameters (dealii::ParameterHandler &)
     {}
+
 
 
     template <int dim>
@@ -168,7 +197,7 @@ namespace aspect
         if (p->second == boundary_id)
           {
             Assert (name == "",
-                    ExcMessage ("This material model appears to provide multiple "
+                    ExcMessage ("This geometry model appears to provide multiple "
                                 "names for the boundary with indicator <" +
                                 Utilities::int_to_string (boundary_id) + ">."));
             name = p->first;
@@ -186,8 +215,8 @@ namespace aspect
       std_cxx11::tuple
       <void *,
       void *,
-      internal::Plugins::PluginList<Interface<2> >,
-      internal::Plugins::PluginList<Interface<3> > > registered_plugins;
+      aspect::internal::Plugins::PluginList<Interface<2> >,
+      aspect::internal::Plugins::PluginList<Interface<3> > > registered_plugins;
     }
 
 

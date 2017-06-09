@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__model_ascii_reference_profile_h
-#define __aspect__model_ascii_reference_profile_h
+#ifndef _aspect__model_ascii_reference_profile_h
+#define _aspect__model_ascii_reference_profile_h
 
 #include <aspect/material_model/interface.h>
 #include <aspect/simulator_access.h>
@@ -107,6 +107,14 @@ namespace aspect
          * @}
          */
 
+        /**
+         * Add the named outputs for seismic velocities.
+         */
+        virtual
+        void
+        create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const;
+
+
       private:
         /**
          * Use truncated anelastic approximation?
@@ -125,7 +133,7 @@ namespace aspect
         double thermal_viscosity_exponent;
 
         /**
-         * A list of constants that make up the piecewise constant function
+         * A list of constants that make up the piece-wise constant function
          * $\eta_r(z)$, which determines the depth dependence of viscosity,
          * and is multiplied with the reference viscosity and the
          * temperature dependence to compute the viscosity $\eta(z,T)$.
@@ -134,7 +142,7 @@ namespace aspect
 
         /**
          * A list of depths that determine the locations of the jumps in
-         * the piecewise constant function $\eta_r(z)$, which describes the
+         * the piece-wise constant function $\eta_r(z)$, which describes the
          * depth dependence of viscosity.
          */
         std::vector<double> transition_depths;
@@ -154,6 +162,15 @@ namespace aspect
         unsigned int thermal_expansivity_index;
         unsigned int specific_heat_index;
         unsigned int compressibility_index;
+
+        /**
+         * The column indices of the seismic velocities and their temperature
+         * derivatives columns in the data file.
+         */
+        unsigned int seismic_vp_index;
+        unsigned int seismic_vs_index;
+        unsigned int seismic_dvp_dT_index;
+        unsigned int seismic_dvs_dT_index;
     };
 
   }

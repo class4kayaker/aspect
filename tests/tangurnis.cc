@@ -46,7 +46,7 @@ namespace aspect
   {
 
     template <int dim>
-    class TanGurnis : public MaterialModel::InterfaceCompatibility<dim>
+    class TanGurnis : public MaterialModel::Interface<dim>
     {
       public:
 
@@ -56,37 +56,32 @@ namespace aspect
          * @name Physical parameters used in the basic equations
          * @{
          */
-        virtual double viscosity (const double                  temperature,
-                                  const double                  pressure,
-                                  const std::vector<double>    &compositional_fields,
-                                  const SymmetricTensor<2,dim> &strain_rate,
-                                  const Point<dim>             &position) const;
+        virtual void evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
+                              MaterialModel::MaterialModelOutputs<dim> &out) const
+        {
+          for (unsigned int i=0; i < in.position.size(); ++i)
+            {
+
+              const Point<dim> &pos = in.position[i];
+
+              const double depth = 1.0 - pos[dim-1];
+
+              const double temperature = sin(numbers::PI*pos(dim-1))*cos(numbers::PI*wavenumber*pos(0));
+
+              out.viscosities[i] = ( Di==0.0 ? 1.0 : Di ) * exp( a * depth );
+
+              out.densities[i] = ( Di==0.0 ? 1.0 : Di ) * (-1.0 * temperature ) * exp( Di/gamma * (depth) );
+
+              out.specific_heat[i] = 1250;
+              out.thermal_conductivities[i] = 2e-5;
+              out.thermal_expansion_coefficients[i] = ( Di==0.0 ) ? 1.0 : Di;
+
+              double d = 1.0*exp(Di/gamma*(depth));
+              out.compressibilities[i] = (d==0) ? 1.0 : (Di/gamma / d);
+            }
+        }
 
 
-        virtual double density (const double temperature,
-                                const double pressure,
-                                const std::vector<double> &compositional_fields,
-                                const Point<dim> &position) const;
-
-        virtual double compressibility (const double temperature,
-                                        const double pressure,
-                                        const std::vector<double> &compositional_fields,
-                                        const Point<dim> &position) const;
-
-        virtual double specific_heat (const double temperature,
-                                      const double pressure,
-                                      const std::vector<double> &compositional_fields,
-                                      const Point<dim> &position) const;
-
-        virtual double thermal_expansion_coefficient (const double      temperature,
-                                                      const double      pressure,
-                                                      const std::vector<double> &compositional_fields,
-                                                      const Point<dim> &position) const;
-
-        virtual double thermal_conductivity (const double temperature,
-                                             const double pressure,
-                                             const std::vector<double> &compositional_fields,
-                                             const Point<dim> &position) const;
         /**
          * @}
          */
@@ -169,13 +164,13 @@ namespace aspect
     {
       a=0; // 0 or 2
 
-      //BA:
-      //Di=0;gamma=10000; //=inf
+      // BA:
+      // Di=0;gamma=10000; //=inf
 
-      //EBA:
-      //Di=0.5;gamma=inf;
+      // EBA:
+      // Di=0.5;gamma=inf;
 
-      //TALA:
+      // TALA:
       Di=0.5;
       gamma=1.0;
 
@@ -186,95 +181,9 @@ namespace aspect
     template <int dim>
     double
     TanGurnis<dim>::
-    viscosity (const double,
-               const double,
-               const std::vector<double> &,       /*composition*/
-               const SymmetricTensor<2,dim> &,
-               const Point<dim> &pos) const
-    {
-      const double depth = 1.0-pos(dim-1);
-      return (Di==0.0?1.0:Di)*exp(a*depth);
-    }
-
-
-    template <int dim>
-    double
-    TanGurnis<dim>::
     reference_viscosity () const
     {
       return 1.0;
-    }
-
-
-
-    template <int dim>
-    double
-    TanGurnis<dim>::
-    specific_heat (const double,
-                   const double,
-                   const std::vector<double> &, /*composition*/
-                   const Point<dim> &) const
-    {
-      return 1250;
-    }
-
-
-
-    template <int dim>
-    double
-    TanGurnis<dim>::
-    thermal_conductivity (const double,
-                          const double,
-                          const std::vector<double> &, /*composition*/
-                          const Point<dim> &) const
-    {
-      return 2e-5;
-    }
-
-
-
-    template <int dim>
-    double
-    TanGurnis<dim>::
-    density (const double,
-             const double,
-             const std::vector<double> &, /*composition*/
-             const Point<dim> &pos) const
-    {
-      const double depth = 1.0-pos(dim-1);
-      const double temperature = std::sin(numbers::PI*pos(dim-1)) * std::cos(numbers::PI*wavenumber*pos(0));
-      return (Di==0.0?1.0:Di)*(-1.0*temperature)*exp(Di/gamma*(depth));
-    }
-
-
-
-    template <int dim>
-    double
-    TanGurnis<dim>::
-    thermal_expansion_coefficient (const double,
-                                   const double,
-                                   const std::vector<double> &, /*composition*/
-                                   const Point<dim> &) const
-    {
-      return (Di==0.0)?1.0:Di;
-    }
-
-
-
-    template <int dim>
-    double
-    TanGurnis<dim>::
-    compressibility (const double /*temperature*/,
-                     const double /*pressure*/,
-                     const std::vector<double> &/*compositional_fields*/,
-                     const Point<dim> &pos) const
-    {
-      const double depth = 1.0-pos(dim-1);
-      double d = 1.0*exp(Di/gamma*(depth));
-
-      // this is no longer used because we use the new adiabatic mass formulation
-      // based on AdiabaticConditions
-      return (d==0) ? 1.0 : (Di/gamma / d);
     }
 
 
@@ -498,7 +407,7 @@ namespace aspect
     f << std::scientific;
 
 
-    const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.velocities).degree+2);
+    const QGauss<dim> quadrature_formula (this->introspection().polynomial_degree.velocities +2);
 
     const unsigned int n_q_points =  quadrature_formula.size();
     FEValues<dim> fe_values (this->get_mapping(), this->get_fe(),  quadrature_formula,

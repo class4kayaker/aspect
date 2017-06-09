@@ -39,7 +39,7 @@ namespace aspect
      *
      * The effective viscosity is defined as the harmonic mean of two stress-
      * dependent viscosity functions: a simple temperature/pressure-dependent,
-     * non-newtonian viscosity, and a more strongly stress-dependent,
+     * non-Newtonian viscosity, and a more strongly stress-dependent,
      * "plastic" viscosity.
      *
      * @f[ v_{eff}^v = B \left(\frac{\dot{\varepsilon}}{\dot{\varepsilon}_{ref}}\right)^{-1+1/n_v}
@@ -53,7 +53,7 @@ namespace aspect
      * rate tensor, $\dot{\varepsilon}_{ref}$ is a reference strain rate,
      * $n_v$ and $n_p$ are stress exponents, $E_a$ is the activation energy,
      * $V_a$ is the activation volume, $\rho_m$ is the mantle density, $R$ is
-     * the gas constant, $T$ is temperature, $\tau_0$ is the cohestive
+     * the gas constant, $T$ is temperature, $\tau_0$ is the cohesive
      * strength of rocks at the surface, $\gamma$ is a coefficient of yield
      * stress increase with depth, and $z$ is depth.
      *
@@ -121,15 +121,15 @@ namespace aspect
         std::vector<double> densities;
         std::vector<double> activation_energies;
         std::vector<double> thermal_expansivities;
-        std::vector<double> nvs; //Stress exponent, viscous rheology
+        std::vector<double> nvs; // Stress exponent, viscous rheology
         std::vector<double> nps;//Stress exponent, plastic rheology
         double thermal_diffusivity;
         double gamma; // Coefficient of yield stress increase with depth
         double heat_capacity;
         double activation_volume;
         double ref_strain_rate;
-        double B; //Preexponential constant in the viscous rheology law B
-        double tau_0; //cohesive strength of rocks at the surface
+        double B; // Preexponential constant in the viscous rheology law B
+        double tau_0; // cohesive strength of rocks at the surface
         double reference_T;
         double min_strain_rate;
 
