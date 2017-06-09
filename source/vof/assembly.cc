@@ -534,6 +534,194 @@ namespace aspect
       }
   }
 
+
+  template <int dim>
+  void VoFHandler<dim>::local_assemble_internal_face_vof_system (const VoFField<dim> field,
+                                                                 const unsigned int calc_dir,
+                                                                 bool update_from_old,
+                                                                 const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                                 const unsigned int face_no,
+                                                                 internal::Assembly::Scratch::VoFSystem<dim> &scratch,
+                                                                 internal::Assembly::CopyData::VoFSystem<dim> &data)
+  {
+
+    // vol fraction and interface values are constants, so can set from first value
+    cell_vof = scratch.old_field_values[0];
+    cell_i_normal = scratch.cell_i_n_values[0];
+    cell_i_d = scratch.cell_i_d_values[0];
+
+    typename DoFHandler<dim>::face_iterator face = cell->face (f);
+
+    scratch.face_finite_element_values.reinit (cell, f);
+
+    scratch.face_finite_element_values[sim.introspection.extractors.velocities]
+    .get_function_values (sim.current_linearization_point,
+                          scratch.face_current_velocity_values);
+
+    scratch.face_finite_element_values[sim.introspection.extractors.velocities]
+    .get_function_values (sim.old_solution,
+                          scratch.face_old_velocity_values);
+
+    if (sim.parameters.free_surface_enabled)
+      scratch.face_finite_element_values[sim.introspection.extractors.velocities]
+      .get_function_values (this->get_mesh_velocity(),
+                            scratch.face_mesh_velocity_values);
+
+    if (!(face->has_children()))
+      {
+        if (neighbor->level () == cell->level () &&
+            neighbor->active() &&
+            (((neighbor->is_locally_owned()) && (cell->index() < neighbor->index()))
+             ||
+             ((!neighbor->is_locally_owned()) && (cell->subdomain_id() < neighbor->subdomain_id()))))
+          {
+            Assert (cell->is_locally_owned(), ExcInternalError());
+          }
+        else
+          {
+            /* neighbor is taking responsibility for assembly of this face, because
+             * either (1) neighbor is coarser, or
+             *        (2) neighbor is equally-sized and
+             *           (a) neighbor is on a different subdomain, with lower subdmain_id(), or
+             *           (b) neighbor is on the same subdomain and has lower index().
+            */
+          }
+      }
+    else // face->has_children() so always assemble from here
+      {
+        const unsigned int neighbor2 = cell->neighbor_face_no(f);
+
+        for (unsigned int subface_no=0; subface_no< face->number_of_children(); ++subface_no)
+          {
+            const typename DoFHandler<dim>::active_cell_iterator neighbor_child
+              = cell->neighbor_child_on_subface (f, subface_no);
+
+            scratch.subface_finite_element_values.reinit (cell, f, subface_no);
+
+            scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
+            .get_function_values (sim.current_linearization_point,
+                                  scratch.face_current_velocity_values);
+
+            scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
+            .get_function_values (sim.old_solution,
+                                  scratch.face_old_velocity_values);
+
+            //scratch.face_finite_element_values[sim.introspection.extractors.velocities]
+            //.get_function_values (old_old_solution,
+            //scratch.face_old_old_velocity_values);
+
+            if (sim.parameters.free_surface_enabled)
+              scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
+              .get_function_values (this->get_mesh_velocity(),
+                                    scratch.face_mesh_velocity_values);
+
+            face_flux = 0;
+            double face_ls_d = 0;
+            double face_ls_time_grad = 0;
+
+            // Using VoF so need to accumulate flux through face
+            for (unsigned int q=0; q<n_f_q_points; ++q)
+              {
+
+                Tensor<1,dim> current_u = scratch.face_current_velocity_values[q];
+
+                //If old velocity available average to half timestep
+                if (old_velocity_avail)
+                  current_u += 0.5*(scratch.face_old_velocity_values[q] -
+                                    scratch.face_current_velocity_values[q]);
+
+                //Subtract off the mesh velocity for ALE corrections if necessary
+                if (sim.parameters.free_surface_enabled)
+                  current_u -= scratch.face_mesh_velocity_values[q];
+
+                face_flux += sim.time_step *
+                             current_u *
+                             scratch.subface_finite_element_values.normal_vector(q) *
+                             scratch.subface_finite_element_values.JxW(q);
+
+              }
+
+            std::vector<types::global_dof_index> neighbor_dof_indices (scratch.subface_finite_element_values.get_fe().dofs_per_cell);
+            neighbor_child->get_dof_indices (neighbor_dof_indices);
+
+            const unsigned int f_rhs_ind = f * GeometryInfo<dim>::max_children_per_face+subface_no;
+
+            for (unsigned int i=0; i<vof_dofs_per_cell; ++i)
+              data.neighbor_dof_indices[f_rhs_ind][i]
+                = neighbor_dof_indices[main_fe.component_to_system_index(solution_component, i)];
+
+            data.face_contributions_mask[f_rhs_ind] = true;
+
+            dflux += face_flux;
+            // fluxes to RHS
+            double flux_vof = cell_vof;
+            if (abs(face_flux) < vof_epsilon*cell_vol)
+              {
+                flux_vof = 0.0;
+                face_flux = 0.0;
+              }
+            if (face_flux<0.0)
+              {
+                flux_vof = 0.0;
+                face_flux = 0.0;
+              }
+            if (flux_vof < 0.0)
+              flux_vof = 0.0;
+            if (flux_vof > 1.0)
+              flux_vof = 1.0;
+
+            data.local_rhs [0] -= flux_vof * face_flux;
+            data.local_matrix (0, 0) -= face_flux;
+            data.local_face_rhs[f_rhs_ind][0] += flux_vof * face_flux;
+            data.local_face_matrices_ext_ext[f_rhs_ind] (0, 0) += face_flux;
+
+            // Temporarily limit to constant cases
+            if (cell_vof > vof_epsilon && cell_vof<1.0-vof_epsilon)
+              {
+                sim.pcout << "Cell at " << cell->center() << " " << cell_vof << std::endl;
+                sim.pcout << "\t" << face_flux/sim.time_step/cell_vol << std::endl;
+                sim.pcout << "\t" << cell_i_normal << ".x=" << cell_i_d << std::endl;
+                // Assert(false, ExcNotImplemented());
+              }
+          }
+      }
+  }
+
+
+  template <int dim>
+  void VoFHandler<dim>::local_assemble_boundary_face_vof_system (const VoFField<dim> field,
+                                                                 const unsigned int calc_dir,
+                                                                 bool update_from_old,
+                                                                 const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                                 const unsigned int face_no,
+                                                                 internal::Assembly::Scratch::VoFSystem<dim> &scratch,
+                                                                 internal::Assembly::CopyData::VoFSystem<dim> &data)
+  {
+    if (((parameters.fixed_temperature_boundary_indicators.find(
+            face->boundary_id()
+          )
+          != parameters.fixed_temperature_boundary_indicators.end())
+         && (advection_field.is_temperature()))
+        ||
+        (( parameters.fixed_composition_boundary_indicators.find(
+             face->boundary_id()
+           )
+           != parameters.fixed_composition_boundary_indicators.end())
+         && (!advection_field.is_temperature())))
+      {
+      }
+    else if (cell->has_periodic_neighbor (face_no))
+      {
+        // Periodic temperature/composition term: consider the corresponding periodic faces as the case of interior faces
+        this->local_assemble_internal_face_vof_system(field, calc_dir, update_from_old, cell, face_no, scratch, data);
+      }
+    else
+      {
+        //Neuman boundary term
+      }
+  }
+
+
   template <int dim>
   void VoFHandler<dim>::assemble_vof_system (const VoFField<dim> field,
                                              unsigned int dir,

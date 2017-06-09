@@ -97,6 +97,20 @@ namespace aspect
                                       const typename DoFHandler<dim>::active_cell_iterator &cell,
                                       internal::Assembly::Scratch::VoFSystem<dim> &scratch,
                                       internal::Assembly::CopyData::VoFSystem<dim> &data);
+      void local_assemble_internal_face_vof_system (const VoFField<dim> field,
+                                                    const unsigned int calc_dir,
+                                                    bool update_from_old,
+                                                    const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                    const unsigned int face_no,
+                                                    internal::Assembly::Scratch::VoFSystem<dim> &scratch,
+                                                    internal::Assembly::CopyData::VoFSystem<dim> &data);
+      void local_assemble_boundary_face_vof_system (const VoFField<dim> field,
+                                                    const unsigned int calc_dir,
+                                                    bool update_from_old,
+                                                    const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                    const unsigned int face_no,
+                                                    internal::Assembly::Scratch::VoFSystem<dim> &scratch,
+                                                    internal::Assembly::CopyData::VoFSystem<dim> &data);
       void copy_local_to_global_vof_system (const internal::Assembly::CopyData::VoFSystem<dim> &data);
       // Solver
       void solve_vof_system (const VoFField<dim> field);
