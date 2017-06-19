@@ -55,6 +55,11 @@ namespace aspect
                                  update_values |
                                  update_gradients |
                                  update_JxW_values),
+          neighbor_finite_element_values (mapping,
+                                          finite_element, quadrature,
+                                          update_values |
+                                          update_gradients |
+                                          update_JxW_values),
           face_finite_element_values (mapping,
                                       finite_element, face_quadrature,
                                       update_values |
@@ -82,7 +87,9 @@ namespace aspect
           face_old_velocity_values (face_quadrature.size(), numbers::signaling_nan<Tensor<1, dim> >()),
           face_old_old_velocity_values (face_quadrature.size(), numbers::signaling_nan<Tensor<1, dim> >()),
           face_mesh_velocity_values (face_quadrature.size(), numbers::signaling_nan<Tensor<1, dim> >()),
-          neighbor_old_values (face_quadrature.size(), numbers::signaling_nan<double>())
+          neighbor_old_values (face_quadrature.size(), numbers::signaling_nan<double>()),
+          neighbor_i_n_values (face_quadrature.size(), numbers::signaling_nan<Tensor<1, dim> >()),
+          neighbor_i_d_values (face_quadrature.size(), numbers::signaling_nan<double>())
         {}
 
         template <int dim>
@@ -92,6 +99,10 @@ namespace aspect
                                  scratch.finite_element_values.get_fe(),
                                  scratch.finite_element_values.get_quadrature(),
                                  scratch.finite_element_values.get_update_flags()),
+          neighbor_finite_element_values (scratch.neighbor_finite_element_values.get_mapping(),
+                                          scratch.neighbor_finite_element_values.get_fe(),
+                                          scratch.neighbor_finite_element_values.get_quadrature(),
+                                          scratch.neighbor_finite_element_values.get_update_flags()),
           face_finite_element_values (scratch.face_finite_element_values.get_mapping(),
                                       scratch.face_finite_element_values.get_fe(),
                                       scratch.face_finite_element_values.get_quadrature(),
@@ -113,7 +124,9 @@ namespace aspect
           face_old_velocity_values (scratch.face_old_velocity_values),
           face_old_old_velocity_values (scratch.face_old_old_velocity_values),
           face_mesh_velocity_values (scratch.face_mesh_velocity_values),
-          neighbor_old_values (scratch.neighbor_old_values)
+          neighbor_old_values (scratch.neighbor_old_values),
+          neighbor_i_n_values (scratch.neighbor_i_n_values),
+          neighbor_i_d_values (scratch.neighbor_i_d_values)
         {}
       }
 
@@ -566,6 +579,10 @@ namespace aspect
     const unsigned int solution_component = field.fraction.first_component_index;
     const FEValuesExtractors::Scalar solution_field = field.fraction.extractor_scalar();
 
+    const unsigned int vofN_component = field.reconstruction.first_component_index;
+    const FEValuesExtractors::Vector vofN_n = FEValuesExtractors::Vector(vofN_component);
+    const FEValuesExtractors::Scalar vofN_d = FEValuesExtractors::Scalar(vofN_component+dim);
+
     const typename DoFHandler<dim>::face_iterator face = cell->face (face_no);
 
     scratch.face_finite_element_values.reinit (cell, face_no);
@@ -592,6 +609,10 @@ namespace aspect
     Assert (neighbor.state() == IteratorState::valid,
             ExcInternalError());
     const bool cell_has_periodic_neighbor = cell->has_periodic_neighbor (face_no);
+    const unsigned int neighbor_face_no = cell->neighbor_face_no(face_no);
+
+    const unsigned int n_f_dim = neighbor_face_no/2;
+    const bool n_f_dir_pos = (neighbor_face_no%2==1);
 
     if (!(face->has_children()))
       {
@@ -603,9 +624,31 @@ namespace aspect
           {
             Assert (cell->is_locally_owned(), ExcInternalError());
 
+
+            // Neighbor cell values
+
+            scratch.neighbor_finite_element_values.reinit(neighbor, neighbor_face_no);
+
+            scratch.neighbor_finite_element_values[solution_field]
+            .get_function_values(sim.current_linearization_point,
+                                 scratch.neighbor_old_values);
+            scratch.neighbor_finite_element_values[vofN_n]
+            .get_function_values(sim.current_linearization_point,
+                                 scratch.neighbor_i_n_values);
+            scratch.neighbor_finite_element_values[vofN_d]
+            .get_function_values(sim.current_linearization_point,
+                                 scratch.neighbor_i_d_values);
+
+            const double neighbor_vol = neighbor->measure();
+            const double neighbor_vof = scratch.neighbor_old_values[0];
+            const Tensor<1, dim, double> neighbor_i_normal = scratch.neighbor_i_n_values[0];
+            const double neighbor_i_d = scratch.neighbor_i_d_values[0];
+
             double face_flux = 0;
             double face_ls_d = 0;
             double face_ls_time_grad = 0;
+            double n_face_ls_d = 0;
+            double n_face_ls_time_grad =0;
 
             // Using VoF so need to accumulate flux through face
             for (unsigned int q=0; q<n_f_q_points; ++q)
@@ -642,18 +685,32 @@ namespace aspect
                 face_ls_time_grad = -(face_flux/cell_vol)*cell_i_normal[f_dim];
               }
 
-            // Calculate outward flux
-            double flux_vof;
-            if (face_flux < 0.0)
+            if (n_f_dir_pos)
               {
-                flux_vof = 0.0;
-              }
-            else if (face_flux < vof_epsilon*cell_vol)
-              {
-                face_flux=0.0;
-                flux_vof = 0.0;
+                n_face_ls_d = neighbor_i_d - 0.5*neighbor_i_normal[f_dim];
+                n_face_ls_time_grad = -(face_flux/neighbor_vol)*neighbor_i_normal[f_dim];
               }
             else
+              {
+                n_face_ls_d = neighbor_i_d + 0.5*neighbor_i_normal[f_dim];
+                n_face_ls_time_grad = (face_flux/neighbor_vol)*neighbor_i_normal[f_dim];
+              }
+
+            // Calculate outward flux
+            double flux_vof;
+            if (std::abs(face_flux) < 0.5*vof_epsilon*(cell_vol+neighbor_vol))
+              {
+                flux_vof = 0.0;
+                flux_vof = 0.0;
+              }
+            else if (face_flux < 0.0) // Neighbor is upwind
+              {
+                flux_vof = VolumeOfFluid::calc_vof_flux_edge<dim> (n_f_dim,
+                                                                   n_face_ls_time_grad,
+                                                                   neighbor_i_normal,
+                                                                   n_face_ls_d);
+              }
+            else // This cell is upwind
               {
                 flux_vof = VolumeOfFluid::calc_vof_flux_edge<dim> (f_dim,
                                                                    face_ls_time_grad,
@@ -664,10 +721,6 @@ namespace aspect
             Assert (neighbor.state() == IteratorState::valid,
                     ExcInternalError());
 
-            if (face_flux < 0.0)
-              {
-                face_flux = 0.0;
-              }
             // No children, so can do simple approach
             Assert (cell->is_locally_owned(), ExcInternalError());
             //cell and neighbor are equal-sized, and cell has been chosen to assemble this face, so calculate from cell
@@ -703,8 +756,6 @@ namespace aspect
       }
     else // face->has_children() so always assemble from here
       {
-        const unsigned int neighbor2 = cell->neighbor_face_no(face_no);
-
         for (unsigned int subface_no=0; subface_no< face->number_of_children(); ++subface_no)
           {
             const typename DoFHandler<dim>::active_cell_iterator neighbor_child
@@ -788,7 +839,7 @@ namespace aspect
             data.local_face_rhs[f_rhs_ind][0] += flux_vof * face_flux;
             data.local_face_matrices_ext_ext[f_rhs_ind] (0, 0) += face_flux;
 
-            // Temporarily limit to constant cases
+            // Limit to constant cases, otherwise announce error
             if (cell_vof > vof_epsilon && cell_vof<1.0-vof_epsilon)
               {
                 sim.pcout << "Cell at " << cell->center() << " " << cell_vof << std::endl;

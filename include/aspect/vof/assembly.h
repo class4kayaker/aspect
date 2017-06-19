@@ -52,6 +52,7 @@ namespace aspect
           VoFSystem (const VoFSystem &data);
 
           FEValues<dim>          finite_element_values;
+          FEValues<dim>          neighbor_finite_element_values;
           FEFaceValues<dim>      face_finite_element_values;
           FEFaceValues<dim>      neighbor_face_finite_element_values;
           FESubfaceValues<dim>   subface_finite_element_values;
@@ -79,6 +80,8 @@ namespace aspect
           std::vector<Tensor<1,dim> > face_mesh_velocity_values;
 
           std::vector<double>         neighbor_old_values;
+          std::vector<Tensor<1,dim> > neighbor_i_n_values;
+          std::vector<double>         neighbor_i_d_values;
         };
       }
 
