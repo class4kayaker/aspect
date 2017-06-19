@@ -229,11 +229,6 @@ namespace aspect
         data.face_contributions_mask[f] = false;
       }
 
-    // Interface reconstruction data
-    double cell_vof;
-    Tensor<1, dim, double> cell_i_normal;
-    double cell_i_d = 0;
-
     if (update_from_old)
       {
         scratch.finite_element_values[solution_field].get_function_values (sim.old_solution,
@@ -257,12 +252,6 @@ namespace aspect
                                                                    scratch.cell_i_d_values);
       }
 
-    // vol fraction and interface values are constants, so can set from first value
-    cell_vof = scratch.old_field_values[0];
-    cell_i_normal = scratch.cell_i_n_values[0];
-    cell_i_d = scratch.cell_i_d_values[0];
-
-    const double cell_vol = cell->measure();
     // Obtain approximation to local interface
     for (unsigned int q = 0; q< n_q_points; ++q)
       {
@@ -285,264 +274,22 @@ namespace aspect
     double face_flux;
     double dflux = 0.0;
 
-    for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
+    for (unsigned int face_no = 0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no)
       {
-        unsigned int f_dim = f/2; // Obtain dimension
-        bool f_dir_pos = (f%2==1);
+        const unsigned int f_dim = face_no/2; // Obtain dimension
 
         if (f_dim != calc_dir)
           continue;
 
-        typename DoFHandler<dim>::face_iterator face = cell->face (f);
+        typename DoFHandler<dim>::face_iterator face = cell->face (face_no);
 
-        if (!face->has_children())
+        if (!face->at_boundary())
           {
-
-            scratch.face_finite_element_values.reinit (cell, f);
-
-            scratch.face_finite_element_values[sim.introspection.extractors.velocities]
-            .get_function_values (sim.current_linearization_point,
-                                  scratch.face_current_velocity_values);
-
-            scratch.face_finite_element_values[sim.introspection.extractors.velocities]
-            .get_function_values (sim.old_solution,
-                                  scratch.face_old_velocity_values);
-
-            //scratch.face_finite_element_values[sim.introspection.extractors.velocities]
-            //.get_function_values (old_old_solution,
-            //scratch.face_old_old_velocity_values);
-
-            if (sim.parameters.free_surface_enabled)
-              scratch.face_finite_element_values[sim.introspection.extractors.velocities]
-              .get_function_values (this->get_mesh_velocity(),
-                                    scratch.face_mesh_velocity_values);
-
-            face_flux = 0;
-            double face_ls_d = 0;
-            double face_ls_time_grad = 0;
-
-            // Using VoF so need to accumulate flux through face
-            for (unsigned int q=0; q<n_f_q_points; ++q)
-              {
-
-                Tensor<1,dim> current_u = scratch.face_current_velocity_values[q];
-
-                //If old velocity available average to half timestep
-                if (old_velocity_avail)
-                  current_u += 0.5*(scratch.face_old_velocity_values[q] -
-                                    scratch.face_current_velocity_values[q]);
-
-                //Subtract off the mesh velocity for ALE corrections if necessary
-                if (sim.parameters.free_surface_enabled)
-                  current_u -= scratch.face_mesh_velocity_values[q];
-
-                face_flux += sim.time_step *
-                             current_u *
-                             scratch.face_finite_element_values.normal_vector(q) *
-                             scratch.face_finite_element_values.JxW(q);
-
-              }
-
-            // Due to inability to reference this cell's values at the interface,
-            // need to do explicit calculation
-            if (f_dir_pos)
-              {
-                face_ls_d = cell_i_d - 0.5*cell_i_normal[f_dim];
-                face_ls_time_grad = (face_flux/cell_vol)*cell_i_normal[f_dim];
-              }
-            else
-              {
-                face_ls_d = cell_i_d + 0.5*cell_i_normal[f_dim];
-                face_ls_time_grad = -(face_flux/cell_vol)*cell_i_normal[f_dim];
-              }
-
-            // Calculate outward flux
-            double flux_vof;
-            if (face_flux < 0.0)
-              {
-                flux_vof = 0.0;
-              }
-            else if (face_flux < vof_epsilon*cell_vol)
-              {
-                face_flux=0.0;
-                flux_vof = 0.0;
-              }
-            else
-              {
-                flux_vof = VolumeOfFluid::calc_vof_flux_edge<dim> (f_dim,
-                                                                   face_ls_time_grad,
-                                                                   cell_i_normal,
-                                                                   face_ls_d);
-              }
-
-            if (face->at_boundary())
-              {
-                //TODO: Handle non-zero inflow VoF boundary conditions
-
-                // Add fluxes to RHS
-                data.local_rhs[0] -= flux_vof * face_flux;
-                data.local_matrix(0, 0) -= face_flux;
-              }
-            else
-              {
-                Assert (cell->neighbor(f).state() == IteratorState::valid,
-                        ExcInternalError());
-
-                if (face_flux < 0.0)
-                  {
-                    face_flux = 0.0;
-                  }
-
-                const typename DoFHandler<dim>::cell_iterator neighbor = cell->neighbor(f); //note: NOT active_cell_iterator, so this includes cells that are refined.
-                // No children, so can do simple approach
-                Assert (cell->is_locally_owned(), ExcInternalError());
-                //cell and neighbor are equal-sized, and cell has been chosen to assemble this face, so calculate from cell
-
-                std::vector<types::global_dof_index> neighbor_dof_indices (main_fe.dofs_per_cell);
-                // get all dof indices on the neighbor, then extract those
-                // that correspond to the solution_field we are interested in
-                neighbor->get_dof_indices (neighbor_dof_indices);
-
-                const unsigned int f_rhs_ind = f * GeometryInfo<dim>::max_children_per_face;
-
-                for (unsigned int i=0; i<vof_dofs_per_cell; ++i)
-                  data.neighbor_dof_indices[f_rhs_ind][i]
-                    = neighbor_dof_indices[main_fe.component_to_system_index(solution_component, i)];
-
-                data.face_contributions_mask[f_rhs_ind] = true;
-
-                // fluxes to RHS
-                data.local_rhs [0] -= flux_vof * face_flux;
-                data.local_matrix (0, 0) -= face_flux;
-                data.local_face_rhs[f_rhs_ind][0] += flux_vof * face_flux;
-                data.local_face_matrices_ext_ext[f_rhs_ind] (0, 0) += face_flux;
-              }
+            this->local_assemble_internal_face_vof_system (field, calc_dir, update_from_old, cell, face_no, scratch, data);
           }
         else
           {
-            const unsigned int neighbor2 = cell->neighbor_face_no(f);
-
-            for (unsigned int subface_no=0; subface_no< face->number_of_children(); ++subface_no)
-              {
-                const typename DoFHandler<dim>::active_cell_iterator neighbor_child
-                  = cell->neighbor_child_on_subface (f, subface_no);
-
-                scratch.subface_finite_element_values.reinit (cell, f, subface_no);
-
-                scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
-                .get_function_values (sim.current_linearization_point,
-                                      scratch.face_current_velocity_values);
-
-                scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
-                .get_function_values (sim.old_solution,
-                                      scratch.face_old_velocity_values);
-
-                //scratch.face_finite_element_values[sim.introspection.extractors.velocities]
-                //.get_function_values (old_old_solution,
-                //scratch.face_old_old_velocity_values);
-
-                if (sim.parameters.free_surface_enabled)
-                  scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
-                  .get_function_values (this->get_mesh_velocity(),
-                                        scratch.face_mesh_velocity_values);
-
-                face_flux = 0;
-                double face_ls_d = 0;
-                double face_ls_time_grad = 0;
-
-                // Using VoF so need to accumulate flux through face
-                for (unsigned int q=0; q<n_f_q_points; ++q)
-                  {
-
-                    Tensor<1,dim> current_u = scratch.face_current_velocity_values[q];
-
-                    //If old velocity available average to half timestep
-                    if (old_velocity_avail)
-                      current_u += 0.5*(scratch.face_old_velocity_values[q] -
-                                        scratch.face_current_velocity_values[q]);
-
-                    //Subtract off the mesh velocity for ALE corrections if necessary
-                    if (sim.parameters.free_surface_enabled)
-                      current_u -= scratch.face_mesh_velocity_values[q];
-
-                    face_flux += sim.time_step *
-                                 current_u *
-                                 scratch.subface_finite_element_values.normal_vector(q) *
-                                 scratch.subface_finite_element_values.JxW(q);
-
-                  }
-
-                std::vector<types::global_dof_index> neighbor_dof_indices (scratch.subface_finite_element_values.get_fe().dofs_per_cell);
-                neighbor_child->get_dof_indices (neighbor_dof_indices);
-
-                const unsigned int f_rhs_ind = f * GeometryInfo<dim>::max_children_per_face+subface_no;
-
-                for (unsigned int i=0; i<vof_dofs_per_cell; ++i)
-                  data.neighbor_dof_indices[f_rhs_ind][i]
-                    = neighbor_dof_indices[main_fe.component_to_system_index(solution_component, i)];
-
-                data.face_contributions_mask[f_rhs_ind] = true;
-
-                dflux += face_flux;
-                // fluxes to RHS
-                double flux_vof = cell_vof;
-                if (abs(face_flux) < vof_epsilon*cell_vol)
-                  {
-                    flux_vof = 0.0;
-                    face_flux = 0.0;
-                  }
-                if (face_flux<0.0)
-                  {
-                    flux_vof = 0.0;
-                    face_flux = 0.0;
-                  }
-                if (flux_vof < 0.0)
-                  flux_vof = 0.0;
-                if (flux_vof > 1.0)
-                  flux_vof = 1.0;
-
-                data.local_rhs [0] -= flux_vof * face_flux;
-                data.local_matrix (0, 0) -= face_flux;
-                data.local_face_rhs[f_rhs_ind][0] += flux_vof * face_flux;
-                data.local_face_matrices_ext_ext[f_rhs_ind] (0, 0) += face_flux;
-
-                // Temporarily limit to constant cases
-                if (cell_vof > vof_epsilon && cell_vof<1.0-vof_epsilon)
-                  {
-                    sim.pcout << "Cell at " << cell->center() << " " << cell_vof << std::endl;
-                    sim.pcout << "\t" << face_flux/sim.time_step/cell_vol << std::endl;
-                    sim.pcout << "\t" << cell_i_normal << ".x=" << cell_i_d << std::endl;
-                    // Assert(false, ExcNotImplemented());
-                  }
-                continue;
-
-
-                // Due to inability to reference this cell's values at the interface,
-                // need to do explicit calculation
-                if (f_dir_pos)
-                  {
-                    face_ls_d = cell_i_d - 0.5*cell_i_normal[f_dim];
-                    face_ls_time_grad = (face_flux/cell_vol)*cell_i_normal[f_dim];
-                  }
-                else
-                  {
-                    face_ls_d = cell_i_d + 0.5*cell_i_normal[f_dim];
-                    face_ls_time_grad = -(face_flux/cell_vol)*cell_i_normal[f_dim];
-                  }
-
-                // Calculate outward flux
-                if (face_flux < 0)
-                  {
-                    flux_vof = 0;
-                  }
-                else
-                  {
-                    flux_vof = VolumeOfFluid::calc_vof_flux_edge<dim> (f_dim,
-                                                                       face_ls_time_grad,
-                                                                       cell_i_normal,
-                                                                       face_ls_d);
-                  }
-              }
+            this->local_assemble_boundary_face_vof_system (field, calc_dir, update_from_old, cell, face_no, scratch, data);
           }
       }
   }
@@ -627,17 +374,32 @@ namespace aspect
 
             // Neighbor cell values
 
-            scratch.neighbor_finite_element_values.reinit(neighbor, neighbor_face_no);
+            scratch.neighbor_finite_element_values.reinit(neighbor);
 
-            scratch.neighbor_finite_element_values[solution_field]
-            .get_function_values(sim.current_linearization_point,
-                                 scratch.neighbor_old_values);
-            scratch.neighbor_finite_element_values[vofN_n]
-            .get_function_values(sim.current_linearization_point,
-                                 scratch.neighbor_i_n_values);
-            scratch.neighbor_finite_element_values[vofN_d]
-            .get_function_values(sim.current_linearization_point,
-                                 scratch.neighbor_i_d_values);
+            if (update_from_old)
+              {
+                scratch.neighbor_finite_element_values[solution_field]
+                .get_function_values(sim.old_solution,
+                                     scratch.neighbor_old_values);
+                scratch.neighbor_finite_element_values[vofN_n]
+                .get_function_values(sim.old_solution,
+                                     scratch.neighbor_i_n_values);
+                scratch.neighbor_finite_element_values[vofN_d]
+                .get_function_values(sim.old_solution,
+                                     scratch.neighbor_i_d_values);
+              }
+            else
+              {
+                scratch.neighbor_finite_element_values[solution_field]
+                .get_function_values(sim.solution,
+                                     scratch.neighbor_old_values);
+                scratch.neighbor_finite_element_values[vofN_n]
+                .get_function_values(sim.solution,
+                                     scratch.neighbor_i_n_values);
+                scratch.neighbor_finite_element_values[vofN_d]
+                .get_function_values(sim.solution,
+                                     scratch.neighbor_i_d_values);
+              }
 
             const double neighbor_vol = neighbor->measure();
             const double neighbor_vof = scratch.neighbor_old_values[0];
@@ -687,13 +449,13 @@ namespace aspect
 
             if (n_f_dir_pos)
               {
-                n_face_ls_d = neighbor_i_d - 0.5*neighbor_i_normal[f_dim];
-                n_face_ls_time_grad = -(face_flux/neighbor_vol)*neighbor_i_normal[f_dim];
+                n_face_ls_d = neighbor_i_d - 0.5*neighbor_i_normal[n_f_dim];
+                n_face_ls_time_grad = -(face_flux/neighbor_vol)*neighbor_i_normal[n_f_dim];
               }
             else
               {
-                n_face_ls_d = neighbor_i_d + 0.5*neighbor_i_normal[f_dim];
-                n_face_ls_time_grad = (face_flux/neighbor_vol)*neighbor_i_normal[f_dim];
+                n_face_ls_d = neighbor_i_d + 0.5*neighbor_i_normal[n_f_dim];
+                n_face_ls_time_grad = (face_flux/neighbor_vol)*neighbor_i_normal[n_f_dim];
               }
 
             // Calculate outward flux
@@ -822,12 +584,6 @@ namespace aspect
             if (abs(face_flux) < vof_epsilon*cell_vol)
               {
                 flux_vof = 0.0;
-                face_flux = 0.0;
-              }
-            if (face_flux<0.0)
-              {
-                flux_vof = 0.0;
-                face_flux = 0.0;
               }
             if (flux_vof < 0.0)
               flux_vof = 0.0;
