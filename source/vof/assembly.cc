@@ -356,7 +356,11 @@ namespace aspect
     Assert (neighbor.state() == IteratorState::valid,
             ExcInternalError());
     const bool cell_has_periodic_neighbor = cell->has_periodic_neighbor (face_no);
-    const unsigned int neighbor_face_no = cell->neighbor_face_no(face_no);
+    const unsigned int neighbor_face_no = (cell_has_periodic_neighbor
+                                           ?
+                                           cell->periodic_neighbor_face_no(face_no)
+                                           :
+                                           cell->neighbor_face_no(face_no));
 
     const unsigned int n_f_dim = neighbor_face_no/2;
     const bool n_f_dir_pos = (neighbor_face_no%2==1);
@@ -521,7 +525,11 @@ namespace aspect
         for (unsigned int subface_no=0; subface_no< face->number_of_children(); ++subface_no)
           {
             const typename DoFHandler<dim>::active_cell_iterator neighbor_child
-              = cell->neighbor_child_on_subface (face_no, subface_no);
+              = ( cell_has_periodic_neighbor
+                  ?
+                  cell->periodic_neighbor_child_on_subface(face_no, subface_no)
+                  :
+                  cell->neighbor_child_on_subface (face_no, subface_no));
 
             scratch.subface_finite_element_values.reinit (cell, face_no, subface_no);
 
