@@ -123,22 +123,26 @@ namespace aspect
             for (unsigned int i = 0; i < 3; ++i)
               {
                 typename DoFHandler<dim>::active_cell_iterator cen;
-                if (i == 0)
+                if (i == 0 || i == 2)
                   {
-                    if (cell->neighbor(0)==endc||cell->neighbor_is_coarser(0)||cell->neighbor(0)->has_children())
+                    const unsigned int neighbor_no = (i/2);
+                    const typename DoFHandler<dim>::face_iterator face = cell->face (neighbor_no);
+                    if (face->at_boundary() && !cell->has_periodic_neighbor(neighbor_no)||
+                        face->has_children())
                       cen = endc;
                     else
-                      cen = cell->neighbor(0);
+                      {
+                        const typename DoFHandler<dim>::cell_iterator neighbor =
+                          cell->neighbor_or_periodic_neighbor(neighbor_no);
+                        if (neighbor->level() == cell->level() &&
+                            neighbor->active())
+                          cen = neighbor;
+                        else
+                          cen = endc;
+                      }
                   }
-                if (i == 1)
+                else
                   cen = cell;
-                if (i == 2)
-                  {
-                    if (cell->neighbor(1)==endc||cell->neighbor_is_coarser(1)||cell->neighbor(1)->has_children())
-                      cen = endc;
-                    else
-                      cen = cell->neighbor(1);
-                  }
                 for (unsigned int j = 0; j < 3; ++j)
                   {
                     typename DoFHandler<dim>::active_cell_iterator curr;
@@ -148,24 +152,28 @@ namespace aspect
                       }
                     else
                       {
-                        if (j == 0)
+                        if (j == 0 || j == 2)
                           {
-                            if (cen->neighbor(2)==endc||cen->neighbor_is_coarser(2)||cen->neighbor(2)->has_children())
+                            const unsigned int neighbor_no = 2+(j/2);
+                            const typename DoFHandler<dim>::face_iterator face = cen->face (neighbor_no);
+                            if (face->at_boundary() && !cen->has_periodic_neighbor(neighbor_no)||
+                                face->has_children())
                               curr = endc;
                             else
-                              curr = cen->neighbor(2);
+                              {
+                                const typename DoFHandler<dim>::cell_iterator neighbor =
+                                  cen->neighbor_or_periodic_neighbor(neighbor_no);
+                                if (neighbor->level() == cell->level() &&
+                                    neighbor->active())
+                                  curr = neighbor;
+                                else
+                                  curr = endc;
+                              }
                           }
-                        if (j == 1)
+                        else
                           curr = cen;
-                        if (j == 2)
-                          {
-                            if (cen->neighbor(3)==endc||cen->neighbor_is_coarser(3)||cen->neighbor(3)->has_children())
-                              curr = endc;
-                            else
-                              curr = cen->neighbor(3);
-                          }
                       }
-                    if (curr != endc && !curr->has_children())
+                    if (curr != endc)
                       {
                         curr->get_dof_indices (cell_dof_indicies);
                         resc_cell_centers[3 * j + i] = Point<dim> (-1.0 + i,
