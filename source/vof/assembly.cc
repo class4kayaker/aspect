@@ -466,8 +466,7 @@ namespace aspect
             double flux_vof;
             if (std::abs(face_flux) < 0.5*vof_epsilon*(cell_vol+neighbor_vol))
               {
-                flux_vof = 0.0;
-                flux_vof = 0.0;
+                flux_vof = 0.5*(cell_vof+neighbor_vof);
               }
             else if (face_flux < 0.0) // Neighbor is upwind
               {
@@ -531,6 +530,40 @@ namespace aspect
                   :
                   cell->neighbor_child_on_subface (face_no, subface_no));
 
+            // Neighbor cell values
+
+            scratch.neighbor_finite_element_values.reinit(neighbor_child);
+
+            if (update_from_old)
+              {
+                scratch.neighbor_finite_element_values[solution_field]
+                .get_function_values(sim.old_solution,
+                                     scratch.neighbor_old_values);
+                scratch.neighbor_finite_element_values[vofN_n]
+                .get_function_values(sim.old_solution,
+                                     scratch.neighbor_i_n_values);
+                scratch.neighbor_finite_element_values[vofN_d]
+                .get_function_values(sim.old_solution,
+                                     scratch.neighbor_i_d_values);
+              }
+            else
+              {
+                scratch.neighbor_finite_element_values[solution_field]
+                .get_function_values(sim.solution,
+                                     scratch.neighbor_old_values);
+                scratch.neighbor_finite_element_values[vofN_n]
+                .get_function_values(sim.solution,
+                                     scratch.neighbor_i_n_values);
+                scratch.neighbor_finite_element_values[vofN_d]
+                .get_function_values(sim.solution,
+                                     scratch.neighbor_i_d_values);
+              }
+
+            const double neighbor_vol = neighbor->measure();
+            const double neighbor_vof = scratch.neighbor_old_values[0];
+            const Tensor<1, dim, double> neighbor_i_normal = scratch.neighbor_i_n_values[0];
+            const double neighbor_i_d = scratch.neighbor_i_d_values[0];
+
             scratch.subface_finite_element_values.reinit (cell, face_no, subface_no);
 
             scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
@@ -591,7 +624,7 @@ namespace aspect
             double flux_vof = cell_vof;
             if (abs(face_flux) < vof_epsilon*cell_vol)
               {
-                flux_vof = 0.0;
+                flux_vof = 0.5*(cell_vof+neighbor_vof);
               }
             if (flux_vof < 0.0)
               flux_vof = 0.0;
