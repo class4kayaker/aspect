@@ -272,6 +272,12 @@ namespace aspect
   }
 
   template <int dim>
+  const double VoFHandler<dim>::get_vof_epsilon() const
+  {
+      return vof_epsilon;
+  }
+
+  template <int dim>
   const VoFField<dim> &VoFHandler<dim>::get_field(unsigned int field) const
   {
     Assert(field < n_vof_fields,
