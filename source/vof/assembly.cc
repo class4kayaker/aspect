@@ -622,7 +622,7 @@ namespace aspect
 
             // fluxes to RHS
             double flux_vof = cell_vof;
-            if (abs(face_flux) < vof_epsilon*cell_vol)
+            if (std::abs(face_flux) < 0.5*vof_epsilon*(cell_vol+neighbor_vol))
               {
                 flux_vof = 0.5*(cell_vof+neighbor_vof);
               }

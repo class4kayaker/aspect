@@ -67,7 +67,7 @@ namespace aspect
           std::vector<double> vof_q_values(qMidC.size());
 
           // Should be vof_epsilon, look into how to access that
-          double voleps = vof_epsilon;
+          double voleps = this->get_vof_handler()->get_vof_epsilon();
 
           typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active(),
                                                          endc = this->get_dof_handler().end();
@@ -136,7 +136,7 @@ namespace aspect
                         {
                           for (unsigned int sf=0; sf < face->number_of_children(); ++sf)
                             {
-                              const typename DoFHandler<dim>::active_cell_iterator neighbor =
+                              const typename DoFHandler<dim>::active_cell_iterator neighbor_sub =
                                 (cell_has_periodic_neighbor
                                  ?
                                  cell->periodic_neighbor_child_on_subface(f, sf)
@@ -144,7 +144,7 @@ namespace aspect
                                  cell->neighbor_child_on_subface(f, sf));
 
                               if (neighbor==endc) continue;
-                              fe_values.reinit(neighbor);
+                              fe_values.reinit(neighbor_sub);
                               fe_values[vof_field].get_function_values(this->get_solution(),
                                                                        vof_q_values);
 
@@ -239,12 +239,6 @@ namespace aspect
       //TODO: Add check for vof active
       AssertThrow(this->get_parameters().vof_tracking_enabled,
                   ExcMessage("The 'vof boundary' mesh refinement strategy requires that the 'Use VoF tracking' parameter is enabled."));
-
-      prm.enter_subsection ("VoF config");
-      {
-        vof_epsilon = prm.get_double("Small volume");
-      }
-      prm.leave_subsection ();
     }
 
 
