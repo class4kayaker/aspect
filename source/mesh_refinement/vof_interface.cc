@@ -67,7 +67,7 @@ namespace aspect
           std::vector<double> vof_q_values(qMidC.size());
 
           // Should be vof_epsilon, look into how to access that
-          double voleps = this->get_vof_handler()->get_vof_epsilon();
+          const double voleps = this->get_vof_handler().get_vof_epsilon();
 
           typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active(),
                                                          endc = this->get_dof_handler().end();
@@ -143,7 +143,7 @@ namespace aspect
                                  :
                                  cell->neighbor_child_on_subface(f, sf));
 
-                              if (neighbor==endc) continue;
+                              if (neighbor_sub==endc) continue;
                               fe_values.reinit(neighbor_sub);
                               fe_values[vof_field].get_function_values(this->get_solution(),
                                                                        vof_q_values);
