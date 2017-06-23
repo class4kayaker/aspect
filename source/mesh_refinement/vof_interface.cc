@@ -209,6 +209,20 @@ namespace aspect
                   itr_tmp->clear_coarsen_flag ();
                   itr_tmp->set_refine_flag ();
                 }
+
+              // Check for periodic neighbors, and refine if existing
+              for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+                {
+                  if ( mcell->has_periodic_neighbor(f))
+                    {
+                      typename Triangulation<dim>::cell_iterator itr_tmp = mcell->periodic_neighbor(f);
+                      if (itr_tmp->active())
+                        {
+                          itr_tmp->clear_coarsen_flag ();
+                          itr_tmp->set_refine_flag ();
+                        }
+                    }
+                }
             }
         }
 

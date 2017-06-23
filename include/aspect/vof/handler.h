@@ -71,7 +71,7 @@ namespace aspect
       unsigned int get_n_fields() const;
       const std::string get_field_name(unsigned int i) const;
       const VoFField<dim> &get_field(unsigned int i) const;
-      const double get_vof_epsilon() const;
+      double get_vof_epsilon() const;
 
       // initialiation
       void initialize (ParameterHandler &prm);
