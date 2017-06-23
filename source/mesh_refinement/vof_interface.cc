@@ -105,10 +105,17 @@ namespace aspect
                     {
                       const bool cell_has_periodic_neighbor = cell->has_periodic_neighbor(f);
                       const typename DoFHandler<dim>::face_iterator face = cell->face(f);
+
                       if (face->at_boundary() && !cell_has_periodic_neighbor)
                         continue;
+
                       const typename DoFHandler<dim>::cell_iterator neighbor = cell->neighbor_or_periodic_neighbor(f);
-                      if (!face->has_children())
+
+                      if ((!face->at_boundary() && !face->has_children())
+                          ||
+                          (face->at_boundary() && cell->periodic_neighbor_is_coarser(f))
+                          ||
+                          (face->at_boundary() && neighbor->level() == cell->level() && neighbor->active()))
                         {
                           if (neighbor->active())
                             {
@@ -130,6 +137,10 @@ namespace aspect
                                   mark = true;
                                   break;
                                 }
+                            }
+                          else
+                            {
+                              this->get_pcout() << "Error " << cell->index();
                             }
                         }
                       else

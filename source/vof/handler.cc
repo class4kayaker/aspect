@@ -274,7 +274,7 @@ namespace aspect
   template <int dim>
   const double VoFHandler<dim>::get_vof_epsilon() const
   {
-      return vof_epsilon;
+    return vof_epsilon;
   }
 
   template <int dim>

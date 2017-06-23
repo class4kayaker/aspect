@@ -365,7 +365,11 @@ namespace aspect
     const unsigned int n_f_dim = neighbor_face_no/2;
     const bool n_f_dir_pos = (neighbor_face_no%2==1);
 
-    if (!(face->has_children()))
+    if ((!face->at_boundary() && !face->has_children())
+        ||
+        (face->at_boundary() && cell->periodic_neighbor_is_coarser(face_no))
+        ||
+        (face->at_boundary() && neighbor->level() == cell->level() && neighbor->active()))
       {
         if (neighbor->level () == cell->level () &&
             neighbor->active() &&
