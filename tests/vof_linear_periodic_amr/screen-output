@@ -20,7 +20,6 @@ Number of degrees of freedom: 5,604 (2,178+289+1,089+256+768+1,024)
    Postprocessing:
      Global VoF volumes (m^3):       0.462
      VoF Calculation(IEstL1/FEstL1): 7.33494902e-18/0.00000000e+00
-     Writing graphical output:       output-vof_linear_periodic_amr/solution/solution-00000
 
 Number of active cells: 205 (on 5 levels)
 Number of degrees of freedom: 4,668 (1,854+247+927+205+615+820)
@@ -32,7 +31,6 @@ Number of degrees of freedom: 4,668 (1,854+247+927+205+615+820)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00001
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
@@ -44,7 +42,6 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00002
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
@@ -56,7 +53,6 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00003
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,277 (2,066+274+1,033+238+714+952)
@@ -68,7 +64,6 @@ Number of degrees of freedom: 5,277 (2,066+274+1,033+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00004
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
@@ -80,7 +75,6 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00005
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
@@ -92,7 +86,6 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00006
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
@@ -104,7 +97,6 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00007
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
@@ -116,7 +108,6 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00008
 
 Number of active cells: 196 (on 5 levels)
 Number of degrees of freedom: 4,468 (1,776+236+888+196+588+784)
@@ -128,7 +119,6 @@ Number of degrees of freedom: 4,468 (1,776+236+888+196+588+784)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00009
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
@@ -140,7 +130,6 @@ Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00010
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
@@ -152,7 +141,6 @@ Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00011
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,267 (2,060+273+1,030+238+714+952)
@@ -164,7 +152,6 @@ Number of degrees of freedom: 5,267 (2,060+273+1,030+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00012
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
@@ -176,7 +163,6 @@ Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00013
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
@@ -188,7 +174,6 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00014
 
 Number of active cells: 229 (on 5 levels)
 Number of degrees of freedom: 5,094 (1,998+265+999+229+687+916)
@@ -200,7 +185,6 @@ Number of degrees of freedom: 5,094 (1,998+265+999+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00015
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
@@ -212,7 +196,6 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00016
 
 Number of active cells: 193 (on 5 levels)
 Number of degrees of freedom: 4,414 (1,758+233+879+193+579+772)
@@ -224,7 +207,6 @@ Number of degrees of freedom: 4,414 (1,758+233+879+193+579+772)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00017
 
 Number of active cells: 256 (on 5 levels)
 Number of degrees of freedom: 5,604 (2,178+289+1,089+256+768+1,024)
@@ -236,7 +218,6 @@ Number of degrees of freedom: 5,604 (2,178+289+1,089+256+768+1,024)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00018
 
 Number of active cells: 229 (on 5 levels)
 Number of degrees of freedom: 5,087 (1,994+264+997+229+687+916)
@@ -248,7 +229,6 @@ Number of degrees of freedom: 5,087 (1,994+264+997+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00019
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
@@ -260,7 +240,6 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00020
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
@@ -272,7 +251,6 @@ Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00021
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
@@ -284,7 +262,6 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00022
 
 Number of active cells: 229 (on 5 levels)
 Number of degrees of freedom: 5,094 (1,998+265+999+229+687+916)
@@ -296,7 +273,6 @@ Number of degrees of freedom: 5,094 (1,998+265+999+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00023
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
@@ -308,7 +284,6 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00024
 
 Number of active cells: 199 (on 5 levels)
 Number of degrees of freedom: 4,525 (1,796+239+898+199+597+796)
@@ -320,7 +295,6 @@ Number of degrees of freedom: 4,525 (1,796+239+898+199+597+796)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00025
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
@@ -332,7 +306,6 @@ Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00026
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,144 (2,014+267+1,007+232+696+928)
@@ -344,7 +317,6 @@ Number of degrees of freedom: 5,144 (2,014+267+1,007+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00027
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
@@ -356,7 +328,6 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00028
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,267 (2,060+273+1,030+238+714+952)
@@ -368,7 +339,6 @@ Number of degrees of freedom: 5,267 (2,060+273+1,030+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00029
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
@@ -380,7 +350,6 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00030
 
 Number of active cells: 235 (on 5 levels)
 Number of degrees of freedom: 5,201 (2,034+270+1,017+235+705+940)
@@ -392,7 +361,6 @@ Number of degrees of freedom: 5,201 (2,034+270+1,017+235+705+940)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00031
 
 Number of active cells: 229 (on 5 levels)
 Number of degrees of freedom: 5,088 (1,994+265+997+229+687+916)
@@ -404,7 +372,6 @@ Number of degrees of freedom: 5,088 (1,994+265+997+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00032
 
 Number of active cells: 205 (on 5 levels)
 Number of degrees of freedom: 4,658 (1,848+246+924+205+615+820)
@@ -416,7 +383,6 @@ Number of degrees of freedom: 4,658 (1,848+246+924+205+615+820)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00033
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,144 (2,014+267+1,007+232+696+928)
@@ -428,7 +394,6 @@ Number of degrees of freedom: 5,144 (2,014+267+1,007+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00034
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
@@ -440,7 +405,6 @@ Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00035
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,134 (2,008+266+1,004+232+696+928)
@@ -452,7 +416,6 @@ Number of degrees of freedom: 5,134 (2,008+266+1,004+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00036
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
@@ -464,7 +427,6 @@ Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00037
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
@@ -476,7 +438,6 @@ Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00038
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
@@ -488,7 +449,6 @@ Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00039
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
@@ -500,7 +460,6 @@ Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00040
 
 Number of active cells: 208 (on 5 levels)
 Number of degrees of freedom: 4,688 (1,852+246+926+208+624+832)
@@ -512,7 +471,6 @@ Number of degrees of freedom: 4,688 (1,852+246+926+208+624+832)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00041
 
 Number of active cells: 229 (on 5 levels)
 Number of degrees of freedom: 5,087 (1,994+264+997+229+687+916)
@@ -524,7 +482,6 @@ Number of degrees of freedom: 5,087 (1,994+264+997+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00042
 
 Number of active cells: 250 (on 5 levels)
 Number of degrees of freedom: 5,487 (2,136+283+1,068+250+750+1,000)
@@ -536,7 +493,6 @@ Number of degrees of freedom: 5,487 (2,136+283+1,068+250+750+1,000)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00043
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,140 (2,012+266+1,006+232+696+928)
@@ -548,7 +504,6 @@ Number of degrees of freedom: 5,140 (2,012+266+1,006+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00044
 
 Number of active cells: 250 (on 5 levels)
 Number of degrees of freedom: 5,487 (2,136+283+1,068+250+750+1,000)
@@ -560,7 +515,6 @@ Number of degrees of freedom: 5,487 (2,136+283+1,068+250+750+1,000)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00045
 
 Number of active cells: 229 (on 5 levels)
 Number of degrees of freedom: 5,070 (1,984+262+992+229+687+916)
@@ -572,7 +526,6 @@ Number of degrees of freedom: 5,070 (1,984+262+992+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00046
 
 Number of active cells: 235 (on 5 levels)
 Number of degrees of freedom: 5,187 (2,026+268+1,013+235+705+940)
@@ -584,7 +537,6 @@ Number of degrees of freedom: 5,187 (2,026+268+1,013+235+705+940)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00047
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,367 (2,092+277+1,046+244+732+976)
@@ -596,7 +548,6 @@ Number of degrees of freedom: 5,367 (2,092+277+1,046+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00048
 
 Number of active cells: 214 (on 5 levels)
 Number of degrees of freedom: 4,780 (1,880+248+940+214+642+856)
@@ -608,7 +559,6 @@ Number of degrees of freedom: 4,780 (1,880+248+940+214+642+856)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00049
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
@@ -620,7 +570,6 @@ Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00050
 
 Number of active cells: 235 (on 5 levels)
 Number of degrees of freedom: 5,184 (2,024+268+1,012+235+705+940)
@@ -632,7 +581,6 @@ Number of degrees of freedom: 5,184 (2,024+268+1,012+235+705+940)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00051
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,257 (2,054+272+1,027+238+714+952)
@@ -644,7 +592,6 @@ Number of degrees of freedom: 5,257 (2,054+272+1,027+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00052
 
 Number of active cells: 235 (on 5 levels)
 Number of degrees of freedom: 5,184 (2,024+268+1,012+235+705+940)
@@ -656,7 +603,6 @@ Number of degrees of freedom: 5,184 (2,024+268+1,012+235+705+940)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00053
 
 Number of active cells: 229 (on 5 levels)
 Number of degrees of freedom: 5,061 (1,978+262+989+229+687+916)
@@ -668,7 +614,6 @@ Number of degrees of freedom: 5,061 (1,978+262+989+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00054
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
@@ -680,7 +625,6 @@ Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00055
 
 Number of active cells: 223 (on 5 levels)
 Number of degrees of freedom: 4,938 (1,932+256+966+223+669+892)
@@ -692,7 +636,6 @@ Number of degrees of freedom: 4,938 (1,932+256+966+223+669+892)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00056
 
 Number of active cells: 205 (on 5 levels)
 Number of degrees of freedom: 4,588 (1,806+239+903+205+615+820)
@@ -704,7 +647,6 @@ Number of degrees of freedom: 4,588 (1,806+239+903+205+615+820)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00057
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
@@ -716,7 +658,6 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00058
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
@@ -728,7 +669,6 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00059
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,277 (2,066+274+1,033+238+714+952)
@@ -740,7 +680,6 @@ Number of degrees of freedom: 5,277 (2,066+274+1,033+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00060
 
 Number of active cells: 244 (on 5 levels)
 Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
@@ -752,7 +691,6 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00061
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
@@ -764,7 +702,6 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00062
 
 Number of active cells: 238 (on 5 levels)
 Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
@@ -776,7 +713,6 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
-     Writing graphical output: output-vof_linear_periodic_amr/solution/solution-00063
 
 Number of active cells: 232 (on 5 levels)
 Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
@@ -789,7 +725,6 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
    Postprocessing:
      Global VoF volumes (m^3):       0.462
      VoF Calculation(IEstL1/FEstL1): 4.58136017e-16/4.59673769e-16
-     Writing graphical output:       output-vof_linear_periodic_amr/solution/solution-00064
 
 Number of active cells: 205 (on 5 levels)
 Number of degrees of freedom: 4,668 (1,854+247+927+205+615+820)
