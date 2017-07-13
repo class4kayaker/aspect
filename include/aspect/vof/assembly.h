@@ -33,7 +33,8 @@ namespace aspect
   template <int dim>
   class Simulator;
 
-  struct AdvectionField;
+  template <int dim>
+  struct VoFField;
 
   namespace internal
   {
@@ -150,6 +151,25 @@ namespace aspect
         };
       }
     }
+  }
+
+  namespace Assemblers
+  {
+    template <int dim>
+    class VoFAssembler : public SimulatorAccess<dim>
+    {
+      public:
+          /**
+           * Function for assembling face fluxes for VoF system.
+           */
+        void local_assemble_internal_face_vof_system (const VoFField<dim> field,
+                                                      const unsigned int calc_dir,
+                                                      bool update_from_old,
+                                                      const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                      const unsigned int face_no,
+                                                      internal::Assembly::Scratch::VoFSystem<dim> &scratch,
+                                                      internal::Assembly::CopyData::VoFSystem<dim> &data);
+    };
   }
 }
 

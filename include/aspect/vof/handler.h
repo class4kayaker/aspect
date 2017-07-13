@@ -24,28 +24,13 @@
 #include <aspect/simulator.h>
 #include <aspect/simulator_access.h>
 #include <aspect/vof_initial_conditions/interface.h>
+#include <aspect/vof/field.h>
 #include <aspect/vof/assembly.h>
 
 using namespace dealii;
 
 namespace aspect
 {
-  template<int dim>
-  struct VoFField
-  {
-    /**
-     * Initialize th
-     */
-    VoFField(const FEVariable<dim> &fraction,
-             const FEVariable<dim> &reconstruction,
-             const FEVariable<dim> &level_set,
-             const std::string c_field_name);
-
-    const FEVariable<dim> &fraction, &reconstruction, &level_set;
-
-    const std::string c_field_name;
-  };
-
   /**
    * A member class that isolates the functions and variables that deal
    * with the volume of fluid implementation. If Volume of Fluid interface
