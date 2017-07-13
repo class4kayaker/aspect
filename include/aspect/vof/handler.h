@@ -112,6 +112,10 @@ namespace aspect
                                                     const unsigned int face_no,
                                                     internal::Assembly::Scratch::VoFSystem<dim> &scratch,
                                                     internal::Assembly::CopyData::VoFSystem<dim> &data);
+      /**
+       * Function to copy assembled data to final system. Requires access to
+       * the full matrix, so must be in this class.
+       */
       void copy_local_to_global_vof_system (const internal::Assembly::CopyData::VoFSystem<dim> &data);
       // Solver
       void solve_vof_system (const VoFField<dim> field);

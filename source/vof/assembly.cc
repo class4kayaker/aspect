@@ -304,7 +304,7 @@ namespace aspect
                                                                  internal::Assembly::Scratch::VoFSystem<dim> &scratch,
                                                                  internal::Assembly::CopyData::VoFSystem<dim> &data)
   {
-    const bool old_velocity_avail = (sim.timestep_number > 0);
+    const bool old_velocity_avail = (this->get_timestep_number() > 0);
 
     const unsigned int f_dim = face_no/2; // Obtain dimension
     const bool f_dir_pos = (face_no%2==1);
@@ -334,16 +334,16 @@ namespace aspect
 
     scratch.face_finite_element_values.reinit (cell, face_no);
 
-    scratch.face_finite_element_values[sim.introspection.extractors.velocities]
-    .get_function_values (sim.current_linearization_point,
+    scratch.face_finite_element_values[this->introspection().extractors.velocities]
+    .get_function_values (this->get_current_linearization_point(),
                           scratch.face_current_velocity_values);
 
-    scratch.face_finite_element_values[sim.introspection.extractors.velocities]
-    .get_function_values (sim.old_solution,
+    scratch.face_finite_element_values[this->introspection().extractors.velocities]
+    .get_function_values (this->get_old_solution(),
                           scratch.face_old_velocity_values);
 
-    if (sim.parameters.free_surface_enabled)
-      scratch.face_finite_element_values[sim.introspection.extractors.velocities]
+    if (this->get_parameters().free_surface_enabled)
+      scratch.face_finite_element_values[this->introspection().extractors.velocities]
       .get_function_values (this->get_mesh_velocity(),
                             scratch.face_mesh_velocity_values);
 
@@ -387,25 +387,25 @@ namespace aspect
             if (update_from_old)
               {
                 scratch.neighbor_finite_element_values[solution_field]
-                .get_function_values(sim.old_solution,
+                .get_function_values(this->get_old_solution(),
                                      scratch.neighbor_old_values);
                 scratch.neighbor_finite_element_values[vofN_n]
-                .get_function_values(sim.old_solution,
+                .get_function_values(this->get_old_solution(),
                                      scratch.neighbor_i_n_values);
                 scratch.neighbor_finite_element_values[vofN_d]
-                .get_function_values(sim.old_solution,
+                .get_function_values(this->get_old_solution(),
                                      scratch.neighbor_i_d_values);
               }
             else
               {
                 scratch.neighbor_finite_element_values[solution_field]
-                .get_function_values(sim.solution,
+                .get_function_values(this->get_solution(),
                                      scratch.neighbor_old_values);
                 scratch.neighbor_finite_element_values[vofN_n]
-                .get_function_values(sim.solution,
+                .get_function_values(this->get_solution(),
                                      scratch.neighbor_i_n_values);
                 scratch.neighbor_finite_element_values[vofN_d]
-                .get_function_values(sim.solution,
+                .get_function_values(this->get_solution(),
                                      scratch.neighbor_i_d_values);
               }
 
@@ -432,10 +432,10 @@ namespace aspect
                                     scratch.face_current_velocity_values[q]);
 
                 //Subtract off the mesh velocity for ALE corrections if necessary
-                if (sim.parameters.free_surface_enabled)
+                if (this->get_parameters().free_surface_enabled)
                   current_u -= scratch.face_mesh_velocity_values[q];
 
-                face_flux += sim.time_step *
+                face_flux += this->get_timestep() *
                              current_u *
                              scratch.face_finite_element_values.normal_vector(q) *
                              scratch.face_finite_element_values.JxW(q);
@@ -541,25 +541,25 @@ namespace aspect
             if (update_from_old)
               {
                 scratch.neighbor_finite_element_values[solution_field]
-                .get_function_values(sim.old_solution,
+                .get_function_values(this->get_old_solution(),
                                      scratch.neighbor_old_values);
                 scratch.neighbor_finite_element_values[vofN_n]
-                .get_function_values(sim.old_solution,
+                .get_function_values(this->get_old_solution(),
                                      scratch.neighbor_i_n_values);
                 scratch.neighbor_finite_element_values[vofN_d]
-                .get_function_values(sim.old_solution,
+                .get_function_values(this->get_old_solution(),
                                      scratch.neighbor_i_d_values);
               }
             else
               {
                 scratch.neighbor_finite_element_values[solution_field]
-                .get_function_values(sim.solution,
+                .get_function_values(this->get_solution(),
                                      scratch.neighbor_old_values);
                 scratch.neighbor_finite_element_values[vofN_n]
-                .get_function_values(sim.solution,
+                .get_function_values(this->get_solution(),
                                      scratch.neighbor_i_n_values);
                 scratch.neighbor_finite_element_values[vofN_d]
-                .get_function_values(sim.solution,
+                .get_function_values(this->get_solution(),
                                      scratch.neighbor_i_d_values);
               }
 
@@ -570,20 +570,16 @@ namespace aspect
 
             scratch.subface_finite_element_values.reinit (cell, face_no, subface_no);
 
-            scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
-            .get_function_values (sim.current_linearization_point,
+            scratch.subface_finite_element_values[this->introspection().extractors.velocities]
+            .get_function_values (this->get_current_linearization_point(),
                                   scratch.face_current_velocity_values);
 
-            scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
-            .get_function_values (sim.old_solution,
+            scratch.subface_finite_element_values[this->introspection().extractors.velocities]
+            .get_function_values (this->get_old_solution(),
                                   scratch.face_old_velocity_values);
 
-            //scratch.face_finite_element_values[sim.introspection.extractors.velocities]
-            //.get_function_values (old_old_solution,
-            //scratch.face_old_old_velocity_values);
-
-            if (sim.parameters.free_surface_enabled)
-              scratch.subface_finite_element_values[sim.introspection.extractors.velocities]
+            if (this->get_parameters().free_surface_enabled)
+              scratch.subface_finite_element_values[this->introspection().extractors.velocities]
               .get_function_values (this->get_mesh_velocity(),
                                     scratch.face_mesh_velocity_values);
 
@@ -603,10 +599,10 @@ namespace aspect
                                     scratch.face_current_velocity_values[q]);
 
                 //Subtract off the mesh velocity for ALE corrections if necessary
-                if (sim.parameters.free_surface_enabled)
+                if (this->get_parameters().free_surface_enabled)
                   current_u -= scratch.face_mesh_velocity_values[q];
 
-                face_flux += sim.time_step *
+                face_flux += this->get_timestep() *
                              current_u *
                              scratch.subface_finite_element_values.normal_vector(q) *
                              scratch.subface_finite_element_values.JxW(q);
@@ -643,10 +639,10 @@ namespace aspect
             // Limit to constant cases, otherwise announce error
             if (cell_vof > vof_epsilon && cell_vof<1.0-vof_epsilon)
               {
-                sim.pcout << "Cell at " << cell->center() << " " << cell_vof << std::endl;
-                sim.pcout << "\t" << face_flux/sim.time_step/cell_vol << std::endl;
-                sim.pcout << "\t" << cell_i_normal << ".x=" << cell_i_d << std::endl;
-                // Assert(false, ExcNotImplemented());
+                this->get_pcout() << "Cell at " << cell->center() << " " << cell_vof << std::endl
+                                  << "\t" << face_flux/sim.time_step/cell_vol << std::endl
+                                  << "\t" << cell_i_normal << ".x=" << cell_i_d << std::endl;
+                Assert(false, ExcNotImplemented());
               }
           }
       }
