@@ -320,7 +320,6 @@ namespace aspect
         if (use_vof_composition)
           {
             Tensor<1, dim, double> nnormal;
-            double nd=d;
             double normall1n = 0.0;
             for (unsigned int i=0; i<dim; ++i)
               {
@@ -330,7 +329,6 @@ namespace aspect
             if (normall1n > vof_epsilon)
               {
                 nnormal = normal / normall1n;
-                nd = d / normall1n;
               }
             //Calculate correct factor to retain vol frac and [0,1] bound
             double fact = 2.0*(0.5-abs(cell_vof-0.5));
@@ -367,8 +365,8 @@ namespace aspect
 
 
   template <>
-  void VoFHandler<3>::update_vof_normals (const VoFField<3> field,
-                                          LinearAlgebra::BlockVector &solution)
+  void VoFHandler<3>::update_vof_normals (const VoFField<3> /*field*/,
+                                          LinearAlgebra::BlockVector &/*solution*/)
   {
     Assert(false, ExcNotImplemented());
   }

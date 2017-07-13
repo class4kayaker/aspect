@@ -75,8 +75,6 @@ namespace aspect
     FEValues<dim, dim> fe_init (*sim.mapping, sim.finite_element, quadrature,
                                 update_JxW_values | update_quadrature_points);
 
-    double h = 1.0/n_samples;
-
     std::vector<types::global_dof_index>
     local_dof_indicies (sim.finite_element.dofs_per_cell);
 
@@ -93,11 +91,10 @@ namespace aspect
           continue;
 
         // Calculate approximation for volume
-        double cell_vol, cell_diam, d_func;
+        double cell_vol;
         cell->get_dof_indices (local_dof_indicies);
 
         cell_vol = cell->measure ();
-        cell_diam = cell->diameter();
         fe_init.reinit (cell);
 
         double vof_val = 0.0;

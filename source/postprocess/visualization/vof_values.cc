@@ -74,8 +74,6 @@ namespace aspect
         Assert (computed_quantities.size() == n_quadrature_points, ExcInternalError ());
         Assert (input_data.solution_values[0].size() == this->introspection().n_components, ExcInternalError ());
 
-        const FiniteElement<dim> &finite_element = this->get_fe();
-
         unsigned int out_per_field=1;
         if (include_vofLS)
           out_per_field += 1;

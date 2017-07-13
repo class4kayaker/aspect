@@ -188,11 +188,7 @@ namespace aspect
                                                    internal::Assembly::Scratch::VoFSystem<dim> &scratch,
                                                    internal::Assembly::CopyData::VoFSystem<dim> &data)
   {
-    const bool old_velocity_avail = (this->get_timestep_number() > 0);
-    const bool old_old_velocity_avail = (this->get_timestep_number() > 1);
-
     const unsigned int n_q_points    = scratch.finite_element_values.n_quadrature_points;
-    const unsigned int n_f_q_points    = scratch.face_finite_element_values.n_quadrature_points;
 
     // also have the number of dofs that correspond just to the element for
     // the system we are currently trying to assemble
@@ -210,7 +206,6 @@ namespace aspect
 
     const unsigned int solution_component = field.fraction.first_component_index;
     const FEValuesExtractors::Scalar solution_field = field.fraction.extractor_scalar();
-    const Quadrature<dim> &quadrature = scratch.finite_element_values.get_quadrature();
 
     scratch.finite_element_values.reinit (cell);
 
@@ -271,9 +266,6 @@ namespace aspect
           }
       }
 
-    double face_flux;
-    double dflux = 0.0;
-
     for (unsigned int face_no = 0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no)
       {
         const unsigned int f_dim = face_no/2; // Obtain dimension
@@ -297,7 +289,7 @@ namespace aspect
 
   template <int dim>
   void VoFHandler<dim>::local_assemble_internal_face_vof_system (const VoFField<dim> field,
-                                                                 const unsigned int calc_dir,
+                                                                 const unsigned int /*calc_dir*/,
                                                                  bool update_from_old,
                                                                  const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                                  const unsigned int face_no,
@@ -565,8 +557,9 @@ namespace aspect
 
             const double neighbor_vol = neighbor->measure();
             const double neighbor_vof = scratch.neighbor_old_values[0];
-            const Tensor<1, dim, double> neighbor_i_normal = scratch.neighbor_i_n_values[0];
-            const double neighbor_i_d = scratch.neighbor_i_d_values[0];
+            // Unneeded neighbor data
+            // const Tensor<1, dim, double> neighbor_i_normal = scratch.neighbor_i_n_values[0];
+            // const double neighbor_i_d = scratch.neighbor_i_d_values[0];
 
             scratch.subface_finite_element_values.reinit (cell, face_no, subface_no);
 
@@ -584,8 +577,9 @@ namespace aspect
                                     scratch.face_mesh_velocity_values);
 
             double face_flux = 0;
-            double face_ls_d = 0;
-            double face_ls_time_grad = 0;
+            // Unneeded interface flux data
+            // double face_ls_d = 0;
+            // double face_ls_time_grad = 0;
 
             // Using VoF so need to accumulate flux through face
             for (unsigned int q=0; q<n_f_q_points; ++q)
@@ -667,20 +661,16 @@ namespace aspect
 
     // vol fraction and interface values are constants, so can set from first value
     const double cell_vol = cell->measure();
-    const double cell_vof = scratch.old_field_values[0];
+    // const double cell_vof = scratch.old_field_values[0];
     const Tensor<1, dim, double> cell_i_normal = scratch.cell_i_n_values[0];
     const double cell_i_d = scratch.cell_i_d_values[0];
 
-    const FiniteElement<dim> &main_fe = scratch.finite_element_values.get_fe();
-
     // also have the number of dofs that correspond just to the element for
     // the system we are currently trying to assemble
-    const unsigned int vof_dofs_per_cell = data.local_dof_indices.size();
+    // const unsigned int vof_dofs_per_cell = data.local_dof_indices.size();
 
-    const unsigned int solution_component = field.fraction.first_component_index;
-    const FEValuesExtractors::Scalar solution_field = field.fraction.extractor_scalar();
-
-    const typename DoFHandler<dim>::face_iterator face = cell->face (face_no);
+    // const unsigned int solution_component = field.fraction.first_component_index;
+    // const FEValuesExtractors::Scalar solution_field = field.fraction.extractor_scalar();
 
     scratch.face_finite_element_values.reinit (cell, face_no);
 

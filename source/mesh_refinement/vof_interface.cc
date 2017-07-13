@@ -259,7 +259,7 @@ namespace aspect
 
     template <int dim>
     void
-    VoFInterface<dim>::parse_parameters (ParameterHandler &prm)
+    VoFInterface<dim>::parse_parameters (ParameterHandler &/*prm*/)
     {
       //TODO: Add check for vof active
       AssertThrow(this->get_parameters().vof_tracking_enabled,

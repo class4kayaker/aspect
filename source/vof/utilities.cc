@@ -231,7 +231,7 @@ namespace aspect
       // doi:10.1006/jcph.2000.6567,
       // modified to fit chosen convention on normal interface
       const int dim = 3;
-      double norm1, dtest;
+      double norm1;
       Tensor<1, 3, double> nnormal;
       // Simplify to vol<0.5 case
       if (vol>0.5)
@@ -288,7 +288,6 @@ namespace aspect
       double m2 = nnormal[1];
       double m3 = nnormal[2];
       double m12 = m1+m2;
-      double mmin = (m12<m3)?m12:m3;
 
       // Case 1
       double v1=0.0;
