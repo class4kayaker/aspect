@@ -164,7 +164,7 @@ namespace aspect
                                         bool update_from_old,
                                         const typename DoFHandler<dim>::active_cell_iterator &cell,
                                         internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                        internal::Assembly::CopyData::VoFSystem<dim> &data);
+                                        internal::Assembly::CopyData::VoFSystem<dim> &data) const;
 
         void local_assemble_boundary_face_vof_system (const VoFField<dim> field,
                                                       const unsigned int calc_dir,
@@ -172,7 +172,7 @@ namespace aspect
                                                       const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                       const unsigned int face_no,
                                                       internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                                      internal::Assembly::CopyData::VoFSystem<dim> &data);
+                                                      internal::Assembly::CopyData::VoFSystem<dim> &data) const;
 
         /**
          * Function for assembling face fluxes for VoF system.
@@ -183,7 +183,12 @@ namespace aspect
                                                       const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                       const unsigned int face_no,
                                                       internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                                      internal::Assembly::CopyData::VoFSystem<dim> &data);
+                                                      internal::Assembly::CopyData::VoFSystem<dim> &data) const;
+
+        void set_vof_epsilon(const double value);
+
+      private:
+        double vof_epsilon;
     };
   }
 }

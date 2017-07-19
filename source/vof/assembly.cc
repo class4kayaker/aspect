@@ -23,6 +23,7 @@
 #include <aspect/free_surface.h>
 #include <aspect/vof/handler.h>
 #include <aspect/vof/utilities.h>
+#include <aspect/vof/assembly.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/work_stream.h>
@@ -784,9 +785,9 @@ namespace aspect
                      sim.dof_handler.begin_active()),
          CellFilter (IteratorFilters::LocallyOwnedCell(),
                      sim.dof_handler.end()),
-         std_cxx11::bind (&VoFHandler<dim>::
+         std_cxx11::bind (&Assemblers::VoFAssembler<dim>::
                           local_assemble_vof_system,
-                          this,
+                          assembler,
                           field,
                           dir,
                           update_from_old,

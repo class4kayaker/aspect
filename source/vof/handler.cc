@@ -45,10 +45,13 @@ namespace aspect
   VoFHandler<dim>::VoFHandler (Simulator<dim> &simulator,
                                ParameterHandler &prm)
     : sim (simulator),
-      vof_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm))
+      vof_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm)),
+      assembler ()
   {
     this->initialize_simulator(sim);
+    assembler.initialize_simulator(sim);
     parse_parameters (prm);
+    assembler.set_vof_epsilon(vof_epsilon);
 
     sim.signals.edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::edit_finite_element_variables,
                                                                       std_cxx11::ref(*this),

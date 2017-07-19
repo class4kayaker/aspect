@@ -113,6 +113,9 @@ namespace aspect
       //Initial conditions
       const std_cxx11::unique_ptr<VoFInitialConditions::Interface<dim> >      vof_initial_conditions;
 
+      // Update assembler
+      Assemblers::VoFAssembler<dim> assembler;
+
       // Store
       unsigned int n_vof_fields;
       std::vector<VoFField<dim>> data;
