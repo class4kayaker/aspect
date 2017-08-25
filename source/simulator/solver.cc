@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -42,8 +42,6 @@ namespace aspect
 {
   namespace internal
   {
-    using namespace dealii;
-
     /**
      * Implement multiplication with Stokes part of system matrix. In essence, this
      * object represents a 2x2 block matrix that corresponds to the top left

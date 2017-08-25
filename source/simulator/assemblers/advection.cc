@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -350,7 +350,7 @@ namespace aspect
 
               const double dirichlet_value = (advection_field.is_temperature()
                                               ?
-                                              this->get_boundary_temperature().boundary_temperature(
+                                              this->get_boundary_temperature_manager().boundary_temperature(
                                                 cell->face(face_no)->boundary_id(),
                                                 scratch.face_finite_element_values->quadrature_point(q))
                                               :

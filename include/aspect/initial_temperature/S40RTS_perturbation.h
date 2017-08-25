@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -22,8 +22,8 @@
 #ifndef _aspect_initial_temperature_S40RTS_perturbation_h
 #define _aspect_initial_temperature_S40RTS_perturbation_h
 
-#include <aspect/simulator_access.h>
-#include <deal.II/base/std_cxx11/array.h>
+#include <aspect/initial_temperature/interface.h>
+
 
 namespace aspect
 {

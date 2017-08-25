@@ -14,13 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/global.h>
 #include <aspect/geometry_model/interface.h>
+#include <aspect/simulator_access.h>
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/std_cxx11/tuple.h>
 
@@ -40,7 +41,7 @@ namespace aspect
 
 
 
-    template<int dim>
+    template <int dim>
     std::map<std::string,types::boundary_id>
     Interface<dim>::get_symbolic_boundary_names_map() const
     {
@@ -50,7 +51,7 @@ namespace aspect
 
 
 
-    template<int dim>
+    template <int dim>
     std::set< std::pair< std::pair<types::boundary_id, types::boundary_id>, unsigned int > >
     Interface<dim>::get_periodic_boundary_pairs() const
     {
@@ -121,6 +122,12 @@ namespace aspect
           name.erase (name.begin());
         while ((name.size() > 0) && (name[name.size()-1] == ' '))
           name.erase (name.end()-1);
+
+        // backwards compatibility (rename boundaries to all use "top" and "bottom"
+        if (name == "surface" || name == "outer")
+          name = "top";
+        else if (name == "inner")
+          name = "bottom";
 
         // see if the given name is a symbolic one
         if (boundary_names_mapping.find (name) != boundary_names_mapping.end())
@@ -254,7 +261,7 @@ namespace aspect
       // errors because the value obviously does not conform to the Pattern.
       AssertThrow(model_name != "unspecified",
                   ExcMessage("You need to select a Geometry model "
-                             "('set Model name' in 'subsection Geometry model')."));
+                             "(`set Model name' in `subsection Geometry model')."));
 
       return std_cxx11::get<dim>(registered_plugins).create_plugin (model_name,
                                                                     "Geometry model::model name",
@@ -283,6 +290,15 @@ namespace aspect
       std_cxx11::get<dim>(registered_plugins).declare_parameters (prm);
     }
 
+
+
+    template <int dim>
+    void
+    write_plugin_graph (std::ostream &out)
+    {
+      std_cxx11::get<dim>(registered_plugins).write_plugin_graph ("Geometry model interface",
+                                                                  out);
+    }
   }
 }
 
@@ -318,6 +334,10 @@ namespace aspect
   template  \
   void \
   declare_parameters<dim> (ParameterHandler &); \
+  \
+  template \
+  void \
+  write_plugin_graph<dim> (std::ostream &); \
   \
   template \
   Interface<dim> * \

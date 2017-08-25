@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -26,7 +26,7 @@
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/multithread_info.h>
 #include <deal.II/base/revision.h>
-
+#include <csignal>
 #include <string>
 
 #ifdef DEBUG
@@ -374,6 +374,8 @@ void print_help()
             << std::endl
             << "       --output-xml           (print parameters in xml format to standard output and exit)"
             << std::endl
+            << "       --output-plugin-graph  (write a representation of all plugins to standard output and exit)"
+            << std::endl
             << std::endl;
 }
 
@@ -408,6 +410,33 @@ void print_version_information(Stream &stream)
 }
 
 
+// hook into SIGABRT/SIGFPE and kill off the program
+void signal_handler(int signal)
+{
+  if (signal == SIGABRT)
+    {
+      std::cerr << "SIGABRT received\n";
+    }
+  else if (signal == SIGFPE)
+    {
+      std::cerr << "SIGFPE received\n";
+    }
+  else
+    {
+      std::cerr << "Unexpected signal " << signal << " received\n";
+    }
+#if DEAL_II_USE_CXX11
+  // Kill the program without performing any other cleanup, which is likely to
+  // lead to a deadlock
+  std::_Exit(EXIT_FAILURE);
+#else
+  // Kill the program, or at least try to. The problem when we get here is
+  // that calling std::exit invokes at_exit() functions that may still hang
+  // the MPI system
+  std::exit(1);
+#endif
+}
+
 int main (int argc, char *argv[])
 {
   using namespace dealii;
@@ -419,6 +448,10 @@ int main (int argc, char *argv[])
 
 #ifdef DEBUG
 #ifdef ASPECT_USE_FP_EXCEPTIONS
+  // Some implementations seem to not initialize the floating point exception
+  // bits to zero. Make sure we start from a clean state.
+  feclearexcept(FE_DIVBYZERO|FE_INVALID);
+
   // enable floating point exceptions
   feenableexcept(FE_DIVBYZERO|FE_INVALID);
 #endif
@@ -432,7 +465,26 @@ int main (int argc, char *argv[])
       const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
       std::string prm_name = "";
-      bool output_xml = false;
+      bool output_xml          = false;
+      bool output_plugin_graph = false;
+
+      // We hook into the abort handler on ranks != 0 to avoid an MPI
+      // deadlock. The deal.II library will call std::abort() when an
+      // Assert is triggered, which can lead to a deadlock because it
+      // runs the things that are associated with atexit() which may
+      // itself trigger MPI communication. The same happens for other
+      // signals we may trigger, such as floating point exceptions
+      // (SIGFPE).
+      //
+      // We work around this by immediately calling _Exit in the
+      // signal handler and thus aborting the program without running
+      // cleanup functions set via atexit(). This is only necessary on
+      // rank != 0 for some reason.
+      if (!i_am_proc_0)
+        {
+          std::signal(SIGABRT, signal_handler);
+          std::signal(SIGFPE, signal_handler);
+        }
 
       // Loop over all command line arguments. Handle a number of special ones
       // starting with a dash, and then take the first non-special one as the
@@ -446,6 +498,10 @@ int main (int argc, char *argv[])
           if (arg == "--output-xml")
             {
               output_xml = true;
+            }
+          else if (arg == "--output-plugin-graph")
+            {
+              output_plugin_graph = true;
             }
           else if (arg=="-h" || arg =="--help")
             {
@@ -497,7 +553,7 @@ int main (int argc, char *argv[])
         }
 
       // Print header
-      if (i_am_proc_0 && !output_xml)
+      if (i_am_proc_0 && !output_xml && !output_plugin_graph)
         {
           print_aspect_header(std::cout);
         }
@@ -598,6 +654,12 @@ int main (int argc, char *argv[])
                 if (i_am_proc_0)
                   prm.print_parameters(std::cout, ParameterHandler::XML);
               }
+            else if (output_plugin_graph)
+              {
+                aspect::Simulator<2> flow_problem(MPI_COMM_WORLD, prm);
+                if (i_am_proc_0)
+                  flow_problem.write_plugin_graph (std::cout);
+              }
             else
               {
                 aspect::Simulator<2> flow_problem(MPI_COMM_WORLD, prm);
@@ -616,6 +678,12 @@ int main (int argc, char *argv[])
                 if (i_am_proc_0)
                   prm.print_parameters(std::cout, ParameterHandler::XML);
               }
+            else if (output_plugin_graph)
+              {
+                aspect::Simulator<3> flow_problem(MPI_COMM_WORLD, prm);
+                if (i_am_proc_0)
+                  flow_problem.write_plugin_graph (std::cout);
+              }
             else
               {
                 aspect::Simulator<3> flow_problem(MPI_COMM_WORLD, prm);
@@ -631,12 +699,30 @@ int main (int argc, char *argv[])
                                     "different space dimension is given in the parameter file."));
         }
     }
+  catch (ExceptionBase &exc)
+    {
+      // report name of the deal.II exception:
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception '" << exc.get_exc_name() << "'"
+                << " on rank " << Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
+                << " on processing: " << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+
+      return 1;
+    }
   catch (std::exception &exc)
     {
       std::cerr << std::endl << std::endl
                 << "----------------------------------------------------"
                 << std::endl;
-      std::cerr << "Exception on processing: " << std::endl
+      std::cerr << "Exception"
+                << " on rank " << Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
+                << " on processing: " << std::endl
                 << exc.what() << std::endl
                 << "Aborting!" << std::endl
                 << "----------------------------------------------------"

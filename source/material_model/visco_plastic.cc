@@ -14,19 +14,59 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 #include <aspect/material_model/visco_plastic.h>
 #include <aspect/utilities.h>
 #include <deal.II/fe/fe_values.h>
-using namespace dealii;
+#include <deal.II/base/signaling_nan.h>
 
 namespace aspect
 {
   namespace MaterialModel
   {
+
+    namespace
+    {
+      std::vector<std::string> make_plastic_additional_outputs_names()
+      {
+        std::vector<std::string> names;
+        names.push_back("current_cohesions");
+        names.push_back("current_friction_angles");
+        return names;
+      }
+    }
+
+    template <int dim>
+    PlasticAdditionalOutputs<dim>::PlasticAdditionalOutputs (const unsigned int n_points)
+      :
+      NamedAdditionalMaterialOutputs<dim>(make_plastic_additional_outputs_names()),
+      cohesions(n_points, numbers::signaling_nan<double>()),
+      friction_angles(n_points, numbers::signaling_nan<double>())
+    {}
+
+
+    template <int dim>
+    std::vector<double>
+    PlasticAdditionalOutputs<dim>::get_nth_output(const unsigned int idx) const
+    {
+      AssertIndexRange (idx, 2);
+      switch (idx)
+        {
+          case 0:
+            return cohesions;
+
+          case 1:
+            return friction_angles;
+
+          default:
+            AssertThrow(false, ExcInternalError());
+        }
+      // we will never get here, so just return something
+      return cohesions;
+    }
 
     template <int dim>
     std::vector<double>
@@ -204,8 +244,7 @@ namespace aspect
           // Calculate viscous stress
           double viscous_stress = 2. * viscosity_pre_yield * edot_ii;
 
-          // Convert friction angle from degrees to radians
-          double phi = angles_internal_friction[j] * numbers::PI/180.0;
+          double phi = angles_internal_friction[j];
 
           // Passing cohesions to a new variable
           double coh = cohesions[j];
@@ -214,7 +253,6 @@ namespace aspect
           double strain_ii = 0.;
           if (use_strain_weakening == true)
             {
-
               // Calculate and/or constrain the strain invariant of the previous timestep
               if ( use_finite_strain_tensor == true )
                 {
@@ -223,20 +261,18 @@ namespace aspect
                   for (unsigned int q = 0; q < Tensor<2,dim>::n_independent_components ; ++q)
                     strain[Tensor<2,dim>::unrolled_to_component_indices(q)] = composition[q];
                   const SymmetricTensor<2,dim> L = symmetrize( strain * transpose(strain) );
-                  strain_ii = std::max(std::min(std::fabs(second_invariant(L)),end_strain_weakening_intervals[j]),start_strain_weakening_intervals[j]);
+                  strain_ii = std::fabs(second_invariant(L));
                 }
               else
                 {
                   // Here the compositional field already contains the finite strain invariant magnitude
-                  strain_ii = std::max(std::min(composition[0],end_strain_weakening_intervals[j]),start_strain_weakening_intervals[j]);
+                  strain_ii = composition[0];
                 }
 
-              // Linear strain weakening of cohesion and internal friction angle between specified strain values
-              const double strain_fraction = ( strain_ii - start_strain_weakening_intervals[j] ) /
-                                             ( start_strain_weakening_intervals[j] - end_strain_weakening_intervals[j] );
-              coh = coh + ( coh - coh * cohesion_strain_weakening_factors[j] ) * strain_fraction;
-              phi = phi + ( phi - phi * friction_strain_weakening_factors[j] ) * strain_fraction;
-
+              // Compute the weakened cohesions and friction angles for the current compositional field
+              std::pair<double, double> weakening = calculate_weakening(strain_ii, j);
+              coh = weakening.first;
+              phi = weakening.second;
             }
 
           // Calculate Drucker Prager yield strength (i.e. yield stress)
@@ -293,15 +329,31 @@ namespace aspect
       return composition_viscosities;
     }
 
+
+    template <int dim>
+    std::pair<double, double>
+    ViscoPlastic<dim>::
+    calculate_weakening(const double strain_ii,
+                        const unsigned int j) const
+    {
+      // Constrain the second strain invariant of the previous timestep by the strain interval
+      const double cut_off_strain_ii = std::max(std::min(strain_ii,end_strain_weakening_intervals[j]),start_strain_weakening_intervals[j]);
+
+      // Linear strain weakening of cohesion and internal friction angle between specified strain values
+      const double strain_fraction = ( cut_off_strain_ii - start_strain_weakening_intervals[j] ) /
+                                     ( start_strain_weakening_intervals[j] - end_strain_weakening_intervals[j] );
+      const double current_coh = cohesions[j] + ( cohesions[j] - cohesions[j] * cohesion_strain_weakening_factors[j] ) * strain_fraction;
+      const double current_phi = angles_internal_friction[j] + ( angles_internal_friction[j] - angles_internal_friction[j] * friction_strain_weakening_factors[j] ) * strain_fraction;
+
+      return std::make_pair (current_coh, current_phi);
+    }
+
     template <int dim>
     void
     ViscoPlastic<dim>::
     evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
-
-
-
       // Loop through points
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
@@ -385,11 +437,48 @@ namespace aspect
               // Update reaction term
               out.reaction_terms[i][0] = e_ii;
             }
+
+          // fill plastic outputs if they exist
+          if (PlasticAdditionalOutputs<dim> *plastic_out = out.template get_additional_output<PlasticAdditionalOutputs<dim> >())
+            {
+              double C = 0.;
+              double phi = 0.;
+              // set to weakened values, or unweakened values when strain weakening is not used
+              for (unsigned int j=0; j < volume_fractions.size(); ++j)
+                {
+                  if (use_strain_weakening == true)
+                    {
+                      double strain_invariant = composition[0];
+                      if (use_finite_strain_tensor == true)
+                        {
+                          // Calculate second invariant of left stretching tensor "L"
+                          Tensor<2,dim> strain;
+                          for (unsigned int q = 0; q < Tensor<2,dim>::n_independent_components ; ++q)
+                            strain[Tensor<2,dim>::unrolled_to_component_indices(q)] = composition[q];
+                          const SymmetricTensor<2,dim> L = symmetrize( strain * transpose(strain) );
+                          strain_invariant = std::fabs(second_invariant(L));
+                        }
+
+                      std::pair<double, double> weakening = calculate_weakening(strain_invariant, j);
+                      C   += volume_fractions[j] * weakening.first;
+                      phi += volume_fractions[j] * weakening.second;
+                    }
+                  else
+                    {
+                      C   += volume_fractions[j] * cohesions[j];
+                      phi += volume_fractions[j] * angles_internal_friction[j];
+                    }
+                }
+              plastic_out->cohesions[i] = C;
+              // convert radians to degrees
+              plastic_out->friction_angles[i] = phi * 180. / numbers::PI;
+            }
         }
 
       // We need the velocity gradient for the finite strain (they are not included in material model inputs),
       // so we get them from the finite element.
-      if (in.cell && use_strain_weakening == true && use_finite_strain_tensor == true && this->get_timestep_number() > 0)
+      if (in.current_cell.state() == IteratorState::valid && use_strain_weakening == true
+          && use_finite_strain_tensor == true && this->get_timestep_number() > 0)
         {
           const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.velocities).degree+1);
           FEValues<dim> fe_values (this->get_mapping(),
@@ -399,7 +488,7 @@ namespace aspect
 
           std::vector<Tensor<2,dim> > velocity_gradients (quadrature_formula.size(), Tensor<2,dim>());
 
-          fe_values.reinit (*in.cell);
+          fe_values.reinit (in.current_cell);
           fe_values[this->introspection().extractors.velocities].get_function_gradients (this->get_solution(),
                                                                                          velocity_gradients);
 
@@ -765,6 +854,9 @@ namespace aspect
           angles_internal_friction = Utilities::possibly_extend_from_1_to_N (Utilities::string_to_double(Utilities::split_string_list(prm.get("Angles of internal friction"))),
                                                                              n_fields,
                                                                              "Angles of internal friction");
+          // Convert angles from degrees to radians
+          for (unsigned int i = 0; i<n_fields; ++i)
+            angles_internal_friction[i] *= numbers::PI/180.0;
           cohesions = Utilities::possibly_extend_from_1_to_N (Utilities::string_to_double(Utilities::split_string_list(prm.get("Cohesions"))),
                                                               n_fields,
                                                               "Cohesions");
@@ -784,6 +876,20 @@ namespace aspect
       this->model_dependence.specific_heat = NonlinearDependence::none;
       this->model_dependence.thermal_conductivity = NonlinearDependence::temperature | NonlinearDependence::pressure | NonlinearDependence::compositional_fields;
     }
+
+    template <int dim>
+    void
+    ViscoPlastic<dim>::create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const
+    {
+      if (out.template get_additional_output<PlasticAdditionalOutputs<dim> >() == NULL)
+        {
+          const unsigned int n_points = out.viscosities.size();
+          out.additional_outputs.push_back(
+            std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
+            (new MaterialModel::PlasticAdditionalOutputs<dim> (n_points)));
+        }
+    }
+
   }
 }
 
@@ -820,7 +926,7 @@ namespace aspect
                                    "dislocation ($v_{disl}$, $n>1$, $m=0$) or composite "
                                    "$\\frac{v_{diff}*v_{disl}}{v_{diff}+v_{disl}}$ equation form. "
                                    "\n\n "
-                                   "Viscosity is limited through one of two different 'yielding' mechanisms. "
+                                   "Viscosity is limited through one of two different `yielding' mechanisms. "
                                    "\n\n"
                                    "Plasticity limits viscous stress through a Drucker Prager "
                                    "yield criterion, where the yield stress in 3D is  "
@@ -844,9 +950,9 @@ namespace aspect
                                    "compositional fields within the material model. This implementation is "
                                    "identical to the compositional field finite strain plugin and cookbook "
                                    "described in the manual (author: Gassmoeller, Dannberg). If the user selects to track "
-                                   "the finite strain invariant ($e_ii$), a single compositional field tracks "
-                                   "the value derived from $e_ii^t = (e_ii)^(t-1) + edot_ii*dt, where $t$ and $t-1$ "
-                                   "are the current and prior time steps, $edot_ii$ is the second invariant of the "
+                                   "the finite strain invariant ($e_{ii}$), a single compositional field tracks "
+                                   "the value derived from $e_{ii}^t = (e_{ii})^(t-1) + \\dot{e}_{ii}*dt$, where $t$ and $t-1$ "
+                                   "are the current and prior time steps, $\\dot{e}_{ii}$ is the second invariant of the "
                                    "strain rate tensor and $dt$ is the time step size. In the case of the "
                                    "full strain tensor $F$, the finite strain magnitude is derived from the "
                                    "second invariant of the symmetric stretching tensor $L$, where "
@@ -861,7 +967,7 @@ namespace aspect
                                    "may in fact decrease if the orientation of the deformation field switches "
                                    "through time. Consequently, the ideal solution is track the finite strain "
                                    "invariant (single compositional) field within the material and track "
-                                   "the full finite strain tensor through tracers."
+                                   "the full finite strain tensor through particles."
                                    ""
                                    "\n\n"
                                    "Viscous stress may also be limited by a non-linear stress limiter "

@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -25,6 +25,7 @@
 #include <aspect/simulator_access.h>
 #include <aspect/melt.h>
 #include <aspect/vof/handler.h>
+#include <aspect/newton.h>
 #include <aspect/free_surface.h>
 
 #include <deal.II/base/quadrature_lib.h>
@@ -514,7 +515,11 @@ namespace aspect
       for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
         material_model_inputs.composition[q][c] = composition_values[c][q];
 
+    DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
     material_model_inputs.cell = &cell;
+    DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
+
+    material_model_inputs.current_cell = cell;
   }
 
 
@@ -630,8 +635,14 @@ namespace aspect
     // create an object for the complete equations assembly; add its
     // member functions to the signals and add the object the list
     // of assembler objects
-    aspect::Assemblers::StokesAssembler<dim> *stokes_assembler
-      = new aspect::Assemblers::StokesAssembler<dim>();
+    aspect::Assemblers::StokesAssembler<dim> *stokes_assembler = NULL;
+    aspect::Assemblers::NewtonStokesAssembler<dim> *newton_stokes_assembler = NULL;
+
+    if (assemble_newton_stokes_system)
+      newton_stokes_assembler = new aspect::Assemblers::NewtonStokesAssembler<dim>();
+    else
+      stokes_assembler = new aspect::Assemblers::StokesAssembler<dim>();
+
     aspect::Assemblers::AdvectionAssembler<dim> *adv_assembler
       = new aspect::Assemblers::AdvectionAssembler<dim>();
 
@@ -647,11 +658,20 @@ namespace aspect
       .connect (std_cxx11::bind(&aspect::Assemblers::MeltEquations<dim>::local_assemble_stokes_preconditioner_melt,
                                 std_cxx11::cref (*melt_equation_assembler),
                                 std_cxx11::_1, std_cxx11::_2, std_cxx11::_3));
+    else if (assemble_newton_stokes_system)
+      assemblers->local_assemble_stokes_preconditioner
+      .connect (std_cxx11::bind(&aspect::Assemblers::NewtonStokesAssembler<dim>::preconditioner,
+                                std_cxx11::cref (*newton_stokes_assembler),
+                                std_cxx11::_1,
+                                std_cxx11::_2,
+                                std_cxx11::_3,
+                                std_cxx11::cref (this->parameters)));
     else
       assemblers->local_assemble_stokes_preconditioner
       .connect (std_cxx11::bind(&aspect::Assemblers::StokesAssembler<dim>::preconditioner,
                                 std_cxx11::cref (*stokes_assembler),
                                 std_cxx11::_1, std_cxx11::_2, std_cxx11::_3));
+
 
     if (parameters.include_melt_transport)
       assemblers->local_assemble_stokes_system
@@ -662,6 +682,71 @@ namespace aspect
                                 std_cxx11::_3,
                                 std_cxx11::_4,
                                 std_cxx11::_5));
+
+    else  if (assemble_newton_stokes_system)
+      {
+        assemblers->local_assemble_stokes_system
+        .connect (std_cxx11::bind(&aspect::Assemblers::NewtonStokesAssembler<dim>::incompressible_terms,
+                                  std_cxx11::cref (*newton_stokes_assembler),
+                                  // discard cell,
+                                  std_cxx11::_2,
+                                  std_cxx11::_3,
+                                  std_cxx11::_4,
+                                  std_cxx11::_5,
+                                  std_cxx11::cref (this->parameters)));
+
+        if (material_model->is_compressible())
+          assemblers->local_assemble_stokes_system
+          .connect (std_cxx11::bind(&aspect::Assemblers::NewtonStokesAssembler<dim>::compressible_strain_rate_viscosity_term,
+                                    std_cxx11::cref (*newton_stokes_assembler),
+                                    // discard cell,
+                                    std_cxx11::_2,
+                                    std_cxx11::_3,
+                                    std_cxx11::_4,
+                                    std_cxx11::_5,
+                                    std_cxx11::cref (this->parameters)));
+
+        if (parameters.formulation_mass_conservation ==
+            Parameters<dim>::Formulation::MassConservation::implicit_reference_density_profile)
+          assemblers->local_assemble_stokes_system
+          .connect (std_cxx11::bind(&aspect::Assemblers::NewtonStokesAssembler<dim>::implicit_reference_density_compressibility_term,
+                                    std_cxx11::cref (*newton_stokes_assembler),
+                                    // discard cell,
+                                    std_cxx11::_2,
+                                    std_cxx11::_3,
+                                    std_cxx11::_4,
+                                    std_cxx11::_5,
+                                    std_cxx11::cref (this->parameters)));
+        else if (parameters.formulation_mass_conservation ==
+                 Parameters<dim>::Formulation::MassConservation::reference_density_profile)
+          {
+            assemblers->local_assemble_stokes_system
+            .connect (std_cxx11::bind(&aspect::Assemblers::NewtonStokesAssembler<dim>::reference_density_compressibility_term,
+                                      std_cxx11::cref (*newton_stokes_assembler),
+                                      // discard cell,
+                                      std_cxx11::_2,
+                                      std_cxx11::_3,
+                                      std_cxx11::_4,
+                                      std_cxx11::_5,
+                                      std_cxx11::cref (this->parameters)));
+          }
+        else if (parameters.formulation_mass_conservation ==
+                 Parameters<dim>::Formulation::MassConservation::incompressible)
+          {
+            // do nothing, because we assembled div u =0 above already
+          }
+        else
+          assemblers->local_assemble_stokes_system
+          .connect (std_cxx11::bind(&aspect::Assemblers::NewtonStokesAssembler<dim>::isothermal_compression_term,
+                                    std_cxx11::cref (*newton_stokes_assembler),
+                                    // discard cell,
+                                    std_cxx11::_2,
+                                    std_cxx11::_3,
+                                    std_cxx11::_4,
+                                    std_cxx11::_5,
+                                    std_cxx11::cref (this->parameters)));
+
+      }
     else
       {
         assemblers->local_assemble_stokes_system
@@ -725,9 +810,12 @@ namespace aspect
 
       }
 
-
-    assembler_objects.push_back (std_cxx11::shared_ptr<internal::Assembly::Assemblers::AssemblerBase<dim> >
-                                 (stokes_assembler));
+    if (assemble_newton_stokes_system)
+      assembler_objects.push_back (std_cxx11::shared_ptr<internal::Assembly::Assemblers::AssemblerBase<dim> >
+                                   (newton_stokes_assembler));
+    else
+      assembler_objects.push_back (std_cxx11::shared_ptr<internal::Assembly::Assemblers::AssemblerBase<dim> >
+                                   (stokes_assembler));
 
     assembler_objects.push_back (std_cxx11::shared_ptr<internal::Assembly::Assemblers::AssemblerBase<dim> >
                                  (adv_assembler));
@@ -824,7 +912,6 @@ namespace aspect
                                   // discard cell,
                                   std_cxx11::_2,
                                   std_cxx11::_3));
-
       }
 
     if (parameters.use_discontinuous_temperature_discretization ||
@@ -1092,7 +1179,7 @@ namespace aspect
     compute_material_model_input_values (current_linearization_point,
                                          scratch.finite_element_values,
                                          cell,
-                                         rebuild_stokes_matrix,
+                                         assemble_newton_stokes_system ? true : rebuild_stokes_matrix,
                                          scratch.material_model_inputs);
     create_additional_material_model_outputs(scratch.material_model_outputs);
 
@@ -1195,7 +1282,17 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::assemble_stokes_system ()
   {
-    computing_timer.enter_section ("   Assemble Stokes system");
+    if (!assemble_newton_stokes_system)
+      computing_timer.enter_section ("   Assemble Stokes system");
+    else if (assemble_newton_stokes_matrix)
+      {
+        if (parameters.newton_theta == 0)
+          computing_timer.enter_section ("   Assemble Stokes system picard");
+        else
+          computing_timer.enter_section ("   Assemble Stokes system newton");
+      }
+    else
+      computing_timer.enter_section ("   Assemble Stokes system rhs");
 
     if (rebuild_stokes_matrix == true)
       system_matrix = 0;
@@ -1403,6 +1500,26 @@ namespace aspect
             scratch.material_model_outputs.densities[q] = adiabatic_conditions->density(scratch.material_model_inputs.position[q]);
           }
       }
+
+#ifdef DEBUG
+    // make sure that if the model does not use operator splitting,
+    // the material model outputs do not fill the reaction_rates (because the reaction_terms are used instead)
+    if (!parameters.use_operator_splitting)
+      {
+        material_model->create_additional_named_outputs(scratch.material_model_outputs);
+        MaterialModel::ReactionRateOutputs<dim> *reaction_rate_outputs
+          = scratch.material_model_outputs.template get_additional_output<MaterialModel::ReactionRateOutputs<dim> >();
+
+        Assert(reaction_rate_outputs == NULL,
+               ExcMessage("You are using a material model where the reaction rate outputs "
+                          "are created even though the operator splitting solver option is "
+                          "not used in the model, this is not supported! "
+                          "If operator splitting is disabled, the reaction_rates should not "
+                          "be created at all. If you want to run a model where reactions are "
+                          "much faster than the advection, which is what the reaction rate "
+                          "outputs are designed for, you should enable operator splitting."));
+      }
+#endif
 
     MaterialModel::MaterialAveraging::average (parameters.material_averaging,
                                                cell,

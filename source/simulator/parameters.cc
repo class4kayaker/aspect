@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -110,8 +110,8 @@ namespace aspect
                        "terms of meters per year (or, sometimes, centimeters per year). "
                        "On the other hand, for non-dimensional computations, one wants "
                        "results in their natural unit system as used inside the code. "
-                       "If this flag is set to 'true' conversion to years happens; if "
-                       "it is 'false', no such conversion happens. Note that when 'true', "
+                       "If this flag is set to `true' conversion to years happens; if "
+                       "it is `false', no such conversion happens. Note that when `true', "
                        "some input such as prescribed velocities should also use years "
                        "instead of seconds.");
 
@@ -156,9 +156,9 @@ namespace aspect
                        "The kind of scheme used to resolve the nonlinearity in the system. "
                        "'IMPES' is the classical IMplicit Pressure Explicit Saturation scheme "
                        "in which ones solves the temperatures and Stokes equations exactly "
-                       "once per time step, one after the other. The 'iterated IMPES' scheme "
+                       "once per time step, one after the other. The `iterated IMPES' scheme "
                        "iterates this decoupled approach by alternating the solution of the "
-                       "temperature and Stokes systems. The 'iterated Stokes' scheme solves "
+                       "temperature and Stokes systems. The `iterated Stokes' scheme solves "
                        "the temperature equation once at the beginning of each time step "
                        "and then iterates out the solution of the Stokes equation. The 'Stokes only' "
                        "scheme only solves the Stokes system and ignores compositions and the "
@@ -172,8 +172,8 @@ namespace aspect
                        Patterns::Double(0,1),
                        "A relative tolerance up to which the nonlinear solver "
                        "will iterate. This parameter is only relevant if "
-                       "Nonlinear solver scheme is set to 'iterated Stokes' or "
-                       "'iterated IMPES'.");
+                       "Nonlinear solver scheme is set to `iterated Stokes' or "
+                       "`iterated IMPES'.");
 
     prm.declare_entry ("Pressure normalization", "surface",
                        Patterns::Selection ("surface|volume|no"),
@@ -310,14 +310,22 @@ namespace aspect
     prm.declare_entry ("Temperature solver tolerance", "1e-12",
                        Patterns::Double(0,1),
                        "The relative tolerance up to which the linear system for "
-                       "the temperature system gets solved. See 'linear solver "
+                       "the temperature system gets solved. See `linear solver "
                        "tolerance' for more details.");
 
     prm.declare_entry ("Composition solver tolerance", "1e-12",
                        Patterns::Double(0,1),
                        "The relative tolerance up to which the linear system for "
-                       "the composition system gets solved. See 'linear solver "
+                       "the composition system gets solved. See `linear solver "
                        "tolerance' for more details.");
+
+    prm.declare_entry ("Use operator splitting", "false",
+                       Patterns::Bool(),
+                       "If set to true, the advection and reactions of compositional fields and "
+                       "temperature are solved separately, and can use different time steps. Note that "
+                       "this will only work if the material/heating model fills the reaction_rates/"
+                       "heating_reaction_rates structures. Operator splitting can be used with any "
+                       "existing solver schemes that solve the temperature/composition equations.");
 
     prm.enter_subsection ("Solver parameters");
     {
@@ -325,7 +333,7 @@ namespace aspect
       {
         prm.declare_entry ("Nonlinear Newton solver switch tolerance", "1e-5",
                            Patterns::Double(0,1),
-                           "A relative tolerance with respect to the the residual of the first "
+                           "A relative tolerance with respect to the residual of the first "
                            "iteration, up to which the nonlinear Picard solver will iterate, "
                            "before changing to the newton solver.");
 
@@ -357,9 +365,9 @@ namespace aspect
                            Patterns::Integer(0),
                            "Determines how many sweeps of the smoother should be performed. When the flag elliptic "
                            "is set to true, (which is true for ASPECT), the polynomial degree of "
-                           "the Chebyshev smoother is set to smoother_sweeps. The term sweeps refers to the number of "
+                           "the Chebyshev smoother is set to this value. The term sweeps refers to the number of "
                            "matrix-vector products performed in the Chebyshev case. In the non-elliptic case, "
-                           "smoother_sweeps sets the number of SSOR relaxation sweeps for post-smoothing to be performed. "
+                           "this parameter sets the number of SSOR relaxation sweeps for post-smoothing to be performed. "
                            "The default is strongly recommended. There are indications that for the Newton solver a different "
                            "value might be better. For extensive benchmarking of various settings of the "
                            "AMG parameters in this secton for the Stokes problem and others, "
@@ -370,8 +378,8 @@ namespace aspect
                            "This threshold tells the AMG setup how the coarsening should be performed. "
                            "In the AMG used by ML, all points that strongly couple with the tentative coarse-level "
                            "point form one aggregate. The term strong coupling is controlled by the variable "
-                           "aggregation_threshold, meaning that all elements that are not smaller than "
-                           "aggregation_threshold times the diagonal element do couple strongly. "
+                           "aggregation\\_threshold, meaning that all elements that are not smaller than "
+                           "aggregation\\_threshold times the diagonal element do couple strongly. "
                            "The default is strongly recommended. There are indications that for the Newton solver a different "
                            "value might be better. For extensive benchmarking of various settings of the "
                            "AMG parameters in this secton for the Stokes problem and others, "
@@ -380,6 +388,33 @@ namespace aspect
         prm.declare_entry ("AMG output details", "false",
                            Patterns::Bool(),
                            "Turns on extra information on the AMG solver. Note that this will generate much more output.");
+      }
+      prm.leave_subsection ();
+      prm.enter_subsection ("Operator splitting parameters");
+      {
+        prm.declare_entry ("Reaction time step", "1000.0",
+                           Patterns::Double (0),
+                           "Set a time step size for computing reactions of compositional fields and the "
+                           "temperature field in case operator splitting is used. This is only used "
+                           "when the nonlinear solver scheme ``operator splitting'' is selected. "
+                           "The reaction time step must be greater than 0. "
+                           "If you want to prescribe the reaction time step only as a relative value "
+                           "compared to the advection time step as opposed to as an absolute value, you "
+                           "should use the parameter ``Reaction time steps per advection step'' and set "
+                           "this parameter to the same (or larger) value as the ``Maximum time step'' "
+                           "(which is 5.69e+300 by default). "
+                           "Units: Years or seconds, depending on the ``Use years "
+                           "in output instead of seconds'' parameter.");
+
+        prm.declare_entry ("Reaction time steps per advection step", "0",
+                           Patterns::Integer (0),
+                           "The number of reaction time steps done within one advection time step "
+                           "in case operator splitting is used. This is only used if the nonlinear "
+                           "solver scheme ``operator splitting'' is selected. If set to zero, this "
+                           "parameter is ignored. Otherwise, the reaction time step size is chosen according to "
+                           "this criterion and the ``Reaction time step'', whichever yields the "
+                           "smaller time step. "
+                           "Units: none.");
       }
       prm.leave_subsection ();
     }
@@ -442,7 +477,7 @@ namespace aspect
                          "is set to true, two additional pressures (the fluid pressure and the "
                          "compaction pressure) will be added to the finite element. "
                          "Including melt transport in the simulation also requires that there is "
-                         "one compositional field that has the name 'porosity'. This field will "
+                         "one compositional field that has the name `porosity'. This field will "
                          "be used for computing the additional pressures and the melt velocity, "
                          "and has a different advection equation than other compositional fields, "
                          "as it is effectively advected with the melt velocity.");
@@ -548,9 +583,9 @@ namespace aspect
                          "provided for this part of the boundary) "
                          "and each value must be one of the currently implemented boundary "
                          "velocity models. ``selector'' is an optional string given as a subset "
-                         "of the letters 'xyz' that allows you to apply the boundary conditions "
+                         "of the letters `xyz' that allows you to apply the boundary conditions "
                          "only to the components listed. As an example, '1 y: function' applies "
-                         "the type 'function' to the y component on boundary 1. Without a selector "
+                         "the type `function' to the y component on boundary 1. Without a selector "
                          "it will affect all components of the velocity."
                          "\n\n"
                          "Note that the no-slip boundary condition is "
@@ -582,9 +617,9 @@ namespace aspect
                          "provided for this part of the boundary) "
                          "and each value must be one of the currently implemented boundary "
                          "traction models. ``selector'' is an optional string given as a subset "
-                         "of the letters 'xyz' that allows you to apply the boundary conditions "
+                         "of the letters `xyz' that allows you to apply the boundary conditions "
                          "only to the components listed. As an example, '1 y: function' applies "
-                         "the type 'function' to the y component on boundary 1. Without a selector "
+                         "the type `function' to the y component on boundary 1. Without a selector "
                          "it will affect all components of the traction.");
       prm.declare_entry ("Remove nullspace", "",
                          Patterns::MultipleSelection("net rotation|angular momentum|"
@@ -810,7 +845,10 @@ namespace aspect
         prm.declare_entry ("cR", "0.33",
                            Patterns::Double (0),
                            "The $c_R$ factor in the entropy viscosity "
-                           "stabilization. (For historical reasons, the name used here is different "
+                           "stabilization. This parameter controls the part of the entropy viscosity "
+                           "that depends on the solution field itself and its residual in addition "
+                           "to the cell diameter and the maximum velocity in the cell. "
+                           "(For historical reasons, the name used here is different "
                            "from the one used in the 2012 paper by Kronbichler, "
                            "Heister and Bangerth that describes ASPECT, see \\cite{KHB12}. "
                            "This parameter corresponds "
@@ -820,8 +858,11 @@ namespace aspect
         prm.declare_entry ("beta", "0.078",
                            Patterns::Double (0),
                            "The $\\beta$ factor in the artificial viscosity "
-                           "stabilization. An appropriate value for 2d is 0.078 "
-                           "and 0.117 for 3d. (For historical reasons, the name used here is different "
+                           "stabilization. This parameter controls the maximum dissipation of the "
+                           "entropy viscosity, which is the part that only scales with the cell diameter "
+                           "and the maximum velocity in the cell, but does not depend on the solution "
+                           "field itself or its residual. An appropriate value for 2d is 0.078 and "
+                           "0.117 for 3d. (For historical reasons, the name used here is different "
                            "from the one used in the 2012 paper by Kronbichler, "
                            "Heister and Bangerth that describes ASPECT, see \\cite{KHB12}. "
                            "This parameter corresponds "
@@ -1038,6 +1079,16 @@ namespace aspect
         AMG_output_details                     = prm.get_bool ("AMG output details");
       }
       prm.leave_subsection ();
+      prm.enter_subsection ("Operator splitting parameters");
+      {
+        reaction_time_step       = prm.get_double("Reaction time step");
+        AssertThrow (reaction_time_step > 0,
+                     ExcMessage("Reaction time step must be greater than 0."));
+        if (convert_to_years == true)
+          reaction_time_step *= year_in_seconds;
+        reaction_steps_per_advection_step = prm.get_integer ("Reaction time steps per advection step");
+      }
+      prm.leave_subsection ();
     }
     prm.leave_subsection ();
 
@@ -1071,12 +1122,12 @@ namespace aspect
         check_file.close();
       }
     else
-      AssertThrow (false, ExcMessage ("Resume computation parameter must be either 'true', 'false', or 'auto'."));
+      AssertThrow (false, ExcMessage ("Resume computation parameter must be either `true', `false', or `auto'."));
 #ifndef DEAL_II_WITH_ZLIB
     AssertThrow (resume_computation == false,
-                 ExcMessage ("You need to have deal.II configured with the 'libz' "
+                 ExcMessage ("You need to have deal.II configured with the `libz' "
                              "option if you want to resume a computation from a checkpoint, but deal.II "
-                             "did not detect its presence when you called 'cmake'."));
+                             "did not detect its presence when you called `cmake'."));
 #endif
 
     surface_pressure                = prm.get_double ("Surface pressure");
@@ -1091,6 +1142,7 @@ namespace aspect
     n_expensive_stokes_solver_steps = prm.get_integer ("Maximum number of expensive Stokes solver steps");
     temperature_solver_tolerance    = prm.get_double ("Temperature solver tolerance");
     composition_solver_tolerance    = prm.get_double ("Composition solver tolerance");
+    use_operator_splitting          = prm.get_bool("Use operator splitting");
 
     prm.enter_subsection ("Mesh refinement");
     {
@@ -1232,9 +1284,9 @@ namespace aspect
       AssertThrow ((checkpoint_time_secs == 0)
                    &&
                    (checkpoint_steps == 0),
-                   ExcMessage ("You need to have deal.II configured with the 'libz' "
+                   ExcMessage ("You need to have deal.II configured with the `libz' "
                                "option if you want to generate checkpoints, but deal.II "
-                               "did not detect its presence when you called 'cmake'."));
+                               "did not detect its presence when you called `cmake'."));
 #endif
     }
     prm.leave_subsection ();
@@ -1348,7 +1400,7 @@ namespace aspect
         {
           AssertThrow (false, ExcMessage ("If melt transport is included in the model, "
                                           "there has to be at least one compositional field "
-                                          "with the name 'porosity'."));
+                                          "with the name `porosity'."));
         }
 
       const std::vector<int> n_normalized_fields = Utilities::string_to_int
@@ -1819,7 +1871,7 @@ namespace aspect
     InitialComposition::Manager<dim>::declare_parameters (prm);
     VoFInitialConditions::declare_parameters<dim> (prm);
     PrescribedStokesSolution::declare_parameters<dim> (prm);
-    BoundaryTemperature::declare_parameters<dim> (prm);
+    BoundaryTemperature::Manager<dim>::declare_parameters (prm);
     BoundaryComposition::declare_parameters<dim> (prm);
     AdiabaticConditions::declare_parameters<dim> (prm);
     BoundaryVelocity::declare_parameters<dim> (prm);

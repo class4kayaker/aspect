@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -85,7 +85,7 @@ namespace aspect
                                            const Point<dim> &) const
     {
       Assert(false,
-             ExcMessage ("There is no 'evaluate()' or 'specific_heating_rate()' function implemented in the heating model!"));
+             ExcMessage ("There is no `evaluate()' or `specific_heating_rate()' function implemented in the heating model!"));
       return 0.0;
     }
 
@@ -268,10 +268,14 @@ namespace aspect
         {
           heating_model_outputs.heating_source_terms[q] = 0.0;
           heating_model_outputs.lhs_latent_heat_terms[q] = 0.0;
+          heating_model_outputs.rates_of_temperature_change[q] = 0.0;
         }
 
       HeatingModel::HeatingModelOutputs individual_heating_outputs(material_model_inputs.position.size(),
                                                                    this->n_compositional_fields());
+
+      const MaterialModel::ReactionRateOutputs<dim> *reaction_rate_outputs
+        = material_model_outputs.template get_additional_output<MaterialModel::ReactionRateOutputs<dim> >();
 
       for (typename std::list<std_cxx11::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
            heating_model = heating_model_objects.begin();
@@ -282,8 +286,21 @@ namespace aspect
             {
               heating_model_outputs.heating_source_terms[q] += individual_heating_outputs.heating_source_terms[q];
               heating_model_outputs.lhs_latent_heat_terms[q] += individual_heating_outputs.lhs_latent_heat_terms[q];
+
+              if (!this->get_parameters().use_operator_splitting)
+                Assert(individual_heating_outputs.rates_of_temperature_change[q] == 0.0,
+                       ExcMessage("Rates of temperature change heating model outputs have to be zero "
+                                  "if the model does not use operator splitting."));
+              heating_model_outputs.rates_of_temperature_change[q] += individual_heating_outputs.rates_of_temperature_change[q];
             }
         }
+
+      // If the heating model does not get the reaction rate outputs, it can not correctly compute
+      // the rates of temperature change. To make sure these (incorrect) values are never used anywhere,
+      // overwrite them with signaling_NaNs.
+      if (reaction_rate_outputs == NULL)
+        for (unsigned int q=0; q<heating_model_outputs.rates_of_temperature_change.size(); ++q)
+          heating_model_outputs.rates_of_temperature_change[q] = numbers::signaling_nan<double>();
     }
 
 
@@ -318,7 +335,7 @@ namespace aspect
                           Patterns::MultipleSelection(pattern_of_names),
                           "A comma separated list of heating models that "
                           "will be used to calculate the heating terms in the energy "
-                          "equation. The results of each of these criteria , i.e., "
+                          "equation. The results of each of these criteria, i.e., "
                           "the heating source terms and the latent heat terms for the "
                           "left hand side will be added.\n\n"
                           "The following heating models are available:\n\n"
@@ -330,7 +347,7 @@ namespace aspect
                            "Select one of the following models:\n\n"
                            "Warning: This is the old formulation of specifying "
                            "heating models and shouldn't be used. Please use 'List of "
-                           "model names' instead."
+                           "model names' instead.\n\n"
                            +
                            std_cxx11::get<dim>(registered_plugins).get_description_string());
       }
@@ -344,7 +361,7 @@ namespace aspect
                            "physical viewpoint, shear heating should always be used but may "
                            "be undesirable when comparing results with known benchmarks that "
                            "do not include this term in the temperature equation.\n\n"
-                           "Warning: deprecated! Add 'shear heating' to the 'List of model "
+                           "Warning: deprecated! Add `shear heating' to the 'List of model "
                            "names' instead.");
         prm.declare_entry ("Include adiabatic heating", "false",
                            Patterns::Bool (),
@@ -352,7 +369,7 @@ namespace aspect
                            "physical viewpoint, adiabatic heating should always be used but may "
                            "be undesirable when comparing results with known benchmarks that "
                            "do not include this term in the temperature equation.\n\n"
-                           "Warning: deprecated! Add 'adiabatic heating' to the 'List of model "
+                           "Warning: deprecated! Add `adiabatic heating' to the 'List of model "
                            "names' instead.");
         prm.declare_entry ("Include latent heat", "false",
                            Patterns::Bool (),
@@ -361,7 +378,7 @@ namespace aspect
                            "always be used but may be undesirable when comparing results with known "
                            "benchmarks that do not include this term in the temperature equation "
                            "or when dealing with a model without phase transitions.\n\n"
-                           "Warning: deprecated! Add 'latent heat' to the 'List of model "
+                           "Warning: deprecated! Add `latent heat' to the 'List of model "
                            "names' instead.");
       }
       prm.leave_subsection ();
@@ -370,10 +387,24 @@ namespace aspect
     }
 
 
+
+    template <int dim>
+    void
+    Manager<dim>::write_plugin_graph (std::ostream &out)
+    {
+      std_cxx11::get<dim>(registered_plugins).write_plugin_graph ("Heating model interface",
+                                                                  out);
+    }
+
+
+
     HeatingModelOutputs::HeatingModelOutputs(const unsigned int n_points,
                                              const unsigned int)
       :
       heating_source_terms(n_points,numbers::signaling_nan<double>()),
+      // initialize the reaction terms with zeroes because they are not filled
+      // in all heating models
+      rates_of_temperature_change(n_points,0.0),
       lhs_latent_heat_terms(n_points,numbers::signaling_nan<double>())
     {
     }

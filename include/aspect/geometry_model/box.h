@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -99,7 +99,7 @@ namespace aspect
          * "vertical" direction. The current class considers the
          * $(0,1)^T$ vector in 2d (and the $(0,0,1)^T$ vector in 3d)
          * as vertical and considers the "top" boundary as the
-         * "surface". In almost all cases one will use a gravity model
+         * surface. In almost all cases one will use a gravity model
          * that also matches these definitions.
          *
          * Note that the depth is calculated with respect to the

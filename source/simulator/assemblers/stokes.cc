@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -22,6 +22,7 @@
 #include <aspect/utilities.h>
 #include <aspect/assembly.h>
 #include <aspect/simulator_access.h>
+
 #include <deal.II/base/signaling_nan.h>
 
 namespace aspect
@@ -161,7 +162,7 @@ namespace aspect
                               ?
                               scratch.material_model_outputs.viscosities[q]
                               :
-                              std::numeric_limits<double>::quiet_NaN());
+                              numbers::signaling_nan<double>());
 
           const SymmetricTensor<4,dim> &stress_strain_director =
             scratch.material_model_outputs.stress_strain_directors[q];

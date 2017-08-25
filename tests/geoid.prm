@@ -50,7 +50,7 @@ end
 
 
 subsection Boundary temperature model
-  set Model name = function
+  set List of model names = function
   subsection Function
     set Coordinate system = spherical
     set Function constants = pi=3.1415926536
@@ -88,7 +88,7 @@ end
 subsection Postprocess
   set List of postprocessors = basic statistics, geoid, dynamic topography
 
-  subsection Dynamic Topography
+  subsection Dynamic topography
     set Density above = 0.
     set Density below = 2.0
   end

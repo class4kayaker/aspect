@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -50,8 +50,13 @@ namespace aspect
       HDF5Output<dim>::HDF5Output()
         :
         file_index(0)
-      {
+      {}
 
+
+
+      template <int dim>
+      void HDF5Output<dim>::initialize ()
+      {
 #ifndef DEAL_II_WITH_HDF5
         AssertThrow (false,
                      ExcMessage ("deal.ii was not compiled with HDF5 support, "
@@ -60,15 +65,12 @@ namespace aspect
                                  "or select a different particle output format."));
 #endif
 
-      }
-
-      template <int dim>
-      void HDF5Output<dim>::initialize ()
-      {
         aspect::Utilities::create_directory (this->get_output_directory() + "particles/",
                                              this->get_mpi_communicator(),
                                              true);
       }
+
+
 
       template <int dim>
       std::string
@@ -303,6 +305,8 @@ namespace aspect
       void HDF5Output<dim>::serialize (Archive &ar, const unsigned int)
       {
         // invoke serialization of the base class
+        ar &static_cast<Interface<dim> &>(*this);
+
         ar &file_index
         &xdmf_entries
         ;

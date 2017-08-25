@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -181,7 +181,7 @@ namespace aspect
                           "at the end of each time step. Some of these postprocessors will "
                           "declare their own parameters which may, for example, include that "
                           "they will actually do something only every so many time steps or "
-                          "years. Alternatively, the text 'all' indicates that all available "
+                          "years. Alternatively, the text `all' indicates that all available "
                           "postprocessors should be run after each time step.\n\n"
                           "The following postprocessors are available:\n\n"
                           +
@@ -387,6 +387,16 @@ namespace aspect
                                                                description,
                                                                declare_parameters_function,
                                                                factory_function);
+    }
+
+
+
+    template <int dim>
+    void
+    Manager<dim>::write_plugin_graph (std::ostream &out)
+    {
+      std_cxx11::get<dim>(registered_plugins).write_plugin_graph ("Postprocessor interface",
+                                                                  out);
     }
 
   }

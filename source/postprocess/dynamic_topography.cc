@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -510,7 +510,7 @@ namespace aspect
     {
       prm.enter_subsection("Postprocess");
       {
-        prm.enter_subsection("Dynamic Topography");
+        prm.enter_subsection("Dynamic topography");
         {
           prm.declare_entry ("Density above","0",
                              Patterns::Double (0),
@@ -551,7 +551,7 @@ namespace aspect
     {
       prm.enter_subsection("Postprocess");
       {
-        prm.enter_subsection("Dynamic Topography");
+        prm.enter_subsection("Dynamic topography");
         {
           density_above = prm.get_double ("Density above");
           density_below = prm.get_double ("Density below");
@@ -575,7 +575,7 @@ namespace aspect
                                   "dynamic topography",
                                   "A postprocessor that computes a measure of dynamic topography "
                                   "based on the stress at the surface and bottom. The data is written into text "
-                                  "files named 'dynamic\\_topography.NNNNN' in the output directory, "
+                                  "files named `dynamic\\_topography.NNNNN' in the output directory, "
                                   "where NNNNN is the number of the time step."
                                   "\n\n"
                                   "The exact approach works as follows: At the centers of all cells "

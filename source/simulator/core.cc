@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -63,7 +63,6 @@
 #include <string>
 
 
-using namespace dealii;
 
 
 namespace aspect
@@ -180,13 +179,6 @@ namespace aspect
                                                           std_cxx11::cref(*geometry_model))),
     material_model (MaterialModel::create_material_model<dim>(prm)),
     gravity_model (GravityModel::create_gravity_model<dim>(prm)),
-    // create a boundary temperature model, but only if we actually need
-    // it. otherwise, allow the user to simply specify nothing at all
-    boundary_temperature (parameters.fixed_temperature_boundary_indicators.empty()
-                          ?
-                          0
-                          :
-                          BoundaryTemperature::create_boundary_temperature<dim>(prm)),
     // create a boundary composition model, but only if we actually need
     // it. otherwise, allow the user to simply specify nothing at all
     boundary_composition (parameters.fixed_composition_boundary_indicators.empty()
@@ -197,7 +189,7 @@ namespace aspect
     prescribed_stokes_solution (PrescribedStokesSolution::create_prescribed_stokes_solution<dim>(prm)),
     adiabatic_conditions (AdiabaticConditions::create_adiabatic_conditions<dim>(prm)),
 
-    time (std::numeric_limits<double>::quiet_NaN()),
+    time (numbers::signaling_nan<double>()),
     time_step (0),
     old_time_step (0),
     timestep_number (0),
@@ -218,6 +210,8 @@ namespace aspect
     last_pressure_normalization_adjustment (numbers::signaling_nan<double>()),
 
     rebuild_stokes_matrix (true),
+    assemble_newton_stokes_matrix (true),
+    assemble_newton_stokes_system (false),
     rebuild_stokes_preconditioner (true)
   {
     if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
@@ -487,12 +481,12 @@ namespace aspect
     initial_composition_manager.initialize_simulator(*this);
     initial_composition_manager.parse_parameters (prm);
 
-    if (boundary_temperature.get())
+    // create a boundary temperature manager, but only if we actually need
+    // it. otherwise, allow the user to simply specify nothing at all
+    if (!parameters.fixed_temperature_boundary_indicators.empty())
       {
-        if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(boundary_temperature.get()))
-          sim->initialize_simulator (*this);
-        boundary_temperature->parse_parameters (prm);
-        boundary_temperature->initialize ();
+        boundary_temperature_manager.initialize_simulator (*this);
+        boundary_temperature_manager.parse_parameters (prm);
       }
 
     if (boundary_composition.get())
@@ -820,6 +814,16 @@ namespace aspect
     // into current_constraints and then add to current_constraints
     compute_current_constraints ();
 
+    // If needed, construct sparsity patterns and matrices with the current
+    // constraints. Of course we need to force assembly too.
+    if (rebuild_sparsity_and_matrices)
+      {
+        rebuild_sparsity_and_matrices = false;
+        setup_system_matrix (introspection.index_sets.system_partitioning);
+        setup_system_preconditioner (introspection.index_sets.system_partitioning);
+        rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
+      }
+
 
     // TODO: do this in a more efficient way (TH)? we really only need
     // to make sure that the time dependent velocity boundary conditions
@@ -923,8 +927,7 @@ namespace aspect
 
     // If there is a fixed boundary temperature,
     // update the temperature boundary condition.
-    if (boundary_temperature.get())
-      boundary_temperature->update();
+    boundary_temperature_manager.update();
 
     // if using continuous temperature FE, do the same for the temperature variable:
     // evaluate the current boundary temperature and add these constraints as well
@@ -942,8 +945,8 @@ namespace aspect
             VectorTools::interpolate_boundary_values (*mapping,
                                                       dof_handler,
                                                       *p,
-                                                      VectorFunctionFromScalarFunctionObject<dim>(std_cxx11::bind (&BoundaryTemperature::Interface<dim>::boundary_temperature,
-                                                          std_cxx11::cref(*boundary_temperature),
+                                                      VectorFunctionFromScalarFunctionObject<dim>(std_cxx11::bind (&BoundaryTemperature::Manager<dim>::boundary_temperature,
+                                                          std_cxx11::cref(boundary_temperature_manager),
                                                           *p,
                                                           std_cxx11::_1),
                                                           introspection.component_masks.temperature.first_selected_component(),
@@ -1149,7 +1152,7 @@ namespace aspect
 
         DoFTools::make_flux_sparsity_pattern (dof_handler,
                                               sp,
-                                              constraints, false,
+                                              current_constraints, false,
                                               coupling,
                                               face_coupling,
                                               Utilities::MPI::
@@ -1158,7 +1161,7 @@ namespace aspect
     else
       DoFTools::make_sparsity_pattern (dof_handler,
                                        coupling, sp,
-                                       constraints, false,
+                                       current_constraints, false,
                                        Utilities::MPI::
                                        this_mpi_process(mpi_communicator));
 
@@ -1280,7 +1283,7 @@ namespace aspect
 
         DoFTools::make_flux_sparsity_pattern (dof_handler,
                                               sp,
-                                              constraints, false,
+                                              current_constraints, false,
                                               coupling,
                                               face_coupling,
                                               Utilities::MPI::
@@ -1289,7 +1292,7 @@ namespace aspect
     else
       DoFTools::make_sparsity_pattern (dof_handler,
                                        coupling, sp,
-                                       constraints, false,
+                                       current_constraints, false,
                                        Utilities::MPI::
                                        this_mpi_process(mpi_communicator));
 
@@ -1432,10 +1435,9 @@ namespace aspect
     constraints.close();
     signals.post_compute_no_normal_flux_constraints(triangulation);
 
-    // finally initialize vectors, matrices, etc.
-
-    setup_system_matrix (introspection.index_sets.system_partitioning);
-    setup_system_preconditioner (introspection.index_sets.system_partitioning);
+    // Finally initialize vectors. We delay construction of the sparsity
+    // patterns and matrices until we have current_constraints.
+    rebuild_sparsity_and_matrices = true;
 
     system_rhs.reinit(introspection.index_sets.system_partitioning, mpi_communicator);
     solution.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
@@ -1854,6 +1856,10 @@ namespace aspect
           if (parameters.free_surface_enabled)
             free_surface->execute ();
 
+          // then we compute the reactions of compositional fields and temperature in case of operator splitting
+          if (parameters.use_operator_splitting)
+            compute_reactions ();
+
           assemble_advection_system (AdvectionField::temperature());
           solve_advection(AdvectionField::temperature());
 
@@ -1970,6 +1976,10 @@ namespace aspect
           double initial_temperature_residual = 0;
           double initial_stokes_residual      = 0;
           std::vector<double> initial_composition_residual (introspection.n_compositional_fields,0);
+
+          // compute the reactions of compositional fields and temperature in case of operator splitting
+          if (parameters.use_operator_splitting)
+            compute_reactions ();
 
           do
             {
@@ -2105,6 +2115,10 @@ namespace aspect
           if (parameters.free_surface_enabled)
             free_surface->execute ();
 
+          // then we compute the reactions of compositional fields and temperature in case of operator splitting
+          if (parameters.use_operator_splitting)
+            compute_reactions ();
+
           // solve the temperature and composition systems once...
           assemble_advection_system (AdvectionField::temperature());
           solve_advection(AdvectionField::temperature());
@@ -2195,6 +2209,10 @@ namespace aspect
           // Identical to IMPES except does not solve Stokes equation
           if (parameters.free_surface_enabled)
             free_surface->execute ();
+
+          // then we compute the reactions of compositional fields and temperature in case of operator splitting
+          if (parameters.use_operator_splitting)
+            compute_reactions ();
 
           LinearAlgebra::BlockVector distributed_stokes_solution (introspection.index_sets.system_partitioning, mpi_communicator);
 

@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -104,9 +104,9 @@ namespace aspect
         Assert (computed_quantities.size() == n_quadrature_points,    ExcInternalError());
         Assert (input_data.solution_values[0].size() == this->introspection().n_components,   ExcInternalError());
 
-        // Set use_strain_rates to false since we have no need for viscosity.
+        // Set use_strain_rates to true since the compaction viscosity might also depend on the strain rate.
         MaterialModel::MaterialModelInputs<dim> in(input_data,
-                                                   this->introspection(), false);
+                                                   this->introspection(), true);
         MaterialModel::MaterialModelOutputs<dim> out(n_quadrature_points, this->n_compositional_fields());
         MeltHandler<dim>::create_material_model_outputs(out);
 

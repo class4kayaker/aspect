@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -49,25 +49,26 @@ namespace aspect
       // get the melt velocity from the solution vector
       std::vector<Tensor<1,dim> > melt_velocity (material_model_inputs.position.size());
 
-      if (material_model_inputs.cell && this->get_timestep_number() > 0)
+      if (material_model_inputs.current_cell.state() == IteratorState::valid
+          && this->get_timestep_number() > 0)
         {
           // we have to create a long vector, because that is the only way to extract the velocities
           // from the solution vector
-          std::vector<std::vector<double> > melt_velocitiy_vector (dim, std::vector<double>(material_model_inputs.position.size()));
+          std::vector<std::vector<double> > melt_velocity_vector (dim, std::vector<double>(material_model_inputs.position.size()));
           // Prepare the field function
           Functions::FEFieldFunction<dim, DoFHandler<dim>, LinearAlgebra::BlockVector>
           fe_value(this->get_dof_handler(), this->get_solution(), this->get_mapping());
 
-          fe_value.set_active_cell(*material_model_inputs.cell);
+          fe_value.set_active_cell(material_model_inputs.current_cell);
 
           for (unsigned int d=0; d<dim; ++d)
             fe_value.value_list(material_model_inputs.position,
-                                melt_velocitiy_vector[d],
+                                melt_velocity_vector[d],
                                 this->introspection().variable("fluid velocity").first_component_index+d);
 
           for (unsigned int i=0; i<material_model_inputs.position.size(); ++i)
             for (unsigned int d=0; d<dim; ++d)
-              melt_velocity[i][d] = melt_velocitiy_vector[d][i];
+              melt_velocity[i][d] = melt_velocity_vector[d][i];
         }
 
       const MaterialModel::MeltOutputs<dim> *melt_outputs = material_model_outputs.template get_additional_output<MaterialModel::MeltOutputs<dim> >();

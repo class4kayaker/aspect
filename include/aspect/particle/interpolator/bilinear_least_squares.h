@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -42,8 +42,6 @@ namespace aspect
         public:
           /**
            * Return the cell-wise evaluated properties of the bilinear least squares function at the positions.
-           *
-           * @copydoc aspect::Particle::Interpolator::Interface::properties_at_points()
            */
           virtual
           std::vector<std::vector<double> >
@@ -54,6 +52,35 @@ namespace aspect
 
           // avoid -Woverloaded-virtual:
           using Interface<dim>::properties_at_points;
+
+          /**
+           * Declare the parameters this class takes through input files.
+           */
+          static
+          void
+          declare_parameters (ParameterHandler &prm);
+
+          /**
+           * Read the parameters this class declares from the parameter file.
+           */
+          virtual
+          void
+          parse_parameters (ParameterHandler &prm);
+
+        private:
+          /**
+           * Variables related to a limiting scheme that prevents overshoot and
+           * undershoot of interpolated particle properties based on global max
+           * and global min for each propery.
+           */
+          bool use_global_valued_limiter;
+
+          /**
+           * For each interpolated particle property, a global max and global
+           * min are stored as elements of vectors.
+           */
+          std::vector<double> global_maximum_particle_properties;
+          std::vector<double> global_minimum_particle_properties;
       };
     }
   }

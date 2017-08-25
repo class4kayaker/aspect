@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -114,7 +114,7 @@ namespace aspect
 }
 namespace aspect
 {
-  template<int dim>
+  template <int dim>
   inline
   ConeBoundary<dim>::ConeBoundary (const double radius_0,
                                    const double radius_1,
@@ -124,7 +124,7 @@ namespace aspect
     dealii::ConeBoundary<dim>(radius_0, radius_1, x_0, x_1)
   {}
 
-  template<int dim>
+  template <int dim>
   inline
   Tensor<1,dim>
   ConeBoundary<dim>::

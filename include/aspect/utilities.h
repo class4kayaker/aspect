@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -27,17 +27,19 @@
 #include <deal.II/base/std_cxx11/array.h>
 #include <deal.II/base/point.h>
 #include <deal.II/base/conditional_ostream.h>
-
 #include <deal.II/base/table_indices.h>
 #include <deal.II/base/function_lib.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/fe/component_mask.h>
 
 #include <aspect/geometry_model/interface.h>
-#include <aspect/simulator_access.h>
 
 
 
 namespace aspect
 {
+  template <int dim> class SimulatorAccess;
+
   /**
    * A namespace for utility functions that might be used in many different
    * places to prevent code duplication.
@@ -65,6 +67,22 @@ namespace aspect
     possibly_extend_from_1_to_N (const std::vector<T> &values,
                                  const unsigned int N,
                                  const std::string &id_text);
+
+    /**
+     * Given a vector @p var_declarations expand any entries of the form
+     * vector(str) or tensor(str) to sublists with component names of the form
+     * str_x, str_y, str_z or str_xx, str_xy... for the correct dimension
+     * value.
+     *
+     * This function is to be used for expanding lists of variable names where
+     * one or more such variable is actually intended to be a list of
+     * components.
+     *
+     * Returns the generated list of variable names
+     */
+    template <int dim>
+    std::vector<std::string>
+    expand_dimensional_variable_names (const std::vector<std::string> &var_declarations);
 
 
     /**
@@ -925,7 +943,7 @@ namespace aspect
      * average (p = 0), arithmetic average (p = 1), and maximum (p >= 1000) ) is, except for the harmonic
      * average even more tolerant of negative values, because they only require the sum of weights to be non-zero.
      */
-    template<typename T>
+    template <typename T>
     T derivative_of_weighted_p_norm_average (const double averaged_parameter,
                                              const std::vector<double> &weights,
                                              const std::vector<double> &values,
@@ -936,25 +954,82 @@ namespace aspect
      * Jacobian remains positive definite.
      *
      * The goal of this function is to find a factor $\alpha$ so that
-     * $2\eta(\varepsilon(\bm u)) I \otimes I +  \alpha\left[a \otimes b + b \otimes a\right]$ remains a
-     * positive definite matrix. Here, $a=\varepsilon(\bm u)$ is the @p strain_rate
-     * and $b=\frac{\partial\eta(\varepsilon(\bm u),p)}{\partial \varepsilon}$ is the derivative of the viscosity
+     * $2\eta(\varepsilon(\mathbf u)) I \otimes I +  \alpha\left[a \otimes b + b \otimes a\right]$ remains a
+     * positive definite matrix. Here, $a=\varepsilon(\mathbf u)$ is the @p strain_rate
+     * and $b=\frac{\partial\eta(\varepsilon(\mathbf u),p)}{\partial \varepsilon}$ is the derivative of the viscosity
      * with respect to the strain rate and is given by @p dviscosities_dstrain_rate. Since the viscosity $\eta$
      * must be positive, there is always a value of $\alpha$ (possibly small) so that the result is a positive
      * definite matrix. In the best case, we want to choose $\alpha=1$ because that corresponds to the full Newton step,
      * and so the function never returns anything larger than one.
      *
      * The factor is defined by:
-     * $\frac{2\eta(\varepsilon(\bm u))}{\left[1-\frac{b:a}{\|a\| \|b\|} \right]^2\|a\|\|b\|}$. Alpha is
+     * $\frac{2\eta(\varepsilon(\mathbf u))}{\left[1-\frac{b:a}{\|a\| \|b\|} \right]^2\|a\|\|b\|}$. Alpha is
      * reset to a maximum of one, and if it is smaller then one, a safety_factor scales the alpha to make
      * sure that the 1-alpha won't get to close to zero.
      */
-    template<int dim>
+    template <int dim>
     double compute_spd_factor(const double eta,
                               const SymmetricTensor<2,dim> &strain_rate,
                               const SymmetricTensor<2,dim> &dviscosities_dstrain_rate,
                               const double safety_factor);
 
+    /**
+     * A class that represents a binary operator between two doubles. The type of
+     * operation is specified on construction time, and can be checked later
+     * by using the operator ==. The operator () executes the operation on two
+     * double parameters and returns the result. This class is helpful for
+     * user specified operations that are not known at compile time.
+     */
+    class Operator
+    {
+      public:
+        /**
+         * An enum of supported operations.
+         */
+        enum operation
+        {
+          uninitialized,
+          add,
+          subtract,
+          minimum,
+          maximum
+        };
+
+        /**
+         * The default constructor creates an invalid operation that will fail
+         * if ever executed.
+         */
+        Operator();
+
+        /**
+         * Construct the selected operator.
+         */
+        Operator(const operation op);
+
+        /**
+         * Execute the selected operation with the given parameters and
+         * return the result.
+         */
+        double operator() (const double x, const double y) const;
+
+        /**
+         * Return the comparison result between the current operation and
+         * the one provided as argument.
+         */
+        bool operator== (const operation op) const;
+
+      private:
+        /**
+         * The selected operation of this object.
+         */
+        operation op;
+    };
+
+    /**
+     * Create a vector of operator objects out of a list of strings. Each
+     * entry in the list must match one of the allowed operations.
+     */
+    std::vector<Operator> create_model_operator_list(const std::vector<std::string> &operator_names);
   }
 }
 

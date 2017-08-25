@@ -22,7 +22,7 @@ s/\<\@ingroup BoundaryFluidPressure\>/\@ingroup BoundaryFluidPressures/g
 # Rename traction boundary conditions
 s/traction_boundary_conditions_model/boundary_traction/g
 s/traction_boundary_conditions/boundary_traction/g
-s/traction_boundary/boundary_traction/g
+s/(?<!prescribed_)traction_boundary/boundary_traction/g
 s/TractionBoundaryConditions/BoundaryTraction/g
 s/Traction boundary/Boundary traction/g
 s/TRACTION_BOUNDARY_CONDITIONS/BOUNDARY_TRACTION_MODEL/g
@@ -48,7 +48,7 @@ s/\@ingroup CompositionalInitialConditionsModels/\@ingroup InitialCompositions/g
 
 # Rename initial (temperature) conditions
 s/initial_conditions_model/initial_temperature/g
-s/initial_conditions[^\.][^c]/initial_temperature/g
+s/initial_conditions\([^\.][^c]\)/initial_temperature\1/g
 s/initial-conditions\//initial-temperature\//g
 s/initial_condition[^s]/initial_temperature/g
 s/InitialConditionsModels/InitialTemperatures/g

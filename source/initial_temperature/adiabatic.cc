@@ -14,12 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/initial_temperature/adiabatic.h>
+#include <aspect/adiabatic_conditions/interface.h>
+#include <aspect/boundary_temperature/interface.h>
 #include <aspect/geometry_model/box.h>
 #include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/geometry_model/chunk.h>
@@ -60,13 +62,13 @@ namespace aspect
       // at the surface and maximal_temperature() the value at the bottom.
       const double T_surface = (this->has_boundary_temperature()
                                 ?
-                                this->get_boundary_temperature().minimal_temperature(
+                                this->get_boundary_temperature_manager().minimal_temperature(
                                   this->get_fixed_temperature_boundary_indicators())
                                 :
                                 adiabatic_surface_temperature);
       const double T_bottom = (this->has_boundary_temperature()
                                ?
-                               this->get_boundary_temperature().maximal_temperature(
+                               this->get_boundary_temperature_manager().maximal_temperature(
                                  this->get_fixed_temperature_boundary_indicators())
                                :
                                adiabatic_bottom_temperature);
@@ -243,8 +245,8 @@ namespace aspect
                              "boundary layer temperature will be used.");
           prm.declare_entry ("Position", "center",
                              Patterns::Selection ("center"),
-                             "Where the initial temperature perturbation should be placed. If 'center' is "
-                             "given, then the perturbation will be centered along a 'midpoint' of some "
+                             "Where the initial temperature perturbation should be placed. If `center' is "
+                             "given, then the perturbation will be centered along a `midpoint' of some "
                              "sort of the bottom boundary. For example, in the case of a box geometry, "
                              "this is the center of the bottom face; in the case of a spherical shell "
                              "geometry, it is along the inner surface halfway between the bounding "

@@ -27,7 +27,7 @@ set Use years in output instead of seconds = true
 # We let the boundaries be zero temperature, as we are just
 # modelling a single rising blob
 subsection Boundary temperature model
-  set Model name = constant
+  set List of model names = constant
   subsection Constant
     set Boundary indicator to temperature mappings = 0:0,1:0,2:0,3:0
   end
@@ -113,15 +113,15 @@ end
 # boundary conditions, as well as free slip boundary
 # conditions for the sides and bottom. 
 subsection Model settings
-  set Fixed temperature boundary indicators   = 0,1,2,3
+  set Fixed temperature boundary indicators   = top, bottom, left, right
   set Prescribed velocity boundary indicators =
-  set Tangential velocity boundary indicators = 0,1,2
+  set Tangential velocity boundary indicators = bottom, left, right
   set Zero velocity boundary indicators       = 
 
   # We specify a comma delimited list of the free surface boundaries
   # for the model.  In this case, it is just the top boundary (3)
   # of the box geometry model. 
-  set Free surface boundary indicators = 3
+  set Free surface boundary indicators = top
 end
 
 # Here is the major new section to the parameter file,

@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -169,9 +169,9 @@ namespace aspect
         }
 #else
       AssertThrow (false,
-                   ExcMessage ("You need to have deal.II configured with the 'libz' "
+                   ExcMessage ("You need to have deal.II configured with the `libz' "
                                "option to support checkpoint/restart, but deal.II "
-                               "did not detect its presence when you called 'cmake'."));
+                               "did not detect its presence when you called `cmake'."));
 #endif
 
     }
@@ -300,9 +300,9 @@ namespace aspect
         }
 #else
         AssertThrow (false,
-                     ExcMessage ("You need to have deal.II configured with the 'libz' "
+                     ExcMessage ("You need to have deal.II configured with the `libz' "
                                  "option to support checkpoint/restart, but deal.II "
-                                 "did not detect its presence when you called 'cmake'."));
+                                 "did not detect its presence when you called `cmake'."));
 #endif
         signals.post_resume_load_user_data(triangulation);
       }
@@ -330,7 +330,7 @@ namespace aspect
 {
 
   template <int dim>
-  template<class Archive>
+  template <class Archive>
   void Simulator<dim>::serialize (Archive &ar, const unsigned int)
   {
     ar &time;

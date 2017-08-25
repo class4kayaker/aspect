@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -22,6 +22,7 @@
 #include <aspect/postprocess/visualization.h>
 #include <aspect/global.h>
 #include <aspect/utilities.h>
+#include <aspect/simulator_access.h>
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -747,7 +748,7 @@ namespace aspect
                              Patterns::Bool(),
                              "File operations can potentially take a long time, blocking the "
                              "progress of the rest of the model run. Setting this variable to "
-                             "'true' moves this process into a background thread, while the "
+                             "`true' moves this process into a background thread, while the "
                              "rest of the model continues.");
 
           prm.declare_entry ("Temporary output location", "",
@@ -1057,6 +1058,23 @@ namespace aspect
         }
 
       return requirements;
+    }
+
+
+
+    template <int dim>
+    void
+    Visualization<dim>::write_plugin_graph (std::ostream &out)
+    {
+      // in contrast to all other plugins, the visualization
+      // postprocessors do not actually connect to the central
+      // Simulator class, but they are a sub-system of
+      // the Postprocessor plugin system. indicate this
+      // through the last argument of the function call
+      std_cxx11::get<dim>(registered_visualization_plugins)
+      .write_plugin_graph ("Visualization postprocessor interface",
+                           out,
+                           typeid(Visualization<dim>).name());
     }
 
 

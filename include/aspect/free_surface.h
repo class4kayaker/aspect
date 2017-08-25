@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -28,7 +28,7 @@ namespace aspect
 {
   using namespace dealii;
 
-  template<int dim>
+  template <int dim>
   class FreeSurfaceHandler
   {
     public:
@@ -95,7 +95,7 @@ namespace aspect
       void make_constraints ();
 
       /**
-       * Project the the Stokes velocity solution onto the
+       * Project the Stokes velocity solution onto the
        * free surface. Called by make_constraints()
        */
       void project_velocity_onto_boundary (LinearAlgebra::Vector &output);

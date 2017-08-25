@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/depth_average.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/lateral_averaging.h>
 #include <aspect/global.h>
 #include <aspect/utilities.h>
@@ -244,7 +245,7 @@ namespace aspect
               data_out_stack.write (f, output_format);
 
               AssertThrow (f, ExcMessage("Writing data to <" + filename +
-                                         "> did not succeed in the 'point values' "
+                                         "> did not succeed in the `point values' "
                                          "postprocessor."));
             }
           else
@@ -276,7 +277,7 @@ namespace aspect
                 }
 
               AssertThrow (f, ExcMessage("Writing data to <" + filename +
-                                         "> did not succeed in the 'point values' "
+                                         "> did not succeed in the `point values' "
                                          "postprocessor."));
             }
         }

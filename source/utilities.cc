@@ -14,11 +14,12 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 #include <aspect/global.h>
 #include <aspect/utilities.h>
+#include <aspect/simulator_access.h>
 
 #include <deal.II/base/std_cxx11/array.h>
 #include <deal.II/base/point.h>
@@ -52,8 +53,6 @@ namespace aspect
    */
   namespace Utilities
   {
-    using namespace dealii;
-
     /**
      * Split the set of DoFs (typically locally owned or relevant) in @p whole_set into blocks
      * given by the @p dofs_per_block structure.
@@ -72,6 +71,53 @@ namespace aspect
           partitioned[i] = whole_set.get_view(start, start + dofs_per_block[i]);
           start += dofs_per_block[i];
         }
+    }
+
+    template <int dim>
+    std::vector<std::string>
+    expand_dimensional_variable_names (const std::vector<std::string> &var_declarations)
+    {
+      std::string dim_names[3] = {"x", "y", "z"};
+      char fn_split = '(', fn_end = ')';
+      std::vector<std::string> var_name_list;
+
+      for (std::vector<std::string>::const_iterator var_decl_iterator = var_declarations.begin();
+           var_decl_iterator != var_declarations.end();
+           ++var_decl_iterator)
+        {
+          const std::string &var_decl = *var_decl_iterator;
+          if (var_decl.find(fn_split) != std::string::npos && var_decl[var_decl.length()-1]==fn_end)
+            {
+              const std::string fn_name = var_decl.substr(0, var_decl.find(fn_split));
+
+              // Cannot be const because will be manipulated to strip whitespace
+              std::string var_name = var_decl.substr(var_decl.find(fn_split)+1, var_decl.length()-2-var_decl.find(fn_split));
+              while ((var_name.length() != 0) && (var_name[0] == ' '))
+                var_name.erase(0, 1);
+              while ((var_name.length() != 0) && (var_name[var_name.length()-1] == ' '))
+                var_name.erase(var_name.length()-1, 1);
+              if (fn_name == "vector")
+                {
+                  for (int i=0; i<dim; ++i)
+                    var_name_list.push_back(var_name+"_"+dim_names[i]);
+                }
+              else if (fn_name == "tensor")
+                {
+                  for (int i=0; i<dim; ++i)
+                    for (int j=0; j< dim; ++j)
+                      var_name_list.push_back(var_name+"_"+dim_names[i]+dim_names[j]);
+                }
+              else
+                {
+                  var_name_list.push_back(var_decl);
+                }
+            }
+          else
+            {
+              var_name_list.push_back(var_decl);
+            }
+        }
+      return var_name_list;
     }
 
 
@@ -1438,7 +1484,7 @@ namespace aspect
                            "text '$ASPECT_SOURCE_DIR' which will be interpreted as the path "
                            "in which the ASPECT source files were located when ASPECT was "
                            "compiled. This interpretation allows, for example, to reference "
-                           "files located in the 'data/' subdirectory of ASPECT. ");
+                           "files located in the `data/' subdirectory of ASPECT. ");
         prm.declare_entry ("Data file name",
                            default_filename,
                            Patterns::Anything (),
@@ -1624,19 +1670,74 @@ namespace aspect
       return boundary_dimensions;
     }
 
+    namespace
+    {
+      /**
+       * Given a string @p filename_and_path that contains exactly one
+       * <code>%s</code> and one <code>%d</code> code (possibly modified
+       * by flag, field, and length modifiers as discussed in the man
+       * pages of the <code>printf()</code> family of functions),
+       * return the expanded string where the <code>%s</code> code is
+       * replaced by @p boundary_name, and <code>%d</code> is replaced
+       * by @p filenumber.
+       */
+      std::string replace_placeholders(const std::string &filename_and_path,
+                                       const std::string &boundary_name,
+                                       const int filenumber)
+      {
+        const int maxsize = filename_and_path.length() + 256;
+        char *filename = static_cast<char *>(malloc (maxsize * sizeof(char)));
+        int ret = snprintf (filename,
+                            maxsize,
+                            filename_and_path.c_str(),
+                            boundary_name.c_str(),
+                            filenumber);
+
+        AssertThrow(ret >= 0, ExcMessage("Invalid string placeholder in filename detected."));
+        AssertThrow(ret< maxsize, ExcInternalError("snprintf string overflow detected."));
+        const std::string str_result (filename);
+        free (filename);
+        return str_result;
+      }
+
+    }
+
     template <int dim>
     std::string
     AsciiDataBoundary<dim>::create_filename (const int filenumber,
                                              const types::boundary_id boundary_id) const
     {
       std::string templ = Utilities::AsciiDataBase<dim>::data_directory + Utilities::AsciiDataBase<dim>::data_file_name;
-      const int size = templ.length();
+
       const std::string boundary_name = this->get_geometry_model().translate_id_to_symbol_name(boundary_id);
-      char *filename = (char *) (malloc ((size + 10) * sizeof(char)));
-      snprintf (filename, size + 10, templ.c_str (), boundary_name.c_str(),filenumber);
-      std::string str_filename (filename);
-      free (filename);
-      return str_filename;
+
+      const std::string result = replace_placeholders(templ, boundary_name, filenumber);
+      if (fexists(result))
+        return result;
+
+      // Backwards compatibility check: people might still be using the old
+      // names of the top/bottom boundary. If they do, print a warning but
+      // accept those files.
+      std::string compatible_result;
+      if (boundary_name == "top")
+        {
+          compatible_result = replace_placeholders(templ, "surface", filenumber);
+          if (!fexists(compatible_result))
+            compatible_result = replace_placeholders(templ, "outer", filenumber);
+        }
+      else if (boundary_name == "bottom")
+        compatible_result = replace_placeholders(templ, "inner", filenumber);
+
+      if (!fexists(result) && fexists(compatible_result))
+        {
+          std::cout << "WARNING: Filename convention concerning geometry boundary "
+                    "names changed. Please rename '" << compatible_result << "'"
+                    << " to '" << result << "'"
+                    << std::endl;
+          return compatible_result;
+        }
+
+      return result;
     }
 
 
@@ -2278,7 +2379,7 @@ namespace aspect
 
 
 
-    template<int dim>
+    template <int dim>
     double compute_spd_factor(const double eta,
                               const SymmetricTensor<2,dim> &strain_rate,
                               const SymmetricTensor<2,dim> &dviscosities_dstrain_rate,
@@ -2310,12 +2411,95 @@ namespace aspect
 
 
 
+    Operator::Operator()
+      :
+      op(uninitialized)
+    {}
+
+
+
+    Operator::Operator(const operation _op)
+      :
+      op(_op)
+    {}
+
+
+
+    double
+    Operator::operator() (const double x, const double y) const
+    {
+      switch (op)
+        {
+          case Utilities::Operator::add:
+          {
+            return x + y;
+          }
+          case Utilities::Operator::subtract:
+          {
+            return x - y;
+          }
+          case Utilities::Operator::minimum:
+          {
+            return std::min(x,y);
+          }
+          case Utilities::Operator::maximum:
+          {
+            return std::max(x,y);
+          }
+          default:
+          {
+            Assert (false, ExcInternalError());
+          }
+        }
+      return numbers::signaling_nan<double>();
+    }
+
+
+
+    bool
+    Operator::operator== (const operation other_op) const
+    {
+      return other_op == op;
+    }
+
+
+
+    std::vector<Operator> create_model_operator_list(const std::vector<std::string> &operator_names)
+    {
+      std::vector<Operator> operator_list(operator_names.size());
+      for (unsigned int i=0; i<operator_names.size(); ++i)
+        {
+          // create operator list
+          if (operator_names[i] == "add")
+            operator_list[i] = Operator(Operator::add);
+          else if (operator_names[i] == "subtract")
+            operator_list[i] = Operator(Operator::subtract);
+          else if (operator_names[i] == "minimum")
+            operator_list[i] = Operator(Operator::minimum);
+          else if (operator_names[i] == "maximum")
+            operator_list[i] = Operator(Operator::maximum);
+          else
+            AssertThrow(false,
+                        ExcMessage ("ASPECT only accepts the following operators: "
+                                    "add, subtract, minimum and maximum. But your parameter file "
+                                    "contains: " + operator_names[i] + ". Please check your parameter file.") );
+        }
+
+      return operator_list;
+    }
+
+
+
+
 // Explicit instantiations
 
 #define INSTANTIATE(dim) \
   template \
   IndexSet extract_locally_active_dofs_with_component(const DoFHandler<dim> &, \
-                                                      const ComponentMask &);
+                                                      const ComponentMask &); \
+  template \
+  std::vector<std::string> \
+  expand_dimensional_variable_names<dim> (const std::vector<std::string> &var_declarations);
 
     ASPECT_INSTANTIATE(INSTANTIATE)
 

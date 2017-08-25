@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/mesh_refinement/boundary.h>
+#include <aspect/geometry_model/interface.h>
 
 namespace aspect
 {
@@ -120,7 +121,7 @@ namespace aspect
                                               "\n\n"
                                               "To use this refinement criterion, you may want to combine "
                                               "it with other refinement criteria, setting the 'Normalize "
-                                              "individual refinement criteria' flag and using the 'max' "
+                                              "individual refinement criteria' flag and using the `max' "
                                               "setting for 'Refinement criteria merge operation'.")
   }
 }

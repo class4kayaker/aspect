@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -64,12 +64,34 @@ namespace aspect
                            const unsigned int n_comp);
 
       /**
-       * All source terms of the temperature equation at the given position.
-       * This includes shear heating, adiabatic heating, radiogenic heat
-       * production, the right hand side part of latent heat or any other
-       * heating terms on the right hand side of the energy equation.
+       * All source terms of the temperature equation that represent a
+       * continuous process leading to a rate of change in temperature
+       * at the given position. This includes shear heating, adiabatic
+       * heating, radiogenic heat production, or any other heating rates
+       * on the right hand side of the energy equation.
        */
       std::vector<double> heating_source_terms;
+
+      /**
+       * The source terms of the temperature equation that represent
+       * fast changes in temperature (compared to the advection time
+       * scale), for example due to reactions, at the given position.
+       * On the advection time scale, these reactions might look like
+       * instantaneous changes in temperatures. This includes for example
+       * latent heat of melt.
+       *
+       * These reaction rates are only used in the operator_splitting nonlinear
+       * solver scheme, which allows it to solve reactions of compositional
+       * fields and temperature decoupled from the advection, and using a
+       * different time step size.
+       * In this case, they are used in addition to (and independent from) any
+       * heating_source_terms that a heating model defines, which are assembled
+       * as usual. For any other solver scheme, these values are ignored.
+       *
+       * In contrast to the heating source terms, these terms are actual changes
+       * in temperature (units K/s or K/yr) rather than changes in energy.
+       */
+      std::vector<double> rates_of_temperature_change;
 
       /**
        * Left hand side contribution of latent heat; this is added to the
@@ -298,6 +320,19 @@ namespace aspect
         template <typename HeatingModelType>
         HeatingModelType *
         find_heating_model () const;
+
+        /**
+         * For the current plugin subsystem, write a connection graph of all of the
+         * plugins we know about, in the format that the
+         * programs dot and neato understand. This allows for a visualization of
+         * how all of the plugins that ASPECT knows about are interconnected, and
+         * connect to other parts of the ASPECT code.
+         *
+         * @param output_stream The stream to write the output to.
+         */
+        static
+        void
+        write_plugin_graph (std::ostream &output_stream);
 
         /**
          * Exception.

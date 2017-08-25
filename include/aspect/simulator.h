@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -29,7 +29,7 @@
 
 DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
 
-#include <deal.II/lac/trilinos_block_vector.h>
+#include <deal.II/lac/trilinos_parallel_block_vector.h>
 #include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #include <deal.II/lac/trilinos_precondition.h>
 
@@ -165,6 +165,19 @@ namespace aspect
        */
       void run ();
 
+      /**
+       * Write a connection graph of all of the plugins we know about, in the
+       * format that the programs dot and neato understand. This allows for a
+       * visualization of how all of the plugins that ASPECT knows about are
+       * interconnected, and connect to other parts of the ASPECT code.
+       *
+       * This function is implemented in
+       * <code>source/simulator/helper_functions.cc</code>.
+       *
+       * @param output_stream The stream to write the output to.
+       */
+      void
+      write_plugin_graph (std::ostream &output_stream) const;
 
       /**
        * Import Nonlinear Solver type.
@@ -454,7 +467,7 @@ namespace aspect
       void assemble_advection_system (const AdvectionField &advection_field);
 
       /**
-       * Solve one block of the the temperature/composition linear system.
+       * Solve one block of the temperature/composition linear system.
        * Return the initial nonlinear residual, i.e., if the linear system to
        * be solved is $Ax=b$, then return $\|Ax_0-b\|$ where $x_0$ is the
        * initial guess for the solution variable and is taken from the
@@ -913,6 +926,32 @@ namespace aspect
        */
       void apply_limiter_to_dg_solutions (const AdvectionField &advection_field);
 
+
+      /**
+       * Compute the reactions in case of operator splitting:
+       * Using the current solution vector, this function makes a number of time
+       * steps determined by the size of the reaction time step, and solves a
+       * system of coupled ordinary differential equations for the reactions between
+       * compositional fields and temperature in each of them. To do that, is uses
+       * the reaction rates outputs from the material and heating models used in
+       * the computation. The solution vector is then updated with the new values
+       * of temperature and composition after the reactions.
+       *
+       * As the ordinary differential equation in any given point is independent
+       * from the solution at all other points, we do not have to assemble a matrix,
+       * but just need to loop over all node locations for the temperature and
+       * compositional fields and compute the update to the solution.
+       *
+       * The function also updates the old solution vectors with the reaction update
+       * so that the advection time stepping scheme will have the correct field terms
+       * for the right-hand side when assembling the advection system.
+       *
+       * This function is implemented in
+       * <code>source/simulator/helper_functions.cc</code>.
+       */
+      void compute_reactions ();
+
+
       /**
        * Interpolate the given function onto the velocity FE space and write
        * it into the given vector.
@@ -1270,7 +1309,6 @@ namespace aspect
        */
       TableHandler                        statistics;
 
-      Postprocess::Manager<dim>           postprocess_manager;
       mutable TimerOutput                 computing_timer;
 
       /**
@@ -1294,7 +1332,7 @@ namespace aspect
       const IntermediaryConstructorAction                                     post_geometry_model_creation_action;
       const std_cxx11::unique_ptr<MaterialModel::Interface<dim> >             material_model;
       const std_cxx11::unique_ptr<GravityModel::Interface<dim> >              gravity_model;
-      const std_cxx11::unique_ptr<BoundaryTemperature::Interface<dim> >       boundary_temperature;
+      BoundaryTemperature::Manager<dim>                                       boundary_temperature_manager;
       const std_cxx11::unique_ptr<BoundaryComposition::Interface<dim> >       boundary_composition;
       const std_cxx11::unique_ptr<PrescribedStokesSolution::Interface<dim> >  prescribed_stokes_solution;
       InitialComposition::Manager<dim>                                        initial_composition_manager;
@@ -1348,6 +1386,7 @@ namespace aspect
 
       MeshRefinement::Manager<dim>                              mesh_refinement_manager;
       HeatingModel::Manager<dim>                                heating_model_manager;
+      Postprocess::Manager<dim>                                 postprocess_manager;
 
       /**
        * Pointer to the Mapping object used by the finite elements when
@@ -1428,7 +1467,10 @@ namespace aspect
 //TODO: use n_compositional_field separate preconditioners
       std_cxx11::shared_ptr<LinearAlgebra::PreconditionILU>     C_preconditioner;
 
+      bool                                                      rebuild_sparsity_and_matrices;
       bool                                                      rebuild_stokes_matrix;
+      bool                                                      assemble_newton_stokes_matrix;
+      bool                                                      assemble_newton_stokes_system;
       bool                                                      rebuild_stokes_preconditioner;
 
       /**

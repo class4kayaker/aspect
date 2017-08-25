@@ -60,6 +60,7 @@
 \newcommand{\dealii}{{\textsc{deal.II}}}
 \newcommand{\pfrst}{{\normalfont\textsc{p4est}}}
 \newcommand{\trilinos}{{\textsc{Trilinos}}}
+\newcommand{\petsc}{{\textsc{PETSc}}}
 \newcommand{\aspect}{\textsc{ASPECT}}
 
 \begin{document}
@@ -297,16 +298,19 @@ relevance.
 In addition, many have contributed to the development of \aspect{} and deserve credit
 for their work.
 To this end, we ask that if you publish results that were obtained
-to some part using \aspect{}, cite the following, canonical reference for
+to some part using \aspect{}, cite the following, canonical reference \cite{heister_aspect_methods2} for
 this software:
 \begin{lstlisting}[frame=single,language=tex]
-@Article{KHB12,
-  author =       {M. Kronbichler and T. Heister and W. Bangerth},
-  title =        {High Accuracy Mantle Convection Simulation through Modern Numerical Methods},
-  journal =      {Geophysics Journal International},
-  year =         2012,
-  volume =       191,
-  pages =        {12--29}
+@Article{heister_aspect_methods2,
+  Title                    = {High Accuracy Mantle Convection Simulation through Modern Numerical Methods. {II}: {R}ealistic Models and Problems},
+  Author                   = {Heister, Timo and Dannberg, Juliane and Gassm{\"o}ller, Rene and Bangerth, Wolfgang},
+  Journal                  = {Geophysical Journal International},
+  Year                     = {2017},
+  Number                   = {2},
+  Pages                    = {833-851},
+  Volume                   = {210},
+  Doi                      = {10.1093/gji/ggx195},
+  Url                      = {https://doi.org/10.1093/gji/ggx195}
 }
 \end{lstlisting}
 Please also cite the User's Manual:
@@ -325,7 +329,7 @@ Please also cite the User's Manual:
 
 
 Updated citation information can also be found on the \aspect{}
-website at \url{https://aspect.dealii.org/}.
+website at \url{https://aspect.geodynamics.org/publications.html}.
 
 
 
@@ -348,7 +352,7 @@ Please acknowledge CIG as follows:
     \shadowbox{
       \begin{minipage}[c]{0.9\linewidth}
 ASPECT is hosted by the Computational Infrastructure for Geodynamics (CIG)
-which is supported by the National Science Foundation award NSF-094946.
+which is supported by the National Science Foundation award EAR-1550901.
       \end{minipage}
     }
   \end{center}
@@ -1737,7 +1741,7 @@ are, in fact, constant. In such models, one typically assumes that the density
 satisfies a relationship of the form $\rho=\rho(T)=\rho_0(1-\alpha(T-T_0))$
 with a small thermal expansion coefficient $\alpha$ and a reference density
 $\rho_0$ that is attained at temperature $T_0$. Since the thermal expansion is
-considered small, this naturally leads to the following variant of the the Boussinesq
+considered small, this naturally leads to the following variant of the Boussinesq
 model discussed above:
 \begin{align}
   \label{eq:stokes-1-Boussinesq-linear}
@@ -2625,23 +2629,34 @@ your model parameters.
 
 \subsection{Local installation}
 
-This is a brief explanation of how to compile and install all the required software and
+This is a brief explanation of how to compile and install the required dependencies and
 \aspect{} itself. This installation procedure guarantees fastest runtimes, and largest flexibility,
-but might reveal incompatibilities with existing system libraries.
+but usually requires more work than the options mentioned in the previous sections. 
+While it is possible to install ASPECT's dependencies in particular \pfrst{}, \trilinos{}, 
+and \dealii{} manually, we recommend to use the 
+\texttt{candi} software (see \url{https://github.com/dealii/candi}). \texttt{candi} was written
+as an installation program for deal.II, and includes a number of system specific instructions
+that will be listed when starting the program. It can be flexibly configured to allow for
+non-default compilers or libraries (e.g. Intel's MKL instead of LAPACK) by changing entries
+in the configuration file \texttt{candi.cfg}, or by providing platform specific installation files.
+
+In case you encounter problems during the installation, please consult our wiki
+(\url{https://github.com/geodynamics/aspect/wiki}) for frequently asked
+questions and special instructions for MacOS users, before posting your
+questions on the mailing list.
 
 \subsubsection{System prerequisites}
 
-In order to install \aspect{} and its dependencies, you should
-have your system set up to be able to compile and link programs. Additionally,
-\aspect{} needs a number of widely used libraries that are available
-for most operating systems. Therefore, you will need compilers for C, C++ and
+\texttt{candi} will show system specific instructions on startup, but its prerequisites
+are relatively widely used and packaged
+for most operating systems. You will need compilers for C, C++ and
 Fortran, the GNU make system, the CMake build system, and the libraries and
 header files of BLAS, LAPACK and zlib, which is used for compressing
 the output data. To use more than one process for your computations
 you will need to install a MPI library, its headers and the
 necessary executables to run MPI programs. There are some optional packages
 for additional features, like the HDF5 libraries for additional output formats,
-PETSC for alternative solvers, and Numdiff for checking \aspect{}'s test
+\petsc{} for alternative solvers, and Numdiff for checking \aspect{}'s test
 results with reasonable accuracy, but these are not strictly required, and in
 some operating systems they are not available as packages but need to be
 compiled from scratch.
@@ -2664,82 +2679,57 @@ sudo apt-get install build-essential \
                      zlib1g-dev
 \end{verbatim}
 
-\subsubsection{Software prerequisites}
+\subsubsection{Using candi to compile dependencies}
 
-\aspect{} builds on a few other libraries that are widely used in the
-computational science area and that provide most of the lower-level
-functionality such as finite element descriptions or parallel linear
-algebra. Specifically, it builds on \dealii{} which in turn uses Trilinos and
-\pfrst{}. These need to be installed first before you can compile and run
-\aspect{}. All of these libraries can readily be installed in a user's home
-directory, without the need to modify the overall system directories.
+In its default configuration \texttt{candi} downloads and
+compiles a \dealii{} configuration that is able to run \aspect, but it
+also contains a number of packages that are not required (and that can
+be safely disabled if problems occur during the
+installation). We require at least the packages \pfrst{}, \trilinos{} 
+(or as an experimental alternative \petsc{}), and finally \dealii{}.
+ 
+At the time of this writing \texttt{candi} will install \pfrst{} 2.0,
+\trilinos{} 12.10.1,  \petsc{} 3.6.4, and \dealii{} 8.5.0. 
+We strive to keep the development version of \aspect{} compatible with 
+the latest release of \dealii{} and the current \dealii{} development 
+version at any time, and we usually support several older versions of
+\pfrst{}, \trilinos{}, and \petsc{}.
 
-The following steps should guide you through the installation of these
-prerequisites:
 \begin{enumerate}
-\item \textit{Trilinos:} Trilinos can be downloaded from
-  \href{http://trilinos.org/download/}{http://trilinos.org/download/}. At
-  the current time we recommend Trilinos Version 11.4.x.%
-  \footnote{Other versions of Trilinos like 10.6.x
-  and 10.8.x have bugs that make these versions unusable for our purpose. The
-  \dealii{} ReadMe file provides a list of versions that are known to work
-  without bugs with \dealii{}.} For installation instructions see
-  \href{https://www.dealii.org/developer/external-libs/trilinos.html}{the deal.II README file on installing Trilinos}. Note that you have
-  to configure with MPI by using
-\begin{verbatim}
- -DTPL_ENABLE_MPI:BOOL=ON
-\end{verbatim}
-  in the call to cmake. After that, run {\tt{make install}}.
+\item \textit{Obtaining candi:} Download \texttt{candi} by running 
+    \begin{verbatim}
+    git clone https://github.com/dealii/candi
+    \end{verbatim} 
+    in a directory of your choice. 
 
-\item \textit{\pfrst{}:} Download and install \pfrst{} as described in the
-  \href{https://www.dealii.org/developer/external-libs/p4est.html}{deal.II
-    p4est installation instructions}. This is done using the
-  {\tt{p4est-setup.sh}}; do not use the \pfrst{} stand-alone installation
-  instructions.
+\item \textit{Installing \dealii{} and its dependencies:} Execute \texttt {candi} by running
+    \begin{verbatim}
+    cd candi
+    ./candi.sh -p INSTALL_PATH
+    \end{verbatim} 
+    (here we assume you replace \texttt{INSTALL\_PATH} by the path were
+    you want to install all dependencies and \dealii{}, typically a directory inside
+    \texttt{\$HOME/bin} or a similar place). 
+    This step might take a long time, but can be parallelized by adding 
+    \texttt{-jN}, where 
+    \texttt{N} is the number of CPU cores available on your computer. Further configuration options 
+    and parameters are listed at \url{https://github.com/dealii/candi}.
 
-\item \textit{\dealii{}:}
-  The current version of \aspect{} requires \dealii{} version 8.4.0 or later.
-  This version can be downloaded and installed from
-  \url{https://www.dealii.org/download.html}.
-
-\item \textit{Configuring and compiling \dealii:} Now it is time to configure
-  \dealii.
-  To this end, follow the \dealii{}
-  \href{https://www.dealii.org/developer/readme.html}{installation
-    instructions}. Note that \dealii{} recently made the switch to cmake,
-    so the configuration changed. Make sure you enable MPI.
-    A typical command line would look like this:
-\begin{verbatim}
-mkdir build
-cd build
-cmake -DDEAL_II_WITH_MPI=ON \
-      -DCMAKE_INSTALL_PREFIX=/u/username/deal-installed/ \
-      -DTRILINOS_DIR=/u/username/trilinos-11.4.1/ \
-      -DP4EST_DIR=/u/username/p4est-0.3.4.1/ \
-      ../deal.II
-\end{verbatim}
-  if the Trilinos and \pfrst{} packages have been installed in the
-  subdirectory \texttt{/u/username/}.
-  Make sure the configuration succeeds and detects the MPI compilers
-  correctly. For more information see the documentation of \dealii.
-
-  Now you are ready to compile \dealii{} by running {\tt{make install}}. If you
-  have multiple processor cores, feel free to do {\tt{make install -jN}} where
-  \texttt{N} is the number of processors in your machine to accelerate the
-  process.
+\item You may now want to configure your environment to make it aware of the newly installed
+    packages. This can be achieved by adding the line 
+    \texttt{source INSTALL\_PATH/configuration/enable.sh} to the file responsible for setting
+    up your shell environment\footnote{For bash this would be the file \texttt{\~{}/.bashrc}.} 
+    (again we assume you replace \texttt{INSTALL\_PATH} by the patch chosen in the previous step).
+    Then close the terminal and open it again to activate the change.
 
 \item \textit{Testing your installation:} Test that your installation works
-  by running the {\tt{step-32}} example that you can find in
-  {\tt{\$DEAL\_II\_DIR/examples/step-32}}. Compile by running {\tt{make}} and run
-  with {\tt{mpirun -n 2 ./step-32}}.
-
-\item  You may now want to set the environment variable\footnote{For bash
-    this would be adding the line {\tt{export DEAL\_II\_DIR=/path/to/deal-installed/}} to
-    the file {\tt{\~{}/.bashrc}}. Then close the terminal and open it again to activate the change.}
-{\tt{DEAL\_II\_DIR}} to the directory where you \textit{installed} \dealii.
+  by compiling the {\texttt{step-32}} example that you can find in
+  {\texttt{\$DEAL\_II\_DIR/examples/step-32}}. Prepare and compile by running {\texttt{cmake . \&\& make}} 
+  and run with {\texttt{mpirun -n 2 ./step-32}}.
 
 \end{enumerate}
 
+Congratulations, you are now set up for compiling \aspect{} itself.
 
 \subsubsection{Obtaining \aspect{} and initial configuration}
 
@@ -2747,22 +2737,22 @@ The development version of \aspect{} can be downloaded by executing the command
 \begin{verbatim}
  git clone https://github.com/geodynamics/aspect.git
 \end{verbatim}
-If {\tt{\$DEAL\_II\_DIR}} points to your \dealii{} installation, you can configure
+If {\texttt{\$DEAL\_II\_DIR}} points to your \dealii{} installation, you can configure
 \aspect{} by running
 \begin{verbatim}
  cmake .
 \end{verbatim}
-in the {\tt{aspect}} directory created by the {\tt{git clone}} command above.
-If you did not set {\tt{\$DEAL\_II\_DIR}} you have to supply cmake with the location:
+in the \aspect{} directory created by the {\texttt{git clone}} command above.
+If you did not set {\texttt{\$DEAL\_II\_DIR}} you have to supply cmake with the location:
 \begin{verbatim}
  cmake -DDEAL_II_DIR=/u/username/deal-installed/ .
 \end{verbatim}
 
-An alternative would be to configure \aspect{} as an out-of-source build. Similar to
-the configuration of \dealii{}, you would need to create a build directory and
-specify an install directory using -DCMAKE\_INSTALL\_PREFIX. The
-instructions in the following sections assume an in-source build, so you need
-to adapt the location of the \aspect{} binary.
+An alternative would be to configure \aspect{} as an out-of-source build. 
+You would need to create a separate build directory and
+specify \aspect{}'s source directory using \texttt{cmake PATH\_TO\_ASPECT\_SOURCE}
+from within the build directory. The
+instructions in the following sections assume an in-source build.
 
 \subsubsection{Compiling \aspect{} and generating documentation}
 \label{sec:compiling}
@@ -2785,169 +2775,6 @@ which assumes that you have the \texttt{doxygen} documentation generation tool
 installed. Most Linux distributions have packages for \texttt{doxygen}. The
 result will be the file \url{doc/doxygen/index.html} that is the starting
 point for exploring the documentation.
-
-\subsubsection{Compiling a static \aspect{} executable}
-\aspect{} defaults to a dynamically linked executable, which saves disk space and build time. In some circumstances however, it is preferred to generate a statically linked executable that incorporates all used libraries. This need may arise on large clusters on which libraries and loaded modules/variables on login nodes may be different from the ones available on compute nodes. The general build procedure in such a case equals the above explained instructions with the following differences:
-\begin{enumerate}
-\item \textit{Trilinos}: Add the following lines to your cmake call:
-\begin{verbatim}
- -DBUILD_SHARED_LIBS=OFF
- -DTPL_FIND_SHARED_LIBS=OFF
-\end{verbatim}
-\item \textit{\pfrst{}:} Change items "--enable-shared" to "--enable-static" in p4est-setup.sh lines 83 and 97.
-\item \textit{\dealii{}:} Add the following lines to your call to cmake:
-\begin{verbatim}
- -DDEAL_II_STATIC_EXECUTABLE=ON
-\end{verbatim}
-\item \textit{\aspect{}:} If everything above is set up correctly, there is no need for any configuration change to \aspect{}'s build procedure. You should see the following cmake output from \aspect{}:
-\begin{verbatim}
--- Creating a statically linked executable
--- Disabling dynamic loading of plugins from the input file
-\end{verbatim}
-\end{enumerate}
-
-The here mentioned build was tested on a Cray XC30 cluster, which was set up for default static compiling and linking. On machines that default to dynamic linking additional compiler and/or linker flags may be required (e.g. "-fPIC" / "--static"). In case of questions send an email to the mailing list.
-
-\subsubsection{Installing and running \aspect{} on Mac OS X}
-OS X has some eccentricities which can complicate installation of \aspect{}. Currently the easiest and most reliable way to run \aspect{} under Mac OS X Mavericks (10.9), Yosemite (10.10) and El Capitan (10.11) is to install and run the binary package for \dealii{}. The step-by-step process is described in detail, with screenshots, here: \url{https://wiki.geodynamics.org/_media/software:aspect:aspect_yosemite_20150529.pdf}
-
-\begin{enumerate}
-\item Install Xcode from the app store. You might need to install the command line tools. Open a terminal and make sure ``clang'' does not report ``command not found''. You might need to run
-\begin{verbatim}
-  xcode-select --install
-\end{verbatim}
-to install the tools.
-
-\item Install Cmake.
-
-CMake is a cross-platform, open-source build system that can be downloaded from \url{http://www.cmake.org}.  After installation of CMake.app, the terminal command for cmake will be
-\begin{verbatim}
-  /Applications/CMake.app/Contents/bin/cmake
-\end{verbatim}
-
-\item Download and install the parallel \dealii{}. This is the binary package for Mac OS .dmg file.
-\begin{verbatim}
-  open  https://github.com/dealii/dealii/releases/download/v8.4.1/dealii-8.4.1.dmg
-\end{verbatim}
-
-Open the downloaded disk image, and drag \dealii{}.app into the Applications folder.
- To start the \dealii{} app, double click the icon in the Applications folder or use the open command:
-\begin{verbatim}
-  open /Applications/deal.II.app
-\end{verbatim}
-\dealii{} app opens a terminal window and displays a \dealii{} message.   \dealii{}.app will install all required libraries for \aspect{} (p4est, parMeTiS, and Trilinos) and will include the environment variables needed to use these libraries.
-
-To ensure the correct compilers are picked up when configuring \aspect{}, add the following lines to your \texttt{\textasciitilde/.profile} or \texttt{\textasciitilde/.bash\_profile}:
-
-\begin{verbatim}
-  export OMPI_CXX=clang++
-  export OMPI_CC=clang
-\end{verbatim}
-
-\item Download  the  \aspect{} source from the git repository.
-
-\begin{verbatim}
-  cd $HOME/src
-  git clone https://github.com/geodynamics/aspect.git
-\end{verbatim}
-
-If you wish to use Xcode as your IDE it is recommended to skip to step 7 below. Otherwise, proceed with steps 5 and 6 below.
-
-\item Build \aspect{}
-
-Note: if you are not using Xcode (see step 7 below), you {\bf MUST} \underline{build} and \underline{run} \aspect{} in the terminal window started by \dealii{}, rather than in the Terminal app.
-
-\begin{enumerate}
-\item Go to the  directory where you wish to install \aspect{}  and run the following commands:
-
-{\footnotesize
-\begin{verbatim}
-  cmake .
-\end{verbatim}}
-
-This should display something like:
-
-{\footnotesize
-\begin{verbatim}
-  Project aspect set up with  deal.II-8.4.1  found at /Applications/deal.II.app/Contents/Resources
-\end{verbatim}}
-
-\item Run make:
-
-{\footnotesize
-\begin{verbatim}
-  bash-3.2$ make
-  Scanning dependencies of target aspect
-  [  0%] Building CXX object CMakeFiles/aspect.dir/source/adiabatic_conditions/initial_profile.cc.o
-  [  0%] Building CXX object CMakeFiles/aspect.dir/source/adiabatic_conditions/interface.cc.o
-  ...
-  Linking CXX executable aspect
-  [100%] Built target aspect
-  bash-3.2$ ls -l aspect
-  -rwxr-xr-x  1 <name>  staff  19131292 May  7 15:02 aspect
-\end{verbatim}
-}
-There may be  warnings from the compiler, but if the \aspect{} target is created then it was successful.
-
-\item By default,  \aspect{}  compiles the debug version of the code.
-To compile the optimized version:
-{\footnotesize\begin{verbatim}
-  make release 
-\end{verbatim}}
-
-\item Run make test
-
-{\footnotesize
-\begin{verbatim}
-  make test
-\end{verbatim}}
-
-
-\end {enumerate}
-
-
-
-\item Run \aspect{}.
-
-A reminder: you {\bf must} run  \aspect{}  on the terminal window which is opened by \dealii{}.app.
-
-To start \aspect{} using MPI for parallelization, from the directory where you installed \aspect{}:
-\begin{verbatim}
-  mpirun -np <# of processes> ./aspect <parameter file>
-\end{verbatim}
-
-To check quickly whether you are running  \aspect{} on the  \dealii{}.app terminal, check the location of the \verb|mpirun| command:
-\begin{verbatim}
-  bash-3.2$ which mpirun
-  /Applications/deal.II.app/Contents/Resources/opt/openmpi-1.6.5/bin/mpirun
-\end{verbatim}
-
-\item Build \aspect{} as an Xcode project.
-
-After completing step 4 above, do the following:
-\begin{enumerate}
-\item Go to the directory where you wish to install \aspect{} and run the following command:
-
-\begin{verbatim}
-  cmake -G Xcode .
-\end{verbatim}
-
-Now open the resulting \texttt{aspect.xcodeproj} in Xcode.
-
-\item Open Product\textgreater Scheme\textgreater Manage Schemes, then select ``aspect'' and click ``Edit''. Go to Run\textgreater Arguments, and under "Arguments Passed On Launch" add the filepath to the desired parameter file. Click "Close" then select Product\textgreater Run to run \aspect{} with this parameter file.
-
-\item If you want to run in parallel in Xcode, the easiest way is to create a new scheme. Open Product\textgreater Scheme\textgreater Manage Schemes, select ``aspect'' then select the gear icon, then ``Duplicate scheme''. Rename the new scheme to ``aspect parallel''. Go to Run\textgreater Info, and in Executable choose ``Other...''. Navigate to 
-\begin{verbatim}
-  /Applications/deal.II.app/Contents/Resources/opt/openmpi-1.10.2/bin
-\end{verbatim}
-and select ``orterun'', then click ``Choose''.
-
-\item Now go to the Arguments tab, and add 3 arguments: first, add \texttt{-np4} (for 4 processors -- you may use however many your machine has). Then add a path to your aspect executable -- this should be within your aspect folder, or the subfolders Debug or Release. Finally, ensure you have a path to your parameter file as above. Ensure these are in the correct order, or reorder them if necessary. Click ``Close'' then select Product\textgreater Run to run \aspect{} in parallel with this parameter file.
-\end{enumerate}
-
-
-
-\end{enumerate}
 
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -6417,7 +6244,7 @@ properties are read in from the subsection \texttt{Simple model}.
 The plugin was tested against analytical solutions for the deformation gradient tensor in simple and pure shear as described in \url{benchmarks/finite_strain/pure_shear.prm} and \url{benchmarks/finite_strain/simple_shear.prm}.
 
 We will demonstrate its use at the example of a 2D Cartesian convection model (Figure~\ref{fig:finite_strain}):
-Heating from the bottom leads to the the ascent of plumes from the boundary layer (top panel), and the
+Heating from the bottom leads to the ascent of plumes from the boundary layer (top panel), and the
 amount of stretching is visible in the distribution of natural strain (color in lower panel).
 Additionally, the black crosses show the direction of stretching and compression (the eigenvectors of $\mathbf L$). 
 Material moves to the sides at the top of the plume head, so that it is shortened in vertical 
@@ -7101,6 +6928,79 @@ least not very far from what we know to be correct and we should expect that
 with a more elaborate material model we should be able to get even closer to
 reality.
 
+\subsubsection{Postprocessing spherical 3D convection}
+\label{sec:cookbooks-shell_3d_postprocess.prm}
+\textit{This section was contributed by Jacqueline Austermann, Ian Rose, and Shangxin Liu}
+
+
+There are several postprocessors that can be used to turn the velocity 
+and pressure solution into quantities that can be compared to surface 
+observations. In this cookbook (\url{cookbooks/shell_3d_postprocess.prm}) 
+we introduce two postprocessors: dynamic topography and the geoid.
+We initialize the model with a harmonic 
+perturbation of degree 4 and order 2 and calculate the
+instantaneous solution. Analogous to the previous setup we use a spherical
+shell geometry model and a simple material model. 
+
+The relevant section in the input file that determines the postprocessed
+output is as follows:
+
+\lstinputlisting[language=prmfile]{cookbooks/shell_3d_postprocess/shell_3d_postprocess.part.prm.out}
+
+This initial condition results in distinct flow cells that cause local up- and
+downwellings (Figure~\ref{fig:pp}). This flow deflects the top and bottom boundaries
+of the mantle away from their reference height, a process known as dynamic topography.
+The deflection of the surfaces and density perturbations within the mantle also 
+cause a perturbation in the gravitational field of the planet relative to the
+hydrostatic equilibrium ellipsoid. 
+
+\paragraph{Dynamic topography at the surface and core mantle boundary.}
+Dynamic topography is calculated at the surface and bottom of the domain 
+through a stress balancing approach where we assume that the radial stress at 
+the surface is balanced by excess (or deficit) topography. We use the 
+consistent boundary flux (CBF) method to calculate the radial stress 
+at the surface \cite{ZGH93}. For the 
+bottom surface we define positive values as up (out)
+and negative values are down (in), analogous to the deformation of the upper 
+surface. Dynamic topography can be outputted in text format (which writes the 
+Euclidean coordinates followed by the corresponding topography value) or as 
+part of the visualization. The upwelling and downwelling flow along the 
+equator causes alternating topography high and lows at the top and
+bottom surface (Figure~\ref{fig:pp}). 
+In Figure~\ref{fig:pp} c, d we have subtracted the mean dynamic topography from
+the output field as a postproceesing step outside of Aspect. Since mass is 
+conserved within the Earth, the mean dynamic topography
+should always be zero, however, the outputted values might not fullfill this 
+constraint if the resolution of the model is not high enough to provide an
+accurate solution. This cookbook only uses a refinement of 2, which is relatively
+low resolution. 
+
+\paragraph{Geoid anomalies.}
+Geoid anomalies are perturbations of the gravitational equipotential surface that 
+are due to density variations within the mantle as well as deflections of the 
+surface and core mantle boundary. The geoid anomalies are calculated using a spherical
+harmonic expansion of the respective fields. The user has the option to specify the 
+minimum and maximum degree of this expansion. By default, the minimum degree is
+2, which conserves the mass of the Earth (by removing degree 0) and chooses the
+Earth's center of mass as reference frame (by removing degree 1). 
+In this model, downwellings coincide with lows in the geoid anomaly. That 
+means the mass deficit caused by the depression at the surface is not 
+fully compensated by the high density material below the depression that 
+drags the surface down. The geoid postprocessor uses a spherical harmonic 
+expansion and can therefore only be used with the 3D spherical shell geometry model.
+ 
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{cookbooks/shell_3d_postprocess/postprocess_cookbook-01.png}
+  \hfill
+  \caption{\it Panel (a) shows an equatorial cross section of the temperature distribution and 
+  resulting flow from a harmonic perturbation. Panel (b) shows the resulting geoid, and panels
+  (c) and (d) show the resulting surface and bottom topography. Note that we have subtracted
+  the mean surface and bottom topography in the respective panels (c and d) as a postprocessing
+  step outside of Aspect.
+  }
+  \label{fig:pp}
+\end{figure}
 
 \subsubsection{3D convection with an Earth-like initial condition}
 \label{sec:cookbooks-S20RTS}
@@ -7195,43 +7095,85 @@ reference mantle temperature in order to approximate thermal boundary layers.
 \paragraph{Visualizing 3D models.}
 
 In this cookbook we calculate the instantaneous solution to examine the flow 
-field. Figure~\ref{fig:ic-1} shows some of the output for a resolution of 2 global refinement 
-steps (c and e) as used in the cookbook, as well as 4 global refinement 
-steps (other panels in this figure). The top panels show the density variation 
+field. Figures~\ref{fig:ic-1} and \ref{fig:ic-2} show some of the output 
+for a resolution of 2 global refinement steps (\ref{fig:ic-1}c and 
+\ref{fig:ic-2}a, c, e) as used in the cookbook, as well as 4 global 
+refinement steps (other panels in these figures). Computations with 4 global 
+refinements are expensive, and consequently this is not the 
+default for this cookbook. For example, as of 2017, it takes 64 cores approximately
+2 hours of walltime to finish this cookbook with 4 global refinements. 
+Figure~\ref{fig:ic-1}a and b shows the density variation 
 that has been obtained from scaling S20RTS in the way described above.
-One can see the two large low shear wave velocity perturbations 
+One can see the two large low shear wave velocity provinces
 underneath Africa and the Pacific that lead to upwelling if they are assumed to 
 be buoyant (as is done in this case). One can also see the subducting slabs 
 underneath South America and the Philippine region that lead to local downwelling. 
-This flow produces dynamic topography on the surface, which is shown 
-in the middle row for 2 refinement steps (c) and 4 refinement steps (d). 
-One can see that subduction zones are visible as depressed topography 
-due to the downward flow, while regions such as Iceland, Hawaii, or mid ocean 
-ridges are elevated due to (deep and) shallow upward flow. The bottom row
-shows the heat flux density at the surface for 2 refinement steps (e, colorbar
-ranges from 13 to 19 mW/$m^2$) and for 4 refinement steps (f, colorbar ranges
-from 35 to 95 mW/$m^2$). Similar to the dynamic topography, a first order correlation
+Figure~\ref{fig:ic-1}c and d shows the heat flux density at the surface for 
+2 refinement steps (c, colorbar ranges from 13 to 19 mW/$m^2$) and for 
+4 refinement steps (d, colorbar ranges from 35 to 95 mW/$m^2$). A first order correlation
 with upper mantle features such as high heat flow at mid ocean ridges and low
 heat flow at cratons is correctly initialized by the tomography model. 
+The mantle flow and bouyancy variations produce dynamic topography on the 
+top and bottom surface, which is shown for 2 refinement steps (\ref{fig:ic-2}a and c, respectively) 
+and 4 refinement steps (\ref{fig:ic-2}b and d, respectively). 
+One can see that subduction zones are visible as depressed surface topography 
+due to the downward flow, while regions such as Iceland, Hawaii, or mid ocean 
+ridges are elevated due to (deep and) shallow upward flow. The core mantle boundary
+topography shows that the upwelling large low shear wave velocity 
+provinces deflect the core mantle boundary up. Lastly, Figure~\ref{fig:ic-2}e and 
+f show geoid perturbations for 2 and 4 global refinement steps, respectively. 
+The geoid anomalies show a strong correlation with the surface dynamic topography. 
+This is in part expected given that the geoid anomalies are driven by the 
+deflection of the upper and lower surface
+as well as internal density variations. The relative importance of these different
+contributors is dictated by the Earth's viscosity profile. Due to the isoviscous
+assumption in this cookbook, we don't properly recover patterns of the observed
+geoid. 
+
+As discussed in the previous cookbook, dynamic topography does not necessarily 
+average to zero if the resolution is not high enough. While one can simply subtract
+the mean as a postprocessing step this should be done with caution since a non-zero
+mean indicates that the refinement is not sufficiently high to resolve the
+convective flow. In Figure~\ref{fig:ic-2}a-d we refrained from subtracting the mean but 
+indicated it at the bottom left of each panel. The mean dynamic 
+topography approaches zero for increasing refinement. Furthermore, the mean bottom 
+dynamic topography is closer to zero than the mean top dynamic topography. This is 
+likely due to the larger magnitude of dynamic topography at the surface and the
+difference in resolution between the top and bottom domain
+(for a given refinement, the resolution at the core mantle boundary is
+higher than the resolution at the surface). The average geoid height is zero since
+the minimum degree in the geoid anomaly expansion is set to 2. 
+
 This model uses a highly simplified material model that is incompressible and 
 isoviscous and does therefore not represent real mantle flow. More realistic 
-material properties, density scaling as well as boundary conditions will affect the magnitude 
-and pattern shown here. 
+material properties, density scaling as well as boundary conditions will affect the magnitudes
+and patterns shown here. 
 
 \begin{figure}
-  \includegraphics[width=\textwidth]{cookbooks/initial-condition-S20RTS/full_mantle.png}
+  \includegraphics[width=\textwidth]{cookbooks/initial-condition-S20RTS/Fig_cookbook_V4-01.png}
   \hfill
-  \caption{\it Panels a and b show the density distribution as prescribed from the shear
+  \caption{\it Panels (a) and (b) show the density distribution as prescribed from the shear
   wave velocity model S20RTS and the resulting flow for a global refinement of 4. This
   model assumes a constant scaling between shear wave and density perturbations.
-  Panel c shows the great circle (dashed blue line) along which the top slices
-  are evaluated. Panels c and d show the resulting dynamic topography for a global refinement of 2 (c, cookbook)
-  and 4 (d). Panels e and f show the resulting heat flux density for a global refinement of
-  2 (e, cookbook) and 4 (f). The colorbar ranges from 13 to 19 mW/$m^2$ for panel e and
-  from 35 to 95 mW/$m^2$ for panel f.}
+  Panel (c) shows the great circle (dashed blue line) along which the top slices
+  are evaluated. Panels (c) and (d) show the resulting heat flux density for a global refinement of
+  2 (c, cookbook) and 4 (d). The colorbar ranges from 13 to 19 mW/$m^2$ for panel (c) and
+  from 35 to 95 mW/$m^2$ for panel (d).}
   \label{fig:ic-1}
 \end{figure}
 
+\begin{figure}
+  \includegraphics[width=\textwidth]{cookbooks/initial-condition-S20RTS/Fig_cookbook_V4-02.png}
+  \hfill
+  \caption{\it The first row of this figure shows the surface dynamic topography resulting 
+  from the flow shown in Figure~\ref{fig:ic-1} for a global 
+  refinement of 2 (a, cookbook) and 4 (b). The colorbar ranges from -2400m to 400m for panel (a) and
+  from -2000m to 1600m for panel (b). The second row shows the dynamic topography at
+  the core mantle boundary for the same model and a refinement of 2 (c, cookbook) and 4 (d). Averages of the 
+  dynamic topography fields are indicated at the bottom left of each panel. The bottom row shows the
+  geoid anomalies from this model at the surface for refinement of 2 (e, cookbook) and 4 (f).}
+  \label{fig:ic-2}
+\end{figure}
 
 \subsubsection{Using reconstructed surface velocities by GPlates}
 \label{sec:cookbooks-gplates}
@@ -7794,7 +7736,7 @@ The 2D Cartesian model spans 400 (x) by 100 (y) km and has a finite element grid
 \lstinputlisting[language=prmfile]{cookbooks/continental_extension/continental_extension_geometry_mesh.prm}
 
 
-Similar to the crustal deformation examples above, this model contains a free surface. Deformation is driven by constant horizontal ($x$-component) velocities (0.25 cm/yr) on the side boundaries ($y$-velocity component unconstrained), while the bottom boundary has vertical inflow to balance the lateral outflow. The top, and bottom boundaries have fixed temperatures, while the sides are insulating.
+Similar to the crustal deformation examples above, this model contains a free surface. Deformation is driven by constant horizontal ($x$-component) velocities (0.25 cm/yr) on the side boundaries ($y$-velocity component unconstrained), while the bottom boundary has vertical inflow to balance the lateral outflow. The top, and bottom boundaries have fixed temperatures, while the sides are insulating. The bottom boundary is also assigned a fixed composition, while the top and sides are unconstrained.
 
 \lstinputlisting[language=prmfile]{cookbooks/continental_extension/continental_extension_boundary_conditions.prm}
 
@@ -7830,17 +7772,17 @@ as temperature variations associated with lithospheric thinning exert a first-or
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{cookbooks/continental_extension/continental_extension_cookbook_strainrate_5e6yr.png}
-\caption{\it Strain rate ($s^{-1}$) after 5e6 years of extension. The black line marks the 500 $^{o}C$ isotherm.} 
+\caption{\it Strain rate ($s^{-1}$) after 5e6 years of extension. The black line marks the 550 $^\circ C$ isotherm.} 
 \label{fig:continental_extension_cookbook_strainrate_5e6yr}
 \end{figure}
 \begin{figure}
 \includegraphics[width=\textwidth]{cookbooks/continental_extension/continental_extension_cookbook_composition_5e6yr.png}
-\caption{\it Compositional field after 5e6 years of extension. The black line marks the 500 $^{o}C$ isotherm.} 
+\caption{\it Compositional field after 5e6 years of extension. The black line marks the 550 $^\circ C$ isotherm.} 
 \label{fig:continental_extension_cookbook_composition_5e6yr}
 \end{figure}
 \begin{figure}
 \includegraphics[width=\textwidth]{cookbooks/continental_extension/continental_extension_cookbook_strainrate_highres_10e6yr.png}
-\caption{\it Strain rate($s^{-1}$) after 10e6 years of extension. The black line marks the 500 $^{o}C$ isotherm. The numerical resolution (1 km) is double that of the previous model.} 
+\caption{\it Strain rate($s^{-1}$) after 10e6 years of extension. The black line marks the 550 $^\circ C$ isotherm. The numerical resolution (1 km) is double that of the previous model.} 
 \label{fig:continental_extension_cookbook_strainrate_highres_10e6yr}
 \end{figure}
  
@@ -7979,6 +7921,49 @@ Both trends are shown in Figure~\ref{fig:inner-core-trends} and can be compared 
     \label{fig:inner-core-trends}
 \end{figure}
 
+\subsubsection{Melt migration in a 2D mantle convection model}
+
+\textit{This section was contributed by Juliane Dannberg and is based on a section in \cite{dannberg_melt} by Juliane Dannberg and Timo Heister.}
+
+The following cookbook will explain how to use \aspect{}'s implementation of coupled magma/mantle dynamics 
+(see Section~\ref{sec:melt_transport}) to set up a model of mantle convection that also includes melting 
+and freezing of mantle rock, and the transport of melt according to the two-phase flow equations. 
+The model setup is described in detail in \cite{dannberg_melt}, which can be found \href{https://doi.org/10.1093/gji/ggw329}{here},  
+and in the following we will go over a slightly simplified version in lower resolution. 
+We will start by looking at a global mantle convection without melt migration, and will 
+then discuss how the input file has to be modified in order to add melt transport. A movie that compares 
+the evolution of the temperature field and the amount of melt present in both models in higher resolution can be found 
+\href{http://youtu.be/Kwyp4Jvx6MU}{online}. 
+
+The model setup is a 2D box with dimensions of $2900 \times 8700$\,km, and it is heated from the bottom and 
+cooled from the top. A full description can be found in Section~4.7 ``Influence of melt migration on a global-scale 
+convection model'' in \cite{dannberg_melt}.
+In the first model we will look at, melting and freezing is only included passively: We use the \texttt{melt fraction} visualization postprocessor to compute how much melt is present for a given temperature and pressure at every given point in time and space in our model, but the presence of melt does not influence material properties like density or viscosity, and melt does not move relative to the solid. This also means that because melt is not extracted, the bulk composition of the material always stays the same, and melt only freezes again once advection or conduction causes the temperature of the solid rock to be below the solidus. 
+The following input file (which can be found in \url{cookbooks/global_no_melt.prm}) contains a detailed description of the 
+different options required to set up such a model:
+
+\lstinputlisting[language=prmfile]{cookbooks/global_melt/global_no_melt.prm}
+
+When we look at visualization output of this model, we can see that over time, first upwellings, and then downwellings start to form. Both are more or less stable over time, and only change their positions slowly. As melt does not move relative to the solid, broad stable zones of melting with melt fraction of 10\% or more form in areas where material is upwelling. 
+
+In the second model, melt is an active component of the model. Temperature, pressure and composition control how much of the rock melts, and as soon as that happens, melt can migrate relative to the solid rock. As material only melts partially, that means that the composition of the rock changes when it melts and melt is extracted, and we track this change in composition using a compositional field with the name \texttt{peridotite}. Positive values mark depletion (the composition of the residual host rock as more and more melt is extracted), and negative values mark enrichment (the composition of generated melt, or regions where melt freezes again). Both the fraction of melt (tracked by the compositional field with the name \texttt{porosity}) and the changes in composition influence the material properties such as density and viscosity. Moreover, there are additional material properties that describe how easily melt can move through the host rock, such as the \texttt{permeability}, or properties of the melt itself, such as the \texttt{fluid viscosity}. 
+The following input file (a complete version of which can be found in \url{cookbooks/global_melt.prm}) details the changes we have to make from the first model to set up a model with melt migration:
+
+\lstinputlisting[language=prmfile]{cookbooks/global_melt/global_melt.prm}
+
+In the first few tens of millions of years, this models evolves similarly to the model without melt migration. Upwellings rise in the same locations, and regions where material starts to melt are similar. However, once melt is formed, the model evolutions start to deviate. In the model with melt migration, melt moves upwards from the region where it is generated much faster than the flow of solid material, so that it reaches cold regions -- where it freezes again -- in a shorter amount of time. Because of that, the overall amount of melt is smaller in this model at any given point in time. In addition, enriched material, present in places where melt has crystallized, has a higher density than average or depleted mantle material. This means that in regions above stable upwellings, instabilities of dense, enriched material start to form, which leads to small-scale downwellings. Hence, both areas where material is partially molten and the location of the upwellings themselves have a much shorter wavelength and change much faster over time in comparison to the model without melt migration.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{cookbooks/global_melt/model_evolution.pdf}
+    \caption{Evolution of the model without (left) and with (right) melt migration.}
+    \label{fig:global-melt}
+\end{figure}
+
+Figure~\ref{fig:global-melt} shows the time evolution of both models. 
+A more complete comparison of the two models can be found in Section~4.7 ``Influence of melt migration on a global-scale 
+convection model'' in \cite{dannberg_melt}.
+
 \subsection{Benchmarks}
 \label{sec:cookbooks-benchmarks}
 
@@ -8053,7 +8038,42 @@ executable. You will need to run \aspect{} from the current directory because
 \texttt{solcx.prm} refers to the plugin as \texttt{./libsolcx.so}, i.e., in
 the current directory.
 
+\subsubsection{Onset of convection benchmark}
+\label{sec:benchmark-onset-of-convection}
+\textit{This section was contributed by Max Rudolph, based on a course assignment for ``Geodynamic Modeling'' at Portland State University.}
 
+Here we use \aspect{} to numerically reproduce the results of a linear stability analysis for the onset of convection in a fluid layer heated from below. This exercise was assigned to students at Portland State University as a first step towards setting up a nominally Earth-like mantle convection model. Hence, representative length scales and transport properties for Earth are used. This cookbook consists of a jupyter notebook (\texttt{benchmarks/onset-of-convection/onset-of-convection.ipynb}) that is used to run \aspect{} and analyze the results of several calculations. To use this code, you must compile \aspect{} and give the path to the executable in the notebook as \texttt{aspect\_bin}. 
+
+The linear stability analysis for the onset of convection appears in Turcotte and Schubert \cite{TS14} (section 6.19). The linear stability analysis assumes the Boussinesq approximation and makes predictions for the growth rate (vertical velocity) of instabilities and the critical Rayleigh number $Ra_{cr}$ above which convection will occur. $Ra_{cr}$ depends only on the dimensionless wavelength of the perturbation, which is assumed to be equal to the width of the domain. The domain has height $b$ and width $\lambda$ and the perturbation is described by
+\begin{align*}
+T'(x,y) = T_0'\cos\left(\frac{2\pi x}{\lambda}\right)\sin\left(\frac{\pi y}{b} \right),
+\end{align*}
+where $T_0'$ is the amplitude of the perturbation. Note that because we place the bottom boundary of the domain at $y=0$ and the top at $y=b$, the perturbation vanishes at the top and bottom boundaries. This departs slightly from the setup in \cite{TS14}, where the top and bottom boundaries of the domain are at $y=\pm b/2$. The analytic expression for the critical Rayleigh number, $Ra_{cr}$ is given in Turcotte and Schubert \cite{TS14} equation (6.319):
+\begin{align*}
+Ra_{cr}=\frac{\left(\pi^2+\frac{4\pi^2 b^2}{\lambda^2}\right)^3}{\frac{4\pi^2 b^2}{\lambda^2}}.
+\end{align*}
+The linear stability analysis also makes a prediction for the dimensionless growth rate of the instability $\alpha'$ (Turcotte and Schubert \cite{TS14}, equation (6.315)). The maximum vertical velocity is given by
+\begin{align*}
+v_{y,max} = \frac{2\pi}{\lambda}\phi_0' e^{\alpha' t},
+\end{align*}
+where
+\begin{align*}
+\phi_0' = -\frac{2\pi}{\lambda}\frac{\rho_0 g \alpha T_0'}{\mu}\left(\frac{4\pi^2}{\lambda^2}+\frac{\pi^2}{b^2} \right)^{-2},
+\end{align*}
+and
+\begin{align*}
+\alpha'=\frac{\kappa}{b^2}\left[\frac{\rho_0 g \alpha b^3 \Delta T}{\mu \kappa}\left(\frac{\frac{4\pi^2 b^2}{\lambda^2}}{\left(\frac{4\pi^2 b^2}{\lambda^2}+\pi^2\right)^2}\right) -\left(\pi^2+\frac{4\pi^2b^2}{\lambda^2}\right)\right].
+\end{align*}
+
+We use bisection to determine $Ra_{cr}$ for specific choices of the domain geometry, keeping the depth $b$ constant and varying the domain width $\lambda$. If the vertical velocity increases from the first to the second timetsp, the system is unstable to convection. Otherwise, it is stable and convection will not occur. Each calculation is terminated after the second timestep. Fig.~\ref{fig:onset-1} shows the numerically-determined threshold for the onset of convection, which can be compared directly with the theoretical prediction (green curve) and Fig.~6.39 of \cite{TS14}. The relative error between the numerically-determined value of $Ra_{cr}$ and the analytic solution are shown in the right panel of Fig.~\ref{fig:onset-1}.
+
+\begin{figure}
+ \includegraphics[width=0.49\textwidth]{cookbooks/benchmarks/onset-of-convection/racr.png}
+ \hfill
+ \includegraphics[width=0.49\textwidth]{cookbooks/benchmarks/onset-of-convection/racr_error.png}
+ \caption{Left: Comparison of numerically-determined and theoretical values for $Ra_{cr}$. Red circles indicate numerical simulations unstable to convection, black circles indicate simulations that are stable. The green dashed curve indicates the theoretical prediction. Right: Relative error in determination of $Ra_{cr}$. The dashed red line indicates the error tolerance used in bisection procedure.}
+ \label{fig:onset-1}
+\end{figure}
 
 \subsubsection{The van Keken thermochemical composition benchmark}
 \label{sec:benchmark-van-keken}
@@ -9569,8 +9589,106 @@ We apply the negative phase speed of the solitary wave as a boundary condition f
 
 And extensive discussion of the results and convergence behavior can be found in \cite{dannberg_melt}.
 
+\subsubsection{Benchmarks for operator splitting}
+\label{sec:benchmark-operator_splitting}
 
-\section{Extending \aspect}
+\textit{This section was contributed by Juliane Dannberg.}
+
+Models of mantle convection and lithosphere dynamics often also contain reactions between materials with different chemical compositions, or processes that can be described as reactions. 
+The most common example is mantle melting: When mantle temperatures exceed the solidus, rocks start to melt. As this is only partial melting, and rocks are a mixture of different minerals, which all contain different chemical components, melting is not only a phase transition, but also leads to reactions between solid and molten rock. Some components are more compatible with the mineral structure, and preferentially stay in the solid rock, other components will mainly move into the mantle melt. This means that the composition of both solid and melt change over time depending on the melt fraction. 
+
+Usually, it is assumed that these reactions are much faster than convection in the mantle. In other words, these reactions are so fast that melt is assumed to be always in equilibrium with the surrounding solid rock. In some cases, the formation of new oceanic crust, which is also caused by partial melting, is approximated by a conversion from an average, peridotitic mantle composition to mid-ocean ridge basalt, forming the crust, and harzburgitic lithosphere, once material reaches a given depth. This process can also be considered as a reaction between different compositional fields. 
+
+This can cause accuracy problems in geodynamic simulations: The way the equations are formulated (see Equations~\ref{eq:stokes-1}--\ref{eq:compositional}), ideally we would need to know reaction rates (the $q_i$) between the different components instead of the equilibrium value (which would then have to be compared with some sort of ``old solution'' of the compositional fields). Sometimes we also may not know the equilibrium, and would only be able to find it iteratively, starting from the current composition. In addition, the reaction rate for a given compositional field usually depends on the value of the field itself, but can also depend on other compositional fields or the temperature and pressure, and the dependence can be nonlinear.
+
+Hence, \aspect{} has the option to decouple the advection from reactions between compositional fields, using operator splitting.
+
+Instead of solving the coupled equation
+\begin{align}
+  \frac{\partial \mathfrak{c}(t)}{\partial t} + \mathbf u\cdot\nabla \mathfrak{c}(t)
+  &=
+  q(\mathfrak{c}(t)),
+\end{align}
+and directly obtaining the composition value $\mathfrak{c}(t^{n+1})$ for the time step $n+1$ from the value $\mathfrak{c}(t^{n})$ from the previous time step $n$, we do a first-order operator split, first solving the advection problem
+\begin{align}
+  \frac{\partial \mathfrak{c}(t)}{\partial t} + \mathbf u\cdot\nabla \mathfrak{c}(t)
+  &=
+  0,
+  &
+  \text{obtaining } \Delta \mathfrak{c}_A(t^{n+1}) \text{ from } \mathfrak{c}(t^{n}),
+\end{align}
+using the advection time step $\Delta t_A = t^{n+1} - t^{n}$.
+Then we solve the reactions as a series of coupled ordinary differential equations 
+\begin{align}
+  \frac{\partial \Delta \mathfrak{c}_R(t)}{\partial t} 
+  &=
+  q(\mathfrak{c}(t^n))+\Delta \mathfrak{c}_A(t^{n+1})+\Delta \mathfrak{c}_R(t),
+  &
+  \text{obtaining } \Delta \mathfrak{c}_R(t^{n+1}) \text{ from } \mathfrak{c}(t^n)+\Delta \mathfrak{c}_A(t^{n+1}).
+\end{align}
+This can be done in several iterations, choosing a different, smaller time step size $\Delta t_R \leq \Delta t_A$ for the time discretization. 
+The updated value of the compositional field after the overall (advection + reaction) time step is then obtained as
+\begin{align}
+  \mathfrak{c}(t^{n+1}) 
+  &=
+  \mathfrak{c}(t^{n}) + \Delta \mathfrak{c}_A(t^{n+1})+\Delta \mathfrak{c}_R(t^{n+1}).
+\end{align}
+
+This is very useful if the time scales of reactions are different from the time scales of convection. 
+The same scheme can also be used for the temperature: If we want to model latent heat of melting, the temperature evolution is controlled by the melting rate, and hence the temperature changes on the same time scale as the reactions. 
+
+We here illustrate the way this operator splitting works using the simple example of exponential decay in a stationary advection field. We will start with a model that has a constant initial temperature and composition and no advection. The reactions for exponential decay 
+\begin{align}
+  \mathfrak{c}(t) 
+  &=
+  \mathfrak{c}_0 e^{\lambda t} \text{ with } \lambda = - \log(2)/t_{1/2}, 
+\end{align}
+where $\mathfrak{c}_0$ is the initial composition and $t_{1/2}$ is the half life, are implemented in a shared library
+(\url{benchmarks/operator_splitting/exponential_decay/exponential_decay.cc}). 
+As we split the time-stepping of advection and reactions, there are now two different time steps in the model:
+We control the advection time step using the `Maximum time step' parameter (as the velocity is essentially 0, 
+we can not use the CFL number), and we set the reaction time step using the `Reaction time step' parameter. 
+\lstinputlisting[language=prmfile]{cookbooks/benchmarks/operator_splitting/exponential_decay.part.1.prm.out}
+To illustrate convergence, we will vary both parameters in different model runs. 
+
+In our example, we choose $\mathfrak{c}_0=1$, and specify this as initial condition using the \texttt{function} plugin for both composition and temperature. We also set $t_{1/2}=10$, which is implemented as a parameter in the \texttt{exponential decay} material model and the \texttt{exponential decay heating} model. 
+\lstinputlisting[language=prmfile]{cookbooks/benchmarks/operator_splitting/exponential_decay.part.2.prm.out}
+The complete parameter file for this setup can be found in \url{benchmarks/operator_splitting/exponential_decay/exponential_decay.base.prm}.
+
+Figure~\ref{fig:exponential-decay} shows the convergence behavior of these models: As there is no advection, the advection time step does not influence the error (blue data points). As we use a first-order operator split, the error is expected to converge linearly with the reaction time step $\Delta t_R$, which is indeed the case (red data points).
+Errors are the same for both composition and temperature, as both fields have identical initial conditions and reactions, and we use the same methods to solve for these variables. 
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=0.65\textwidth]{cookbooks/benchmarks/operator_splitting/error_exponential_decay.pdf}
+  \end{center}
+  \caption{\it Error for both compositional field and temperature compared to the analytical solution, varying the time steps of advection (blue data points and and top/blue x axis) and reactions (red data points and and bottom/red x axis), while keeping the other one constant, respectively.}
+  \label{fig:exponential-decay}
+\end{figure}
+
+For the second benchmark case, we want to see the effect of advection on convergence. 
+In order to do this, we choose an initial temperature and composition that depends on x (in this case a sine), a decay rate that linearly depends on z, and we apply a constant velocity in x-direction on all boundaries. Our new analytical solution for the evolution of composition is now
+ \begin{align}
+  \mathfrak{c}(t) 
+  &=
+  \sin (2\pi(x-t v_0)) \, \mathfrak{c}_0 e^{\lambda z t}.
+\end{align}
+$v_0$ is the constant velocity, which we set to 0.01 m/s. 
+The parameter file for this setup can be found in \url{benchmarks/operator_splitting/advection_reaction/advection_reaction.base.prm}. 
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=0.48\textwidth]{cookbooks/benchmarks/operator_splitting/error_advection_reaction.pdf}
+    \includegraphics[width=0.48\textwidth]{cookbooks/benchmarks/operator_splitting/error_advection_reaction2.pdf}
+  \end{center}
+  \caption{\it Error for both compositional field and temperature compared to the analytical solution, varying the time steps of advection (blue data points and and top/blue x axis) and reactions (red data points and and bottom/red x axis), while keeping the other one constant, respectively.}
+  \label{fig:advection-reaction}
+\end{figure}
+Figure~\ref{fig:advection-reaction} shows the convergence behavior in this second set of models: 
+If we choose the same resolution as in the previous example (left panel), for large advection time steps $\Delta t_A > 0.1$ the error is dominated by advection, and converges with decreasing advection time step size (blue data points). However, for smaller advection time steps, the error stagnates. The data series where the reaction time step varies also shows a stagnating error. The reason for that is probably that our analytical solution is not in the finite element space we chose, and so neither decreasing the advection or the reaction time step will improve the error. 
+If we increase the resolution by a factor of 4 (right panel), we see that that errors converge both with decreasing advection and reaction time steps.  
+
+The results shown here can be reproduced using the bash scripts \texttt{run.sh} in the corresponding benchmark folders. 
+
+\section{Extending and contributing to \aspect}
 \label{sec:extending}
 
 \aspect{} is designed to be an extensible code. In particular, it
@@ -9695,9 +9813,26 @@ and magnitude of the gravity vector $\mathbf g$; or change the initial and
 boundary conditions.
 
 To make this as simple as possible, all of these parts of the program (and some more) have
-been separated into modules that can be replaced quickly and where it is
-simple to add a new implementation and make it available to the rest of the
-program and the input parameter file. The way this is achieved is through the
+been separated into what we call \textit{plugins} that can be replaced quickly
+and where it is simple to add a new implementation and make it available to the rest of the
+program and the input parameter file. There are \textit{a lot} of plugins
+already, see Fig.~\ref{fig:plugins}, that will often be useful starting points
+and examples if you want to implement plugins yourself.
+
+\begin{figure}[tbp]
+  \centering
+  \includegraphics[width=0.95\textwidth]{plugin_graph.pdf}
+  \caption{\it The graph of all current plugins of \aspect{}. The yellow
+  octagon and square represent the \texttt{Simulator} and
+  \texttt{SimulatorAccess} classes. The green boxes are interface classes for
+  everything that can be changed by plugins. Blue circles correspond to plugins
+  that implement particular behavior. The graph is of course too large to allow
+  reading individual plugin names (unless you zoom far into the page), but is
+  intended to illustrate the architecture of \aspect{}.}
+  \label{fig:plugins}
+\end{figure}
+
+The way this is achieved is through the
 following two steps:
 \begin{itemize}
 \item The core of \aspect{} really only communicates with material models,
@@ -9877,10 +10012,10 @@ through the interface they themselves provide to the core.
 
 Using this class, if a plugin class \texttt{MyPostprocess} is then not only
 derived from the corresponding \texttt{Interface} class but \textit{also}
-from the \href{doc/doxygen/classaspect_1_1SimulatorAccess.html}{SimulatorAccess} class, then you can write a member
-function of the following kind (a nonsensical but instructive example; see
-Section~\ref{sec:postprocessors} for more details on what postprocessors do
-and how they are implemented):%
+from the \href{doc/doxygen/classaspect_1_1SimulatorAccess.html}{SimulatorAccess}
+class (as indeed most plugins are, see the dashed arrows in
+Fig.~\ref{fig:plugins}), then you can write a member function of the following
+kind (a nonsensical but instructive example; see Section~\ref{sec:postprocessors} for more details on what postprocessors do and how they are implemented):%
 \footnote{For complicated, technical reasons, in the code below we need to
   access elements of the \href{doc/doxygen/classaspect_1_1SimulatorAccess.html}{SimulatorAccess} class using the notation
   \texttt{this->get\_solution()}, etc. This is due to the fact that both the
@@ -9990,7 +10125,7 @@ do:
     and compile it into a shared library yourself. This may be as easy as
     calling
     \begin{verbatim}
- g++ -I/path/to/aspect/headers -I/path/to/deal.II/headers \backslash
+ g++ -I/path/to/aspect/headers -I/path/to/deal.II/headers \
      -fPIC -shared my_plugin.cc -o my_plugin.so
     \end{verbatim}
     on Linux, but the command may be different on other systems. Now you only
@@ -10093,20 +10228,6 @@ Specifically, your new class needs to implement the following interface:
         virtual double reference_viscosity () const = 0;
 
 
-        // Auxiliary material properties used for postprocessing
-        virtual double
-        seismic_Vp (const double      temperature,
-                    const double      pressure,
-                    const std::vector<double> &compositional_fields,
-                    const Point<dim> &position) const;
-
-        virtual double
-        seismic_Vs (const double      temperature,
-                    const double      pressure,
-                    const std::vector<double> &compositional_fields,
-                    const Point<dim> &position) const;
-
-
         // Functions used in dealing with run-time parameters
         static void
         declare_parameters (ParameterHandler &prm);
@@ -10183,16 +10304,132 @@ packaged material models declare their dependencies in the
 parse\textunderscore parameters() function and can be used as a
 starting point for implementations of new material models.
 
-Older versions of \aspect{} used to have individual functions like viscosity()
-instead of the evaluate() function discussed above. They are now a deprecated
-way of implementing a material model. You can get your old model working
-by deriving from InterfaceCompatibility instead of Interface.
+Older versions of \aspect{} used to have individual functions like
+\texttt{viscosity()} instead of the \texttt{evaluate()} function discussed
+above. This old interface is no longer supported, restructure your plugin to
+implement \texttt{evaluate()} instead (even if this function only calls the old
+functions).
 
 \subsubsection{Heating models}
 \label{sec:heating-models}
 
+\index[prmindex]{Model name} \index[prmindexfull]{Heating model!Model
+  name} The heating model is responsible for describing the various
+terms in the energy equation~\eqref{eq:temperature}, using the
+coefficients provided by the material model.  These can be source
+terms such as radiogenic heat production or shear heating, they can be
+terms on the left-hand side of the equation, such as part of the
+latent heating terms, or they can be heating processes related to
+reactions. Each of these terms is described by a ``heating model'',
+and a simulation can have none, one, or many heating models that are
+active throughout a simulation, with each heating model usually only
+implementing the terms for one specific heating process. One can then
+decide in the input file which heating processes should be included in
+the computation by providing a list of heating models in the input
+file.
 
-\marginpar{To be written}
+When the equations are assembled and solved, the heating terms from all heating models 
+used in the computation are added up.
+
+To implement a new heating model, you need to overload the
+\href{doc/doxygen/classaspect_1_1HeatingModel_1_1Interface.html}{aspect::HeatingModel::Interface}
+class and use
+the \texttt{ASPECT\_REGISTER\_HEATING\_MODEL} macro to register your new
+class. The implementation of the new class should be in namespace
+\texttt{aspect::HeatingModel}.
+
+Specifically, your new class needs to implement the following basic interface:
+\begin{lstlisting}[frame=single,language=C++]
+    template <int dim>
+    class aspect::HeatingModel::Interface
+    {
+      public:
+        // compute heating terms used in the energy equation
+        virtual
+        void
+        evaluate (const MaterialModel::MaterialModelInputs<dim> &material_model_inputs,
+                  const MaterialModel::MaterialModelOutputs<dim> &material_model_outputs,
+                  HeatingModel::HeatingModelOutputs &heating_model_outputs) const;
+
+        // All the following functions are optional:
+        virtual
+        void
+        initialize ();
+        
+        virtual
+        void
+        update ();
+
+        // Functions used in dealing with run-time parameters
+        static
+        void
+        declare_parameters (ParameterHandler &prm);
+
+        virtual
+        void
+        parse_parameters (ParameterHandler &prm);
+        
+        // Allow the heating model to attach additional material model outputs in case it needs
+        // them to compute the heating terms
+        virtual
+        void
+        create_additional_material_model_outputs(MaterialModel::MaterialModelOutputs<dim> &) const;
+    };
+\end{lstlisting}
+The main properties of the material are computed in the function
+\texttt{evaluate()} that takes references to
+\texttt{MaterialModelInputs} and \texttt{MaterialModelOutputs} objects
+and is supposed to fill the
+\texttt{HeatingModelOutputs} structure. As in the material model, this function is handling lookups at an 
+arbitrary number of positions, so for each heating term (for example the heating source terms), a \texttt{std::vector} 
+is returned. The following members of \texttt{HeatingModelOutputs} need to be filled:
+\begin{lstlisting}[frame=single,language=C++]
+struct HeatingModelOutputs
+{
+       std::vector<double> heating_source_terms;
+       std::vector<double> lhs_latent_heat_terms;
+       
+       // optional:
+       std::vector<double> rates_of_temperature_change;
+}
+\end{lstlisting}
+Heating source terms are terms on the right-hand side of the equations, such as the adiabatic heating
+$\alpha T \left( \mathbf u \cdot \nabla p \right)$ in equation \eqref{eq:temperature}. 
+An example for a left-hand side heating term is the temperature-derivative term 
+$\rho T \Delta S \frac{\partial X}{\partial T}$ that is part of latent heat production 
+(see equation \eqref{eq:temperature-reformulated}).%
+\footnote{Whether a term should go on the left or right hand side of
+  the equation is, in some sense, a choice one can make. Putting a
+  term onto the right hand side makes it an explicit term as far as
+  time stepping is concerned, and so may imply a time step restriction
+  if its dynamics are too fast. On the other hand, it does not
+  introduce a nonlinearity if it depends on more than just a multiple
+  of the temperature (such as the term $\alpha T \left( \mathbf u
+  \cdot \nabla p \right)$). In practice, whether one wants to put a
+  specific term on one side or the other may be a judgment call based
+  on experience with numerical methods.}
+Rates of temperature change%
+\footnote{Or, more correctly: Rates of \textit{thermal energy change}.}
+are used when the heating term is related to a reaction process, happening 
+on a faster time scale than the temperature advection. 
+All of these terms can depend on any of the material model inputs or outputs. 
+Implementations of \texttt{evaluate()} may of course choose to ignore dependencies on any
+of these arguments.
+
+The remaining functions are used in postprocessing as well as
+handling run-time parameters. The exact meaning of these member functions is
+documented in the
+\href{doc/doxygen/classaspect_1_1HeatingModel_1_1Interface.html}{aspect::HeatingModel::Interface
+class documentation}. Note that some of the functions listed above have a
+default implementation, as discussed on the documentation page just
+mentioned.
+
+Just like for material models, the functions \texttt{initialize()} and \texttt{update()} can be 
+implemented if desired (the default implementation does
+nothing) and are useful if the heating model has an internal state. The function \texttt{initialize()} is called once during
+the initialization of \aspect{} and can be used to allocate memory for
+the heating model, initialize state, or read information from
+an external file. The function \texttt{update()} is called at the beginning of every time step.
 
 
 \subsubsection{Geometry models}
@@ -11447,56 +11684,138 @@ available as a package so this is not a severe limitation.
 While it is possible to use Diff, Numdiff is preferred due to being able to
 more accurately identify whether a variation in numerical output is
 significant.
-The test suite is run using ctest, which comes with cmake, and should therefore
-be available on all systems that have compiled \aspect{}.
+The test suite is run using the \texttt{ctest} program that comes with
+\texttt{cmake}, and should therefore be available on all systems that have
+compiled \aspect{}.
 
-By default, only a small suite of tests are run.
-To set up the full test suite, run
-
-\begin{verbatim}
+After running \texttt{cmake} and then compiling \aspect{}, you can run the
+testsuite by saying \texttt{ctest}. By default, this will only run a small
+subset of all tests given that both setting up all tests (several hundred) and
+running them takes a non-trivial amount of time. To set up the full test suite,
+you can run
+\begin{lstlisting}[frame=single,language=ksh]
     make setup_tests
-\end{verbatim}
-
-To run a set of tests, go to the build directory and execute 
-
-\begin{verbatim}
+\end{lstlisting}
+ in the build directory. To run the entire set of tests, then execute
+\begin{lstlisting}[frame=single,language=ksh]
     ctest
-\end{verbatim}
-
-This will run all of the existing tests. To only part of the test suite, it is
-possible to supply a regex that will select the names of the desired tests as
-follows
-
-\begin{verbatim}
+\end{lstlisting}
+Unless you have a very fast machine with lots of processors, running the entire
+testsuite will take hours, though it can be made substantially faster if you use
+\begin{lstlisting}[frame=single,language=ksh]
+    ctest -j <N>
+\end{lstlisting}
+where \texttt{<N>} is the number of tests you want \texttt{ctest} to run
+in parallel; you may want to choose \texttt{<N>} equal to or slightly smaller
+than the number of processors you have. Alternatively, you can run only a subset
+of all tests by saying 
+\begin{lstlisting}[frame=single,language=ksh] 
     ctest -R <regex>
-\end{verbatim}
+\end{lstlisting}
+where \texttt{<regex>} is a regular expression and the only tests that will be
+run are those whose names match the expression.
+
+When \texttt{ctest} runs a test, it will ultimately output results of the form
+\begin{lstlisting}[frame=single,language=ksh]
+build> ctest -R additional_outputs
+Test project /home/fac/f/bangerth/p/deal.II/1/projects/build
+    Start 1: additional_outputs
+1/3 Test #1: additional_outputs ...............   Passed    2.03 sec
+    Start 2: additional_outputs_02
+2/3 Test #2: additional_outputs_02 ............   Passed    1.84 sec
+    Start 3: additional_outputs_03
+3/3 Test #3: additional_outputs_03 ............   Passed    1.91 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Total Test time (real) =   5.88 sec
+\end{lstlisting}
+While the small default subset of tests should work on almost all platforms, you
+will find that some of the tests fail on your machine when you run the entire
+testsuite. This is because success of failure of a test is determined by looking
+at whether its output matches the one saved at the time when the test was
+written to the last digit, both as far as numerical output in floating point
+precision is concerned (e.g., for heat fluxes or other things we compute via
+postprocessors) as well as for integers such as the number of iterations that
+is printed in the screen output.%
+\footnote{This is not actually completely true. Rather, if \texttt{cmake} finds
+a program called \texttt{numdiff} on your system, it uses \texttt{numdiff} to compare the
+output of a test run against the saved output, and calls two files the same if
+all numbers differ by no more than some tolerance.}
+Unfortunately, systems almost always differ by compiler version, processor type
+and version, system libraries, etc, that can all lead to small changes in output
+-- generally (and hopefully!) not large enough to produce \textit{qualitatively}
+different results, but \textit{quantitatively} large enough to change the number
+of iterations necessary to reach a specific tolerance, or to change the computed
+heat flux by one part in a million. This leads to \texttt{ctest} reporting that
+a test failed, when in reality it produced output that is qualitatively correct.
+
+Given that some tests are expected to fail on any given system raises the
+question why it makes sense to have tests at all? The answer is that there is
+\textit{one} system on which all tests are supposed to succeed: This system is a
+machine that churns through all tests every time someone proposes a change to
+the \aspect{} code base via the \aspect{} GitHub page.%
+\footnote{This is again not completely true: The test machine will only go to
+work for pull requests by a set of trusted maintainers since the test machine
+will execute code that is proposed as part of the pull request -- posing a
+security risk if anyone's patches were allowed to run on that system. For pull
+requests by others, one of the trusted maintainers has to specifically request a
+test run, and this will usually happen
+as soon as the patch developer indicates the patch is ready for review.}
+Upon completion of the test suite, both the general summary (pass/fail) and a
+full verbose log will available from the GitHub page.
 
 
 \subsubsection{Writing tests}
 \label{sec:writing_tests}
 
 To write a test for a new feature, take one of the existing parameter files in
-the tests/ directory, modify it to use the new feature, check that the new
-feature does what it is supposed to do, and then just add the parameter file to
+the \texttt{tests/} directory, modify it to use the new feature, check that the
+new feature does what it is supposed to do, and then just add the parameter file to
 the tests directory. You will then need to add another folder to that directory
 that is named like the parameter file, and add the model output files that
-prove that the feature is working (rename log.txt to screen-output for
-historical reasons). The test and output files should be as small and quick to
-run as possible.
+prove that the feature is working (rename \texttt{log.txt} to
+\texttt{screen-output} for historical reasons). The test and output files should
+be as small and quick to run as possible.
 
-Permission to run the test suite for a particular pull request on
-Github is restricted to a set of trusted maintainers, and will usually be
-given as soon as the patch developer indicates the patch is ready for review.
-Once permission has been given, the full test suite will be run, and any errors
-recorded.
-Upon completion of the test suite, both the general summary (pass/fail) and a
-full verbose log will available.
-The reference machine may produce slightly different results than user machines
-due to differing libraries, operating systems, etc. If this has been confirmed
-to be the source of a failed test run, the diff file (git patch) that is always
-generated by the reference machine can be used to modify the created test
-results to match those of the reference machine.
+When you make a new test part of a pull request on GitHub, then as explained
+above that will lead to a run of all tests -- including your new one -- on a
+``reference machine''. The reference machine that runs the tests may of course
+produce slightly different results than the machine on which a pull request was
+developed and from which the output was taken. If this has been confirmed to be
+the source of a failed test run, a file that contains the differences between
+the patch content and the tester output will be available from the GitHub page
+and can be applied to the patch to make it pass the tester. On the other hand,
+if a change leads to even a single \textit{existing} test failing on that
+system, then we know that some more investigation as to the causes is necessary.
 
+
+\subsection{Contributing to \aspect{}'s development}
+
+To end this section, let us repeat something already stated in the
+introduction:
+
+\note{\aspect{} is a community project. As such, we strongly encourage contributions
+  from the community to improve this code over time. Obvious candidates for
+  such contributions are implementations of new plugins as discussed in
+  Section~\ref{sec:plugins-concrete}, since they are typically self-contained and do not
+  require much knowledge of the details of the remaining code. Other much appreciated
+  contributions are new test models or benchmarks, extended documentation 
+  (every paragraph helps), and in particular fixing typos or updating outdated
+  documentation. Obviously, however, we also encourage contributions to the
+  core functionality in any form!}
+  
+Let us assume you found something in \aspect{} to improve, something you did not
+understand, or something that is simply wrong. Do something about it! No matter
+whether you are a C++ expert or first-time user, there are no such things as too-unimportant
+contributions, and if you struggled with something, it is most likely somebody else will
+as well. The process of contributing to a new project can be daunting, but we appreciate
+every contribution and are happy to work with you on improving \aspect{}. To get
+you started we have collected a set of guidelines and advice on how to get involved in the
+community. To avoid duplication we store these guidelines in a separate file \url{CONTRIBUTING.md}
+in the main folder of the repository. Even if something in that file is not clear, this
+is an opportunity for you to ask your question on the mailing list (see 
+Section~\ref{sec:questions-and-answers}, and let us know that file needs improvement.
 
 \section{Future plans for \aspect}
 \label{sec:future}
@@ -11542,32 +11861,13 @@ time step if coefficients strongly depend on the solution variables.
   material model is. We hope to obtain more descriptions of realistic
   material descriptions over time, either given analytically or based on
   table-lookup of material properties.
-
-\item \textit{Converting output into seismic velocities:} The predictions of
-  mantle convection codes are often difficult to verify experimentally. On the
-  other hand, simulations can be used to predict a seismic signature of the
-  earth mantle -- for example the location of transition zones that can be
-  observed using seismic imaging. To facilitate such comparisons, it is of
-  interest to output not only the primary solution variables but also convert
-  them into the primary quantity visible in seismic imaging: compressive and
-  shear wave velocities. Implementing this should be relatively
-  straightforward if given a formula or table that expresses velocities in terms of the
-  variables computed by \aspect.
 \end{itemize}
 
-To end this section, let us repeat something already stated in the
-introduction:
 
-\note{\aspect{} is a community project. As such, we encourage contributions
-  from the community to improve this code over time. Obvious candidates for
-  such contributions are implementations of new plugins as discussed in
-  Section~\ref{sec:plugins-concrete} since they are typically self-contained and do not
-  require much knowledge of the details of the remaining code. Obviously,
-  however, we also encourage contributions to the core functionality in any
-  form!}
 
 
 \section{Finding answers to more questions}
+\label{sec:questions-and-answers}
 
 If you have questions that go beyond this manual, there are a number of
 resources:
@@ -11593,7 +11893,11 @@ resources:
   primary developers:
   \begin{itemize}
   \item Wolfgang
-    Bangerth: \url{bangerth@math.tamu.edu}.
+    Bangerth: \url{bangerth@colostate.edu}.
+  \item Juliane
+    Dannberg: \url{judannberg@gmail.com}
+  \item Rene
+    Gassm{\"o}ller: \url{rene.gassmoeller@mailbox.org}
   \item Timo
     Heister: \url{heister@clemson.edu}.
   \end{itemize}

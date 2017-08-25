@@ -14,14 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/material_model/ascii_reference_profile.h>
+#include <aspect/adiabatic_conditions/interface.h>
 
-using namespace dealii;
 
 namespace aspect
 {
@@ -264,8 +264,8 @@ namespace aspect
                                    "containing the names of all data columns, separated by arbitrarily "
                                    "many spaces. Column names are not allowed to contain spaces. "
                                    "The file can contain unnecessary columns, but for this plugin it "
-                                   "needs to at least provide the columns named 'density', "
-                                   "'thermal\\_expansivity', 'specific\\_heat', and 'compressibility'. "
+                                   "needs to at least provide the columns named `density', "
+                                   "`thermal\\_expansivity', `specific\\_heat', and `compressibility'. "
                                    "Note that the data lines in the file need to be sorted in order "
                                    "of increasing depth from 0 to the maximal depth in the model "
                                    "domain. Points in the model that are outside of the provided "
@@ -279,8 +279,8 @@ namespace aspect
                                    "\\begin{equation}"
                                    "\\eta(z,T) = \\eta_r(z) \\eta_0 \\exp\\left(-A \\frac{T - T_\\text{adi}}{T_\\text{adi}}\\right),"
                                    "\\end{equation}"
-                                   "where $\\eta_r(z)$ is the the depth-dependence, which is a "
-                                   "piecewise constant function computed according to the the "
+                                   "where $\\eta_r(z)$ is the depth-dependence, which is a "
+                                   "piecewise constant function computed according to the "
                                    "list of ``Viscosity prefactors'' and ``Transition depths'', "
                                    "$\\eta_0$ is the reference viscosity specified by the parameter ``Viscosity'' "
                                    "and $A$ describes the dependence on temperature and corresponds to "

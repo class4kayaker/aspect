@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -131,7 +131,7 @@ namespace aspect
 
             AssertThrow(non_empty_neighbors != 0,
                         ExcMessage("A cell and all of its neighbors do not contain any particles. "
-                                   "The 'cell average' interpolation scheme does not support this case."));
+                                   "The `cell average' interpolation scheme does not support this case."));
 
             for (unsigned int i = 0; i < n_particle_properties; ++i)
               if (selected_properties[i])

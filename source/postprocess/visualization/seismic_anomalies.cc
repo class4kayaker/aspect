@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/visualization/seismic_anomalies.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/lateral_averaging.h>
 #include <aspect/utilities.h>
 
@@ -166,7 +167,7 @@ namespace aspect
                         for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
                           in.composition[i][c] = composition_values[c][i];
                       }
-                    in.cell = &cell;
+                    in.current_cell = cell;
 
                     out.additional_outputs.push_back(
                       std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
@@ -331,7 +332,7 @@ namespace aspect
                         for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
                           in.composition[i][c] = composition_values[c][i];
                       }
-                    in.cell = &cell;
+                    in.current_cell = cell;
 
                     out.additional_outputs.push_back(
                       std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >

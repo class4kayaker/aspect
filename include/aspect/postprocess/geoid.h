@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -66,6 +66,14 @@ namespace aspect
         virtual
         void
         parse_parameters (ParameterHandler &prm);
+
+        /**
+         * Evaluate the geoid solution at a point. The evaluation point
+         * must be outside of the model domain, and it must be called
+         * after execute().
+         */
+        double
+        evaluate (const Point<dim> &) const;
 
       private:
         /**
@@ -133,6 +141,15 @@ namespace aspect
         std::pair<std::pair<double, std::pair<std::vector<double>,std::vector<double> > >, std::pair<double, std::pair<std::vector<double>,std::vector<double> > > >
         dynamic_topography_contribution(const double &outer_radius,
                                         const double &inner_radius) const;
+
+        /**
+         * A vector to store the cosine terms of the geoid anomaly spherical harmonic coefficients.
+         */
+        std::vector<double> geoid_coecos;
+        /**
+         * A vector to store the sine terms of the geoid anomaly spherical harmonic coefficients.
+         */
+        std::vector<double> geoid_coesin;
     };
   }
 }

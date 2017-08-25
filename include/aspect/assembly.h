@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -24,6 +24,7 @@
 
 #include <aspect/global.h>
 #include <aspect/simulator_access.h>
+#include <aspect/heating_model/interface.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -412,12 +413,12 @@ namespace aspect
          * It takes an iterator range of vectors and returns the element-wise
          * sum of the values.
          */
-        template<typename VectorType>
+        template <typename VectorType>
         struct ResidualWeightSum
         {
           typedef VectorType result_type;
 
-          template<typename InputIterator>
+          template <typename InputIterator>
           VectorType operator()(InputIterator first, InputIterator last) const
           {
             // If there are no slots to call, just return the
@@ -618,7 +619,7 @@ namespace aspect
           Properties ();
 
           /**
-           * Whether or not at least one of the the assembler slots in
+           * Whether or not at least one of the assembler slots in
            * a signal requires the initialization and re-computation of
            * a MaterialModelOutputs object for each face. This
            * property is only relevant to assemblers that operate on

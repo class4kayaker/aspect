@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -46,7 +46,10 @@ namespace aspect
     SphericalShell<dim>::
     create_coarse_mesh (parallel::distributed::Triangulation<dim> &coarse_grid) const
     {
-      AssertThrow (phi == 360 || phi == 90 || dim!=3, ExcNotImplemented());
+      AssertThrow (phi == 360 || phi == 90 || ((phi == 180) && (dim == 2)),
+                   ExcMessage ("The only opening angles that are allowed for "
+                               "this geometry are 90, 180, and 360 in 2d; "
+                               "and 90 and 360 in 3d."));
 
       if (phi == 360)
         {
@@ -191,8 +194,8 @@ namespace aspect
           case 2:
           {
             static const std::pair<std::string,types::boundary_id> mapping[]
-              = { std::pair<std::string,types::boundary_id> ("inner", 0),
-                  std::pair<std::string,types::boundary_id> ("outer", 1),
+              = { std::pair<std::string,types::boundary_id> ("bottom", 0),
+                  std::pair<std::string,types::boundary_id> ("top", 1),
                   std::pair<std::string,types::boundary_id> ("left",  2),
                   std::pair<std::string,types::boundary_id> ("right", 3)
                 };
@@ -210,8 +213,8 @@ namespace aspect
             if (phi == 360)
               {
                 static const std::pair<std::string,types::boundary_id> mapping[]
-                  = { std::pair<std::string,types::boundary_id>("inner", 0),
-                      std::pair<std::string,types::boundary_id>("outer", 1)
+                  = { std::pair<std::string,types::boundary_id>("bottom", 0),
+                      std::pair<std::string,types::boundary_id>("top",    1)
                     };
 
                 return std::map<std::string,types::boundary_id> (&mapping[0],
@@ -220,11 +223,11 @@ namespace aspect
             else if (phi == 90)
               {
                 static const std::pair<std::string,types::boundary_id> mapping[]
-                  = { std::pair<std::string,types::boundary_id>("inner", 0),
-                      std::pair<std::string,types::boundary_id>("outer", 1),
-                      std::pair<std::string,types::boundary_id>("east",  2),
-                      std::pair<std::string,types::boundary_id>("west",  3),
-                      std::pair<std::string,types::boundary_id>("south", 4)
+                  = { std::pair<std::string,types::boundary_id>("bottom", 0),
+                      std::pair<std::string,types::boundary_id>("top",    1),
+                      std::pair<std::string,types::boundary_id>("east",   2),
+                      std::pair<std::string,types::boundary_id>("west",   3),
+                      std::pair<std::string,types::boundary_id>("south",  4)
                     };
 
                 return std::map<std::string,types::boundary_id> (&mapping[0],
@@ -365,7 +368,11 @@ namespace aspect
           prm.declare_entry ("Opening angle", "360",
                              Patterns::Double (0, 360),
                              "Opening angle in degrees of the section of the shell "
-                             "that we want to build. Units: degrees.");
+                             "that we want to build. "
+                             "The only opening angles that are allowed for "
+                             "this geometry are 90, 180, and 360 in 2d; "
+                             "and 90 and 360 in 3d. "
+                             "Units: degrees.");
 
           prm.declare_entry ("Cells along circumference", "0",
                              Patterns::Integer (0),
@@ -432,8 +439,8 @@ namespace aspect
                                    "and one, and if the opening angle set in the input file "
                                    "is less than 360, then left and right boundaries are "
                                    "assigned indicators two and three. These boundaries can "
-                                   "also be referenced using the symbolic names 'inner', 'outer' "
-                                   "and (if applicable) 'left', 'right'."
+                                   "also be referenced using the symbolic names `inner', `outer' "
+                                   "and (if applicable) `left', `right'."
                                    "\n\n"
                                    "In 3d, inner and "
                                    "outer indicators are treated as in 2d. If the opening "
@@ -441,7 +448,7 @@ namespace aspect
                                    "intersection of a spherical shell and the first octant, "
                                    "then indicator 2 is at the face $x=0$, 3 at $y=0$, "
                                    "and 4 at $z=0$. These last three boundaries can then also "
-                                   "be referred to as 'east', 'west' and 'south' symbolically "
+                                   "be referred to as `east', `west' and `south' symbolically "
                                    "in input files.")
   }
 }

@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -100,7 +100,7 @@ namespace aspect
           /**
            * The number of radial layers of particles that will be generated.
            * In particular this parameter determines the radial spacing between
-           * particle layers as Pmax[0] - P_min[0] / radial$_$layers.
+           * particle layers as Pmax[0] - P_min[0] / radial_layers.
            */
           unsigned int radial_layers;
 

@@ -14,12 +14,15 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/boundary_traction/initial_lithostatic_pressure.h>
+#include <aspect/initial_temperature/interface.h>
+#include <aspect/initial_composition/interface.h>
+#include <aspect/gravity_model/interface.h>
 #include <aspect/global.h>
 #include <aspect/utilities.h>
 #include <deal.II/base/std_cxx11/array.h>

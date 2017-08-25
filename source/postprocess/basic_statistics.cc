@@ -14,13 +14,17 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/basic_statistics.h>
 #include <aspect/material_model/simple.h>
+#include <aspect/geometry_model/interface.h>
+#include <aspect/gravity_model/interface.h>
+#include <aspect/boundary_temperature/interface.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/global.h>
 
 
@@ -47,8 +51,8 @@ namespace aspect
           // temperature contrast is only meaningful if boundary temperatures are prescribed, otherwise it is 0
           const double temperature_contrast = (this->has_boundary_temperature()
                                                ?
-                                               this->get_boundary_temperature().maximal_temperature(this->get_fixed_temperature_boundary_indicators())
-                                               - this->get_boundary_temperature().minimal_temperature(this->get_fixed_temperature_boundary_indicators())
+                                               this->get_boundary_temperature_manager().maximal_temperature(this->get_fixed_temperature_boundary_indicators())
+                                               - this->get_boundary_temperature_manager().minimal_temperature(this->get_fixed_temperature_boundary_indicators())
                                                :
                                                0);
 

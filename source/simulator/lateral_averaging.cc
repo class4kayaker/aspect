@@ -14,23 +14,28 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
-
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/base/quadrature_lib.h>
 
 #include <aspect/lateral_averaging.h>
 #include <aspect/material_model/interface.h>
 #include <aspect/gravity_model/interface.h>
+#include <aspect/geometry_model/interface.h>
+
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/base/quadrature_lib.h>
+
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/base/quadrature_lib.h>
+
 
 
 namespace aspect
 {
 
   template <int dim>
-  template<class FUNCTOR>
+  template <class FUNCTOR>
   void LateralAveraging<dim>::compute_lateral_average(std::vector<double> &values,
                                                       FUNCTOR &fctr) const
   {

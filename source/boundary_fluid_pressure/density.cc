@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/boundary_fluid_pressure/density.h>
+#include <aspect/gravity_model/interface.h>
 #include <aspect/melt.h>
 #include <utility>
 #include <limits>
@@ -80,13 +81,13 @@ namespace aspect
                              "The density formulation used to compute the fluid pressure gradient "
                              "at the model boundary."
                              "\n\n"
-                             "'solid density' prescribes the gradient of the fluid pressure as "
+                             "`solid density' prescribes the gradient of the fluid pressure as "
                              "solid density times gravity (which is the lithostatic "
                              "pressure) and leads to approximately the same pressure in "
                              "the melt as in the solid, so that fluid is only flowing "
                              "in or out due to differences in dynamic pressure."
                              "\n\n"
-                             "'fluid density' prescribes the gradient of the fluid pressure as "
+                             "`fluid density' prescribes the gradient of the fluid pressure as "
                              "fluid density times gravity and causes melt to flow in "
                              "with the same velocity as inflowing solid material, "
                              "or no melt flowing in or out if the solid velocity "

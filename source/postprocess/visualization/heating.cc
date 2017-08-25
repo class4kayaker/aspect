@@ -14,12 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/visualization/heating.h>
+#include <aspect/heating_model/interface.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/grid/grid_tools.h>
 
@@ -108,7 +110,7 @@ namespace aspect
 
         typename DoFHandler<dim>::active_cell_iterator cell;
         cell = (GridTools::find_active_cell_around_point<> (this->get_mapping(), this->get_dof_handler(), mid_point)).first;
-        in.cell = &cell;
+        in.current_cell = cell;
 
         for (typename std::list<std_cxx11::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
              heating_model = heating_model_objects.begin();

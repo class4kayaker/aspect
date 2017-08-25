@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -90,7 +90,7 @@ namespace aspect
 
       private:
         /**
-         * Temperatures at the inner and outer boundaries.
+         * Temperatures at the boundaries.
          */
         std::map<types::boundary_id, double> boundary_temperatures;
     };

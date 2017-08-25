@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/initial_temperature/SAVANI_perturbation.h>
+#include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/utilities.h>
 #include <fstream>
 #include <iostream>
@@ -391,7 +392,7 @@ namespace aspect
                                               "parameter. The scaling is as follows: $\\delta ln \\rho "
                                               "(r,\\theta,\\phi) = \\xi \\cdot \\delta ln v_s(r,\\theta, "
                                               "\\phi)$ and $\\delta T(r,\\theta,\\phi) = - \\frac{1}{\\alpha} "
-                                              "\\delta ln \\rho(r,\\theta,\\phi)$. $\\xi$ is the 'vs to "
+                                              "\\delta ln \\rho(r,\\theta,\\phi)$. $\\xi$ is the `vs to "
                                               "density scaling' parameter and $\\alpha$ is the 'Thermal "
                                               "expansion coefficient in initial temperature scaling' "
                                               "parameter. The temperature perturbation is added to an "

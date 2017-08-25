@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -22,7 +22,9 @@
 #include <aspect/assembly.h>
 #include <aspect/melt.h>
 
+#include <deal.II/base/signaling_nan.h>
 #include <deal.II/fe/fe_values.h>
+
 
 namespace aspect
 {
@@ -39,7 +41,7 @@ namespace aspect
     // variation. otherwise return something that's obviously
     // nonsensical
     if (parameters.stabilization_alpha != 2)
-      return std::numeric_limits<double>::quiet_NaN();
+      return numbers::signaling_nan<double>();
 
     // record maximal entropy on Gauss quadrature
     // points
@@ -126,7 +128,7 @@ namespace aspect
     if (advection_field.is_discontinuous(introspection))
       return 0.;
 
-    std::vector<double> residual = assemblers->compute_advection_system_residual(*scratch.material_model_inputs.cell,
+    std::vector<double> residual = assemblers->compute_advection_system_residual(scratch.material_model_inputs.current_cell,
                                                                                  advection_field,
                                                                                  scratch);
 
@@ -136,10 +138,27 @@ namespace aspect
     double max_specific_heat = (advection_field.is_temperature()) ? 0.0 : 1.0;
     double max_conductivity = 0;
 
+    std::vector<Tensor<1,dim> > old_fluid_velocity_values(scratch.finite_element_values.n_quadrature_points);
+    std::vector<Tensor<1,dim> > old_old_fluid_velocity_values(scratch.finite_element_values.n_quadrature_points);
+    if (parameters.include_melt_transport)
+      {
+        const FEValuesExtractors::Vector ex_u_f = introspection.variable("fluid velocity").extractor_vector();
+        scratch.finite_element_values[ex_u_f].get_function_values (old_solution,old_fluid_velocity_values);
+        scratch.finite_element_values[ex_u_f].get_function_values (old_old_solution,old_old_fluid_velocity_values);
+      }
+
     for (unsigned int q=0; q < scratch.finite_element_values.n_quadrature_points; ++q)
       {
         const Tensor<1,dim> velocity = (scratch.old_velocity_values[q] +
                                         scratch.old_old_velocity_values[q]) / 2;
+        double velocity_norm = velocity.norm();
+
+        if (parameters.include_melt_transport)
+          {
+            const Tensor<1,dim> fluid_velocity = (old_fluid_velocity_values[q] +
+                                                  old_old_fluid_velocity_values[q]) / 2;
+            velocity_norm = std::max (fluid_velocity.norm(), velocity_norm);
+          }
 
         const double strain_rate = ((scratch.old_strain_rates[q]
                                      + scratch.old_old_strain_rates[q]) / 2).norm();
@@ -151,7 +170,7 @@ namespace aspect
           }
 
         max_residual = std::max (residual[q],     max_residual);
-        max_velocity = std::max (velocity.norm()
+        max_velocity = std::max (velocity_norm
                                  + parameters.stabilization_gamma * strain_rate * cell_diameter,
                                  max_velocity);
 
@@ -367,7 +386,7 @@ namespace aspect
               scratch.material_model_inputs.composition[q][c] = (scratch.old_composition_values[c][q] + scratch.old_old_composition_values[c][q]) / 2;
             scratch.material_model_inputs.strain_rate[q] = (scratch.old_strain_rates[q] + scratch.old_old_strain_rates[q]) / 2;
           }
-        scratch.material_model_inputs.cell = &cell;
+        scratch.material_model_inputs.current_cell = cell;
         create_additional_material_model_outputs(scratch.material_model_outputs);
 
         material_model->evaluate(scratch.material_model_inputs,scratch.material_model_outputs);

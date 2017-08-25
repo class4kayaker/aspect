@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -59,7 +59,7 @@ namespace aspect
     Sphere<dim>::
     get_symbolic_boundary_names_map () const
     {
-      static const std::pair<std::string,types::boundary_id> mapping("surface", 0);
+      static const std::pair<std::string,types::boundary_id> mapping("top", 0);
       return std::map<std::string,types::boundary_id> (&mapping,
                                                        &mapping+1);
     }

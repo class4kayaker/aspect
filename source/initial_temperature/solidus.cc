@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -134,7 +134,7 @@ namespace aspect
       AssertThrow(this->has_boundary_temperature(),
                   ExcMessage("This initial condition can only be used with a prescribed boundary temperature."));
 
-      T_min=(this->get_boundary_temperature()).minimal_temperature();
+      T_min=(this->get_boundary_temperature_manager()).minimal_temperature();
 
       // In case of spherical shell calculate spherical coordinates
       const Tensor<1,dim> scoord = spherical_surface_coordinates(position);
@@ -250,7 +250,7 @@ namespace aspect
                                "text '$ASPECT_SOURCE_DIR' which will be interpreted as the path "
                                "in which the ASPECT source files were located when ASPECT was "
                                "compiled. This interpretation allows, for example, to reference "
-                               "files located in the 'data/' subdirectory of ASPECT.");
+                               "files located in the `data/' subdirectory of ASPECT.");
           }
           prm.leave_subsection();
         }

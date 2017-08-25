@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -82,7 +82,7 @@ namespace aspect
     std::pair<std::vector<double>,std::vector<double> >
     Geoid<dim>::density_contribution (const double &outer_radius) const
     {
-      const unsigned int quadrature_degree = this->introspection().polynomial_degree.velocities;
+      const unsigned int quadrature_degree = this->introspection().polynomial_degree.temperature;
       // need to evaluate density contribution of each volume quadrature point
       const QGauss<dim> quadrature_formula(quadrature_degree);
 
@@ -178,7 +178,7 @@ namespace aspect
       const double bottom_layer_average_density = boundary_densities->density_at_bottom();
 
 
-      const unsigned int quadrature_degree = this->introspection().polynomial_degree.velocities;
+      const unsigned int quadrature_degree = this->introspection().polynomial_degree.temperature;
       const QGauss<dim-1> quadrature_formula_face(quadrature_degree); // need to grab the infinitesimal area of each quadrature points on every boundary face here
 
       FEFaceValues<dim> fe_face_values (this->get_mapping(),
@@ -236,16 +236,26 @@ namespace aspect
 
               // focus on the boundary cell's upper face if on the top boundary and lower face if on the bottom boundary
               fe_face_values.reinit(cell, face_idx);
+
+              // Dynamic topography is evaluated at each quadrature
+              // point on every top/bottom cell's boundary face.  The
+              // reason to do this -- as opposed to using a single
+              // value per boundary face -- is that later in the
+              // spherical harmonic expansion, we will calculate
+              // sin(theta)*d_theta*d_phi by
+              // infinitesimal_area/radius^2. The accuracy of this
+              // transfer gets better as infinitesimal_area gets
+              // closer to zero, so using every boundary quadrature
+              // point's associated area (in the form of
+              // FEFaceValues::JxW) will lead to better accuracy in
+              // spherical harmonic expansion compared to using just
+              // one average value per face, especially in the coarse
+              // meshes.
               fe_face_values[this->introspection().extractors.temperature].get_function_values(topo_vector, topo_values);
 
               // if the cell at top boundary, add its contributions dynamic topography storage vector
               if (face_idx != numbers::invalid_unsigned_int && at_upper_surface)
                 {
-                  // Although we calculate the average dynamic topography of the cell's boundary face, we store this same dynamic topography with every
-                  // surface quadrature point's associated area into the storage vector. The reason to do this is that later in the spherical
-                  // harmonic expansion, we will calculate sin(theta)*d_theta*d_phi by infinitesimal_area/radius^2. The accuracy of this relation
-                  // is improved as infinitesimal_area is closer to zero, so using every surface quadrature point's associated area of each
-                  // surface cell will lead to better accuracy in spherical harmonic expansion, especially in the coarse mesh.
                   for (unsigned int q=0; q<fe_face_values.n_quadrature_points; ++q)
                     surface_stored_values.push_back (std::make_pair(fe_face_values.quadrature_point(q), std::make_pair(fe_face_values.JxW(q), topo_values[q])));
                 }
@@ -253,11 +263,6 @@ namespace aspect
               // if the cell at bottom boundary, add its contributions dynamic topography storage vector
               if (face_idx != numbers::invalid_unsigned_int && !at_upper_surface)
                 {
-                  // Although we calculate the average dynamic topography of the cell's boundary face, we store this same dynamic topography with every
-                  // bottom quadrature point's associated area into the storage vector. The reason to do this is that later in the spherical
-                  // harmonic expansion, we will calculate sin(theta)*d_theta*d_phi by infinitesimal_area/radius^2. The accuracy of this relation
-                  // is improved as infinitesimal_area is closer to zero, so using every bottom quadrature point's associated area of each
-                  // bottom cell will lead to better accuracy in spherical harmonic expansion, especially in the coarse mesh.
                   for (unsigned int q=0; q<fe_face_values.n_quadrature_points; ++q)
                     CMB_stored_values.push_back (std::make_pair(fe_face_values.quadrature_point(q), std::make_pair(fe_face_values.JxW(q), topo_values[q])));
                 }
@@ -350,8 +355,8 @@ namespace aspect
       std::vector<double> surface_dyna_topo_contribution_coesin; // a vector to store sin terms of surface dynamic topography contribution SH coefficients
       std::vector<double> CMB_dyna_topo_contribution_coecos; // a vector to store cos terms of CMB dynamic topography contribution SH coefficients
       std::vector<double> CMB_dyna_topo_contribution_coesin; // a vector to store sin terms of CMB dynamic topography contribution SH coefficients
-      std::vector<double> geoid_coecos;  // a vector to store cos terms of geoid anomaly SH coefficients
-      std::vector<double> geoid_coesin;  // a vector to store sin terms of geoid anomaly SH coefficients
+      geoid_coecos.clear();
+      geoid_coesin.clear();
 
       // First compute the spherical harmonic contributions from density anomaly, surface dynamic topography and CMB dynamic topography
       int ind = 0; // coefficients index
@@ -752,6 +757,27 @@ namespace aspect
     }
 
     template <int dim>
+    double
+    Geoid<dim>::evaluate (const Point<dim> &p) const
+    {
+      const std_cxx11::array<double,dim> scoord = aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(p);
+      const double theta = scoord[2];
+      const double phi = scoord[1];
+      double value = 0.;
+
+      for (unsigned int ideg=min_degree, k=0; ideg < max_degree+1; ideg++)
+        for (unsigned int iord = 0; iord < ideg+1; iord++, k++)
+          {
+            std::pair<double,double> val = aspect::Utilities::real_spherical_harmonic( ideg, iord, theta, phi );
+
+            value += geoid_coecos[k] * val.first +
+                     geoid_coesin[k] * val.second;
+
+          }
+      return value;
+    }
+
+    template <int dim>
     void
     Geoid<dim>::declare_parameters (ParameterHandler &prm)
     {
@@ -775,7 +801,7 @@ namespace aspect
           prm.declare_entry("Density above","0",
                             Patterns::Double (0),
                             "The density value above the surface boundary.");
-          prm.declare_entry("Density below","8000",
+          prm.declare_entry("Density below","9900",
                             Patterns::Double (0),
                             "The density value below the CMB boundary.");
           prm.declare_entry("Also output the spherical harmonic coefficients of geoid anomaly", "false",
@@ -834,10 +860,11 @@ namespace aspect
   {
     ASPECT_REGISTER_POSTPROCESSOR(Geoid,
                                   "geoid",
-                                  "A postprocessor that computes a measure of geoid anomaly based on the density anomaly determined "
-                                  "from the temperature field in the mantle, and the dynamic topography at the surface and core mantle "
-                                  "boundary(CMB). The geoid is computed from the spherical harmonics expansion, so the geometry of the "
-                                  "domain needs to be a 3D spherical shell.")
-
+                                  "A postprocessor that computes a representation of "
+                                  "the geoid based on the density structure in the mantle, "
+                                  "as well as the dynamic topography at the surface and "
+                                  "core mantle boundary (CMB). The geoid is computed "
+                                  "from a spherical harmonic expansion, so the geometry "
+                                  "of the domain must be a 3D spherical shell.")
   }
 }

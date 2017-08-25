@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -24,7 +24,15 @@
 #include <aspect/vof/handler.h>
 #include <aspect/global.h>
 
+#include <aspect/geometry_model/interface.h>
+#include <aspect/heating_model/interface.h>
 #include <aspect/heating_model/adiabatic_heating.h>
+#include <aspect/material_model/interface.h>
+#include <aspect/particle/generator/interface.h>
+#include <aspect/particle/integrator/interface.h>
+#include <aspect/particle/interpolator/interface.h>
+#include <aspect/particle/output/interface.h>
+#include <aspect/postprocess/visualization.h>
 
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/conditional_ostream.h>
@@ -214,6 +222,72 @@ namespace aspect
       delete copy_of_table;
     }
   }
+
+
+
+  template <int dim>
+  void Simulator<dim>::write_plugin_graph (std::ostream &out) const
+  {
+    // write the preamble
+    out << "digraph Plugins\n"
+        "{\n"
+        "  splines=line;\n"
+        "  splines=true;\n"
+        "  overlap=false;\n"
+        "  edge [fontname=\"FreeSans\",\n"
+        "        fontsize=\"10\",\n"
+        "        labelfontname=\"FreeSans\",\n"
+        "        labelfontsize=\"10\",\n"
+        "        color=\"black\",\n"
+        "        style=\"solid\"];\n"
+        "  node [fontname=\"FreeSans\",\n"
+        "        fontsize=\"10\",\n"
+        "        shape=\"rectangle\",\n"
+        "        height=0.2,\n"
+        "        width=0.4,\n"
+        "        color=\"black\",\n"
+        "        fillcolor=\"white\",\n"
+        "        style=\"filled\"];\n"
+        "  layout=neato;\n"
+        "\n";
+
+    // then also write nodes for the Simulator and SimulatorAccess classes,
+    // and an arrow from the former to the latter to indicate flow of
+    // information
+    out << "  Simulator [height=1.5,width=2,shape=\"octagon\",fillcolor=\"yellow\"];\n";
+    out << "  SimulatorAccess [height=1.2,width=1.2,shape=\"rect\",fillcolor=\"yellow\"];\n";
+    out << "  Simulator -> SimulatorAccess [len=1, weight=100];\n";
+
+    // then go through all plugin systems and output everything we have
+    AdiabaticConditions::write_plugin_graph<dim>(out);
+    BoundaryComposition::write_plugin_graph<dim>(out);
+    BoundaryFluidPressure::write_plugin_graph<dim>(out);
+    BoundaryTemperature::Manager<dim>::write_plugin_graph(out);
+    BoundaryTraction::write_plugin_graph<dim>(out);
+    BoundaryVelocity::write_plugin_graph<dim>(out);
+    InitialTopographyModel::write_plugin_graph<dim>(out);
+    GeometryModel::write_plugin_graph<dim>(out);
+    GravityModel::write_plugin_graph<dim>(out);
+    HeatingModel::Manager<dim>::write_plugin_graph(out);
+    InitialComposition::Manager<dim>::write_plugin_graph(out);
+    InitialTemperature::Manager<dim>::write_plugin_graph(out);
+    MaterialModel::write_plugin_graph<dim>(out);
+    MeshRefinement::Manager<dim>::write_plugin_graph(out);
+    Particle::Generator::write_plugin_graph<dim>(out);
+    Particle::Integrator::write_plugin_graph<dim>(out);
+    Particle::Interpolator::write_plugin_graph<dim>(out);
+    Particle::Output::write_plugin_graph<dim>(out);
+    Particle::Property::Manager<dim>::write_plugin_graph(out);
+    Postprocess::Manager<dim>::write_plugin_graph(out);
+    Postprocess::Visualization<dim>::write_plugin_graph(out);
+    PrescribedStokesSolution::write_plugin_graph<dim>(out);
+    TerminationCriteria::Manager<dim>::write_plugin_graph(out);
+
+    // end the graph
+    out << "}"
+        << std::endl;
+  }
+
 
 
   template <int dim>
@@ -1419,6 +1493,228 @@ namespace aspect
 
 
   template <int dim>
+  void Simulator<dim>::compute_reactions ()
+  {
+    // if the time step has a length of zero, there are no reactions
+    if (time_step == 0)
+      return;
+
+    // we need some temporary vectors to store our updates to composition and temperature in
+    // while we do the time stepping, before we copy them over to the solution vector in the end
+    LinearAlgebra::BlockVector distributed_vector (introspection.index_sets.system_partitioning,
+                                                   mpi_communicator);
+
+    LinearAlgebra::BlockVector distributed_reaction_vector (introspection.index_sets.system_partitioning,
+                                                            mpi_communicator);
+
+    // we use a different (potentially smaller) time step than in the advection scheme,
+    // and we want all of our reaction time steps (within one advection step) to have the same size
+    const unsigned int number_of_reaction_steps = std::max(static_cast<unsigned int>(time_step / parameters.reaction_time_step),
+                                                           std::max(parameters.reaction_steps_per_advection_step,1U));
+
+    const double reaction_time_step_size = time_step / static_cast<double>(number_of_reaction_steps);
+
+    Assert (reaction_time_step_size > 0,
+            ExcMessage("Reaction time step must be greater than 0."));
+
+    pcout << "   Solving composition reactions in "
+          << number_of_reaction_steps
+          << " substep(s)."
+          << std::endl;
+
+    // make one fevalues for the composition, and one for the temperature (they might use different finite elements)
+    const Quadrature<dim> quadrature_C(dof_handler.get_fe().base_element(introspection.base_elements.compositional_fields).get_unit_support_points());
+
+    FEValues<dim> fe_values_C (*mapping,
+                               dof_handler.get_fe(),
+                               quadrature_C,
+                               update_quadrature_points | update_values | update_gradients);
+
+    std::vector<types::global_dof_index> local_dof_indices (dof_handler.get_fe().dofs_per_cell);
+    MaterialModel::MaterialModelInputs<dim> in_C(quadrature_C.size(), introspection.n_compositional_fields);
+    MaterialModel::MaterialModelOutputs<dim> out_C(quadrature_C.size(), introspection.n_compositional_fields);
+    HeatingModel::HeatingModelOutputs heating_model_outputs_C(quadrature_C.size(), introspection.n_compositional_fields);
+
+    // temperature element
+    const Quadrature<dim> quadrature_T(dof_handler.get_fe().base_element(introspection.base_elements.temperature).get_unit_support_points());
+
+    FEValues<dim> fe_values_T (*mapping,
+                               dof_handler.get_fe(),
+                               quadrature_T,
+                               update_quadrature_points | update_values | update_gradients);
+
+    MaterialModel::MaterialModelInputs<dim> in_T(quadrature_T.size(), introspection.n_compositional_fields);
+    MaterialModel::MaterialModelOutputs<dim> out_T(quadrature_T.size(), introspection.n_compositional_fields);
+    HeatingModel::HeatingModelOutputs heating_model_outputs_T(quadrature_T.size(), introspection.n_compositional_fields);
+
+    // add reaction rate outputs
+    material_model->create_additional_named_outputs(out_C);
+    material_model->create_additional_named_outputs(out_T);
+
+    MaterialModel::ReactionRateOutputs<dim> *reaction_rate_outputs_C
+      = out_C.template get_additional_output<MaterialModel::ReactionRateOutputs<dim> >();
+
+    MaterialModel::ReactionRateOutputs<dim> *reaction_rate_outputs_T
+      = out_T.template get_additional_output<MaterialModel::ReactionRateOutputs<dim> >();
+
+    AssertThrow(reaction_rate_outputs_C != NULL && reaction_rate_outputs_T != NULL,
+                ExcMessage("You are trying to use the operator splitting solver scheme, "
+                           "but the material model you use does not support operator splitting "
+                           "(it does not create ReactionRateOutputs, which are required for this "
+                           "solver scheme)."));
+
+    // Make a loop first over all cells, than over all reaction time steps, and then over
+    // all degrees of freedom in each element to compute the reactions. This is possible
+    // because the reactions only depend on the temperature and composition values at a given
+    // degree of freedom (and are independent of the solution in other points).
+
+    // Note that the values for some degrees of freedom are set more than once in the loop
+    // below where we assign the new values to distributed_vector (if they are located on the
+    // interface between cells), as we loop over all cells, and then over all degrees of freedom
+    // on each cell. Although this means we do some additional work, the results are still
+    // correct, as we never read from distributed_vector inside the loop over all cells.
+    // We initialize the material model inputs objects in_T and in_C using the solution vector
+    // on every cell, compute the update, and then on every cell put the result into the
+    // distributed_vector vector. Only after the loop over all cells do we copy distributed_vector
+    // back onto the solution vector.
+    // So even though we touch some DoF twice, we always start from the same value, compute the
+    // same value, and then overwrite the same value in distributed_vector.
+    // TODO: make this more effective
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                   endc = dof_handler.end();
+    for (; cell!=endc; ++cell)
+      if (cell->is_locally_owned())
+        {
+          fe_values_C.reinit (cell);
+          cell->get_dof_indices (local_dof_indices);
+          in_C.reinit(fe_values_C, &cell, introspection, solution);
+
+          fe_values_T.reinit (cell);
+          in_T.reinit(fe_values_T, &cell, introspection, solution);
+
+          std::vector<std::vector<double> > accumulated_reactions_C (quadrature_C.size(),std::vector<double> (introspection.n_compositional_fields));
+          std::vector<double> accumulated_reactions_T (quadrature_T.size());
+
+          // Make the reaction time steps: We have to update the values of compositional fields and the temperature.
+          // Because temperature and composition might use different finite elements, we loop through their elements
+          // separately, and update the temperature and the compositions for both.
+          // We can reuse the same material model inputs and outputs structure for each reaction time step.
+          // We store the computed updates to temperature and composition in a separate (accumulated_reactions) vector,
+          // so that we can later copy it over to the solution vector.
+          for (unsigned int i=0; i<number_of_reaction_steps; ++i)
+            {
+              // Loop over composition element
+              material_model->evaluate(in_C, out_C);
+
+              heating_model_manager.evaluate(in_C, out_C, heating_model_outputs_C);
+
+              for (unsigned int j=0; j<dof_handler.get_fe().base_element(introspection.base_elements.compositional_fields).dofs_per_cell; ++j)
+                {
+                  for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+                    {
+                      // simple forward euler
+                      in_C.composition[j][c] = in_C.composition[j][c]
+                                               + reaction_time_step_size * reaction_rate_outputs_C->reaction_rates[j][c];
+                      accumulated_reactions_C[j][c] += reaction_time_step_size * reaction_rate_outputs_C->reaction_rates[j][c];
+                    }
+                  in_C.temperature[j] = in_C.temperature[j]
+                                        + reaction_time_step_size * heating_model_outputs_C.rates_of_temperature_change[j];
+                }
+
+              // loop over temperature element
+              material_model->evaluate(in_T, out_T);
+
+              heating_model_manager.evaluate(in_T, out_T, heating_model_outputs_T);
+
+              for (unsigned int j=0; j<dof_handler.get_fe().base_element(introspection.base_elements.temperature).dofs_per_cell; ++j)
+                {
+                  // simple forward euler
+                  in_T.temperature[j] = in_T.temperature[j]
+                                        + reaction_time_step_size * heating_model_outputs_T.rates_of_temperature_change[j];
+                  accumulated_reactions_T[j] += reaction_time_step_size * heating_model_outputs_T.rates_of_temperature_change[j];
+
+                  for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+                    in_T.composition[j][c] = in_T.composition[j][c]
+                                             + reaction_time_step_size * reaction_rate_outputs_T->reaction_rates[j][c];
+                }
+            }
+
+          // copy reaction rates and new values for the compositional fields
+          for (unsigned int j=0; j<dof_handler.get_fe().base_element(introspection.base_elements.compositional_fields).dofs_per_cell; ++j)
+            for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+              {
+                const unsigned int composition_idx
+                  = dof_handler.get_fe().component_to_system_index(introspection.component_indices.compositional_fields[c],
+                                                                   /*dof index within component=*/ j);
+
+                // skip entries that are not locally owned:
+                if (dof_handler.locally_owned_dofs().is_element(local_dof_indices[composition_idx]))
+                  {
+                    distributed_vector(local_dof_indices[composition_idx]) = in_C.composition[j][c];
+                    distributed_reaction_vector(local_dof_indices[composition_idx]) = accumulated_reactions_C[j][c];
+                  }
+              }
+
+          // copy reaction rates and new values for the temperature field
+          for (unsigned int j=0; j<dof_handler.get_fe().base_element(introspection.base_elements.temperature).dofs_per_cell; ++j)
+            for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+              {
+                const unsigned int temperature_idx
+                  = dof_handler.get_fe().component_to_system_index(introspection.component_indices.temperature,
+                                                                   /*dof index within component=*/ j);
+
+                // skip entries that are not locally owned:
+                if (dof_handler.locally_owned_dofs().is_element(local_dof_indices[temperature_idx]))
+                  {
+                    distributed_vector(local_dof_indices[temperature_idx]) = in_T.temperature[j];
+                    distributed_reaction_vector(local_dof_indices[temperature_idx]) = accumulated_reactions_T[j];
+                  }
+              }
+        }
+
+    // put the final values into the solution vector
+    for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+      {
+        const unsigned int block_c = introspection.block_indices.compositional_fields[c];
+        distributed_vector.block(block_c).compress(VectorOperation::insert);
+        solution.block(block_c) = distributed_vector.block(block_c);
+
+        // we have to update the old solution with our reaction update too
+        // so that the advection scheme will have the correct time stepping in the next step
+        distributed_reaction_vector.block(block_c).compress(VectorOperation::insert);
+
+        // we do not need distributed_vector any more, use it to temporarily store the update
+        distributed_vector.block(block_c) = old_solution.block(block_c);
+        distributed_vector.block(block_c) +=  distributed_reaction_vector.block(block_c);
+        old_solution.block(block_c) = distributed_vector.block(block_c);
+
+        distributed_vector.block(block_c) = old_old_solution.block(block_c);
+        distributed_vector.block(block_c) +=  distributed_reaction_vector.block(block_c);
+        old_old_solution.block(block_c) = distributed_vector.block(block_c);
+      }
+
+    const unsigned int block_T = introspection.block_indices.temperature;
+    distributed_vector.block(block_T).compress(VectorOperation::insert);
+    solution.block(block_T) = distributed_vector.block(block_T);
+
+    // we have to update the old solution with our reaction update too
+    // so that the advection scheme will have the correct time stepping in the next step
+    distributed_reaction_vector.block(block_T).compress(VectorOperation::insert);
+
+    // we do not need distributed_vector any more, use it to temporarily store the update
+    distributed_vector.block(block_T) = old_solution.block(block_T);
+    distributed_vector.block(block_T) +=  distributed_reaction_vector.block(block_T);
+    old_solution.block(block_T) = distributed_vector.block(block_T);
+
+    distributed_vector.block(block_T) = old_old_solution.block(block_T);
+    distributed_vector.block(block_T) +=  distributed_reaction_vector.block(block_T);
+    old_old_solution.block(block_T) = distributed_vector.block(block_T);
+
+    current_linearization_point = old_solution;
+  }
+
+
+  template <int dim>
   void
   Simulator<dim>::check_consistency_of_formulation()
   {
@@ -1459,14 +1755,14 @@ namespace aspect
       {
         AssertThrow(heating_model_manager.adiabatic_heating_enabled(),
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
-                               "The 'isothermal compression' formulation expects adiabatic heating to be enabled, "
-                               "but the 'adiabatic heating' plugin has not been selected in the input file. "
+                               "The `isothermal compression' formulation expects adiabatic heating to be enabled, "
+                               "but the `adiabatic heating' plugin has not been selected in the input file. "
                                "Please check the consistency of your input file."));
 
         AssertThrow(heating_model_manager.shear_heating_enabled(),
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
-                               "The 'isothermal compression' formulation expects shear heating to be enabled, "
-                               "but the 'shear heating' plugin has not been selected in the input file. "
+                               "The `isothermal compression' formulation expects shear heating to be enabled, "
+                               "but the `shear heating' plugin has not been selected in the input file. "
                                "Please check the consistency of your input file."));
       }
     else if (parameters.formulation == Parameters<dim>::Formulation::boussinesq_approximation)
@@ -1474,27 +1770,27 @@ namespace aspect
         AssertThrow(!heating_model_manager.adiabatic_heating_enabled(),
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
                                "The 'Boussinesq approximation' formulation expects adiabatic heating to be disabled, "
-                               "but the 'adiabatic heating' plugin has been selected in the input file. "
+                               "but the `adiabatic heating' plugin has been selected in the input file. "
                                "Please check the consistency of your input file."));
 
         AssertThrow(!heating_model_manager.shear_heating_enabled(),
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
                                "The 'Boussinesq approximation' formulation expects shear heating to be disabled, "
-                               "but the 'shear heating' plugin has been selected in the input file. "
+                               "but the `shear heating' plugin has been selected in the input file. "
                                "Please check the consistency of your input file."));
       }
     else if (parameters.formulation == Parameters<dim>::Formulation::anelastic_liquid_approximation)
       {
         AssertThrow(heating_model_manager.adiabatic_heating_enabled(),
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
-                               "The 'anelastic liquid approximation' formulation expects adiabatic heating to be enabled, "
-                               "but the 'adiabatic heating' plugin has not been selected in the input file. "
+                               "The `anelastic liquid approximation' formulation expects adiabatic heating to be enabled, "
+                               "but the `adiabatic heating' plugin has not been selected in the input file. "
                                "Please check the consistency of your input file."));
 
         AssertThrow(heating_model_manager.shear_heating_enabled(),
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
-                               "The 'anelastic liquid approximation' formulation expects shear heating to be enabled, "
-                               "but the 'shear heating' plugin has not been selected in the input file. "
+                               "The `anelastic liquid approximation' formulation expects shear heating to be enabled, "
+                               "but the `shear heating' plugin has not been selected in the input file. "
                                "Please check the consistency of your input file."));
 
         const bool use_simplified_adiabatic_heating =
@@ -1503,7 +1799,7 @@ namespace aspect
 
         AssertThrow(use_simplified_adiabatic_heating == true,
                     ExcMessage("ASPECT detected an inconsistency in the provided input file. "
-                               "The 'anelastic liquid approximation' formulation expects adiabatic heating to use "
+                               "The `anelastic liquid approximation' formulation expects adiabatic heating to use "
                                "a simplified heating term that neglects dynamic pressure influences, "
                                "but the adiabatic heating plugin does not report to simplify this term. "
                                "Please check the consistency of your input file."));
@@ -1528,10 +1824,12 @@ namespace aspect
   template double Simulator<dim>::compute_time_step () const; \
   template void Simulator<dim>::make_pressure_rhs_compatible(LinearAlgebra::BlockVector &vector); \
   template void Simulator<dim>::output_statistics(); \
+  template void Simulator<dim>::write_plugin_graph(std::ostream &) const; \
   template double Simulator<dim>::compute_initial_stokes_residual(); \
   template bool Simulator<dim>::stokes_matrix_depends_on_solution() const; \
   template void Simulator<dim>::interpolate_onto_velocity_system(const TensorFunction<1,dim> &func, LinearAlgebra::Vector &vec);\
   template void Simulator<dim>::apply_limiter_to_dg_solutions(const AdvectionField &advection_field); \
+  template void Simulator<dim>::compute_reactions(); \
   template void Simulator<dim>::check_consistency_of_formulation();
 
   ASPECT_INSTANTIATE(INSTANTIATE)

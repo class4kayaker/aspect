@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -41,15 +41,12 @@ namespace aspect
 {
   namespace internal
   {
-    using namespace dealii;
-
-
 
     /**
      * A class we use when setting up the data structures for nullspace removal
      * of the rotations in spherical or annular shells.
      */
-    template<int dim>
+    template <int dim>
     class Rotation : public TensorFunction<1,dim>
     {
       private:

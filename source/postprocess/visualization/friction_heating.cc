@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -93,7 +93,7 @@ namespace aspect
                                                   "$\\eta \\varepsilon(\\mathbf u):\\varepsilon(\\mathbf u)$ "
                                                   "where $\\eta$ is itself a function of temperature, "
                                                   "pressure and strain rate. In the compressible case, "
-                                                  "the quantity that's computed is "
+                                                  "the quantity that is computed is "
                                                   "$\\eta [\\varepsilon(\\mathbf u)-\\tfrac 13(\\textrm{tr}\\;\\varepsilon(\\mathbf u))\\mathbf I]:"
                                                   "[\\varepsilon(\\mathbf u)-\\tfrac 13(\\textrm{tr}\\;\\varepsilon(\\mathbf u))\\mathbf I]$.")
     }

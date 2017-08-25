@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -32,7 +32,7 @@ DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
 #  include <deal.II/lac/petsc_parallel_block_sparse_matrix.h>
 #  include <deal.II/lac/petsc_precondition.h>
 #else
-#  include <deal.II/lac/trilinos_block_vector.h>
+#  include <deal.II/lac/trilinos_parallel_block_vector.h>
 #  include <deal.II/lac/trilinos_block_sparse_matrix.h>
 #  include <deal.II/lac/trilinos_precondition.h>
 #endif
