@@ -60,6 +60,7 @@ namespace aspect
 
       private:
         int min_interface_level;
+        bool strict_refinement;
     };
   }
 }

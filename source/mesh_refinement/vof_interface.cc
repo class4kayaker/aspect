@@ -193,6 +193,7 @@ namespace aspect
 
       // Now mark for refinement all cells that are a neighbor of a cell that contains the interface
 
+      std::set<typename Triangulation<dim>::active_cell_iterator> marked_cells_and_neighbors = marked_cells;
       typename std::set<typename parallel::distributed::Triangulation<dim>::active_cell_iterator>::const_iterator mcells = marked_cells.begin(),
                                                                                                                   endmc = marked_cells.end();
       for (; mcells != endmc; mcells++)
@@ -206,64 +207,94 @@ namespace aspect
               for (; neighbor_cell!=end_neighbor_cell_index; neighbor_cell++)
                 {
                   typename Triangulation<dim>::active_cell_iterator itr_tmp = *neighbor_cell;
-                  itr_tmp->clear_coarsen_flag ();
-                  itr_tmp->set_refine_flag ();
-                }
-
-              // Check for periodic neighbors, and refine if existing
-              for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-                {
-                  if ( mcell->has_periodic_neighbor(f))
+                  if (itr_tmp->active())
                     {
-                      typename Triangulation<dim>::cell_iterator itr_tmp = mcell->periodic_neighbor(f);
-                      if (itr_tmp->active())
+                      itr_tmp->clear_coarsen_flag ();
+                      itr_tmp->set_refine_flag ();
+                      marked_cells_and_neighbors.insert(itr_tmp);
+                    }
+                }
+            }
+
+          // Check for periodic neighbors, and refine if existing
+          for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+            {
+              if ( mcell->has_periodic_neighbor(f))
+                {
+                  typename Triangulation<dim>::cell_iterator itr_tmp = mcell->periodic_neighbor(f);
+                  if (itr_tmp->active())
+                    {
+                      itr_tmp->clear_coarsen_flag ();
+                      itr_tmp->set_refine_flag ();
+                      marked_cells_and_neighbors.insert(itr_tmp);
+                    }
+                }
+            }
+        }
+
+      if (strict_refinement)
+        {
+          typename DoFHandler<dim>::active_cell_iterator
+          cell = this->get_dof_handler().begin_active(),
+          endc = this->get_dof_handler().end();
+          for (; cell != endc; ++cell)
+            {
+              if (cell->is_locally_owned())
+                {
+                  if (marked_cells_and_neighbors.find(cell) != marked_cells_and_neighbors.end())
+                    {
+                      //Refinement already requested
+                    }
+                  else
+                    {
+                      if (cell->active())
                         {
-                          itr_tmp->clear_coarsen_flag ();
-                          itr_tmp->set_refine_flag ();
+                          cell->set_coarsen_flag();
+                          cell->clear_refine_flag();
                         }
                     }
                 }
             }
         }
 
-//        typename DoFHandler<dim>::active_cell_iterator
-//                cell = this->get_dof_handler().begin_active(),
-//                endc = this->get_dof_handler().end();
-//        for (; cell != endc; ++cell) {
-//            if (cell->is_locally_owned()){
-//                if (marked_cells_and_neighbors.find(cell) != marked_cells_and_neighbors.end()){
-//                    cell->clear_coarsen_flag();
-//                    cell->set_refine_flag();
-//                }
-//            else
-//            {
-//                if (cell->refine_flag_set())
-//                    cell->set_coarsen_flag();
-//                }
-//            }
-//        }
-
-//        std::set<typename Triangulation<dim>::active_cell_iterator> marked_cells_and_neighbors = marked_cells;
-//        for (cell=marked_cells_and_neighbors);
-//          for (unsigned int v=0; v<GeometryInfo<dim>::vertices_per_cell; ++v)
-//              marked_cells_and_neighbors.insert (vertex_to_cell_array[cell->vertex(v)])
-
     }
 
     template <int dim>
     void
     VoFInterface<dim>::
-    declare_parameters (ParameterHandler &/*prm*/)
+    declare_parameters (ParameterHandler &prm)
     {
+      prm.enter_subsection("Mesh refinement");
+      {
+        prm.enter_subsection("VOF Interface");
+        {
+          prm.declare_entry("Strict refinement", "false",
+                            Patterns::Bool(),
+                            "If true, then explicitly coarsen any cells not "
+                            "neighboring the VoF interface.");
+        }
+        prm.leave_subsection();
+      }
+      prm.leave_subsection();
     }
 
     template <int dim>
     void
-    VoFInterface<dim>::parse_parameters (ParameterHandler &/*prm*/)
+    VoFInterface<dim>::parse_parameters (ParameterHandler &prm)
     {
       //TODO: Add check for vof active
       AssertThrow(this->get_parameters().vof_tracking_enabled,
                   ExcMessage("The 'vof boundary' mesh refinement strategy requires that the 'Use VoF tracking' parameter is enabled."));
+
+      prm.enter_subsection("Mesh refinement");
+      {
+        prm.enter_subsection("VOF Interface");
+        {
+          strict_refinement = prm.get_bool("Strict refinement");
+        }
+        prm.leave_subsection();
+      }
+      prm.leave_subsection();
     }
 
 
