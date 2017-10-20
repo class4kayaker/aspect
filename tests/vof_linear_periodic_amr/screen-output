@@ -724,7 +724,7 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.462
-     VoF Calculation(IEstL1/FEstL1): 4.58136017e-16/4.59673769e-16
+     VoF Calculation(IEstL1/FEstL1): 4.42524770e-16/4.45037040e-16
 
 Number of active cells: 205 (on 5 levels)
 Number of degrees of freedom: 4,668 (1,854+247+927+205+615+820)
