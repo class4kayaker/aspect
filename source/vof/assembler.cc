@@ -168,7 +168,7 @@ namespace aspect
 
       // vol fraction and interface values are constants, so can set from first value
       const double cell_vol = cell->measure();
-      // const double cell_vof = scratch.old_field_values[0];
+      const double cell_vof = scratch.old_field_values[0];
       const Tensor<1, dim, double> cell_i_normal = scratch.cell_i_n_values[0];
       const double cell_i_d = scratch.cell_i_d_values[0];
 
@@ -264,8 +264,7 @@ namespace aspect
           //TODO: Handle non-zero inflow VoF boundary conditions
 
           // Add fluxes to RHS
-          data.local_rhs[0] -= flux_vof * face_flux;
-          data.local_matrix(0, 0) -= face_flux;
+          data.local_rhs[0] -= (flux_vof-cell_vof) * face_flux;
         }
     }
 
@@ -482,10 +481,8 @@ namespace aspect
               data.face_contributions_mask[f_rhs_ind] = true;
 
               // fluxes to RHS
-              data.local_rhs [0] -= flux_vof * face_flux;
-              data.local_matrix (0, 0) -= face_flux;
-              data.local_face_rhs[f_rhs_ind][0] += flux_vof * face_flux;
-              data.local_face_matrices_ext_ext[f_rhs_ind] (0, 0) += face_flux;
+              data.local_rhs [0] -= (flux_vof-cell_vof) * face_flux;
+              data.local_face_rhs[f_rhs_ind][0] += (flux_vof-neighbor_vof) * face_flux;
             }
           else
             {
@@ -607,10 +604,8 @@ namespace aspect
               if (flux_vof > 1.0)
                 flux_vof = 1.0;
 
-              data.local_rhs [0] -= flux_vof * face_flux;
-              data.local_matrix (0, 0) -= face_flux;
-              data.local_face_rhs[f_rhs_ind][0] += flux_vof * face_flux;
-              data.local_face_matrices_ext_ext[f_rhs_ind] (0, 0) += face_flux;
+              data.local_rhs [0] -= (flux_vof-cell_vof) * face_flux;
+              data.local_face_rhs[f_rhs_ind][0] += (flux_vof-neighbor_vof) * face_flux;
 
               // Limit to constant cases, otherwise announce error
               if (cell_vof > vof_epsilon && cell_vof<1.0-vof_epsilon)
