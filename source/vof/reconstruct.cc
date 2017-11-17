@@ -115,8 +115,14 @@ namespace aspect
         if (cell_vof > 1.0 - vof_epsilon)
           {
             d = 1.0;
+            solution(local_dof_indicies[vof_ind]) = 1.0;
           }
-        else if (cell_vof > vof_epsilon)
+        else if (cell_vof < vof_epsilon)
+          {
+            d = -1.0;
+            solution(local_dof_indicies[vof_ind]) = 0.0;
+          }
+        else
           {
             //Identify best normal
             // Get references to neighboring cells

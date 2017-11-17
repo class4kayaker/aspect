@@ -244,16 +244,15 @@ namespace aspect
 
           // Calculate outward flux
           double flux_vof;
-          if (face_flux < 0.0)
+          if (std::abs(face_flux) < vof_epsilon*cell_vol)
+            {
+              flux_vof = cell_vof;
+            }
+          else if (face_flux < 0.0) // edge is upwind, currently assume zero inflow
             {
               flux_vof = 0.0;
             }
-          else if (face_flux < vof_epsilon*cell_vol)
-            {
-              face_flux=0.0;
-              flux_vof = 0.0;
-            }
-          else
+          else // Cell is upwind, outflow boundary
             {
               flux_vof = VolumeOfFluid::calc_vof_flux_edge<dim> (f_dim,
                                                                  face_ls_time_grad,

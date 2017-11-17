@@ -1,5 +1,5 @@
 
-Loading shared library <./libvof_linear_periodic_amr.so>
+Loading shared library <./libvof_linear_periodic_amr_mpi.so>
 
 Number of active cells: 64 (on 4 levels)
 Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
@@ -20,9 +20,10 @@ Number of degrees of freedom: 5,604 (2,178+289+1,089+256+768+1,024)
    Postprocessing:
      Global VoF volumes (m^3):       0.462
      VoF Calculation(IEstL1/FEstL1): 7.33494902e-18/0.00000000e+00
+     Writing graphical output:       output-vof_linear_periodic_amr_mpi/solution/solution-00000
 
-Number of active cells: 205 (on 5 levels)
-Number of degrees of freedom: 4,668 (1,854+247+927+205+615+820)
+Number of active cells: 211 (on 5 levels)
+Number of degrees of freedom: 4,755 (1,878+250+939+211+633+844)
 
 *** Timestep 1:  t=0.0625 seconds
    Skipping temperature solve because RHS is zero.
@@ -31,9 +32,10 @@ Number of degrees of freedom: 4,668 (1,854+247+927+205+615+820)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00001
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,051 (1,986+264+993+226+678+904)
 
 *** Timestep 2:  t=0.125 seconds
    Skipping temperature solve because RHS is zero.
@@ -42,9 +44,10 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00002
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
+Number of active cells: 229 (on 5 levels)
+Number of degrees of freedom: 5,098 (2,000+266+1,000+229+687+916)
 
 *** Timestep 3:  t=0.1875 seconds
    Skipping temperature solve because RHS is zero.
@@ -53,9 +56,10 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00003
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,277 (2,066+274+1,033+238+714+952)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,051 (1,986+264+993+226+678+904)
 
 *** Timestep 4:  t=0.25 seconds
    Skipping temperature solve because RHS is zero.
@@ -64,9 +68,10 @@ Number of degrees of freedom: 5,277 (2,066+274+1,033+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00004
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
+Number of active cells: 196 (on 5 levels)
+Number of degrees of freedom: 4,432 (1,754+233+877+196+588+784)
 
 *** Timestep 5:  t=0.3125 seconds
    Skipping temperature solve because RHS is zero.
@@ -75,9 +80,10 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00005
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
+Number of active cells: 187 (on 5 levels)
+Number of degrees of freedom: 4,279 (1,704+227+852+187+561+748)
 
 *** Timestep 6:  t=0.375 seconds
    Skipping temperature solve because RHS is zero.
@@ -86,9 +92,10 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00006
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
+Number of active cells: 208 (on 5 levels)
+Number of degrees of freedom: 4,682 (1,848+246+924+208+624+832)
 
 *** Timestep 7:  t=0.4375 seconds
    Skipping temperature solve because RHS is zero.
@@ -97,9 +104,10 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00007
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
+Number of active cells: 199 (on 5 levels)
+Number of degrees of freedom: 4,505 (1,784+237+892+199+597+796)
 
 *** Timestep 8:  t=0.5 seconds
    Skipping temperature solve because RHS is zero.
@@ -108,9 +116,10 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00008
 
-Number of active cells: 196 (on 5 levels)
-Number of degrees of freedom: 4,468 (1,776+236+888+196+588+784)
+Number of active cells: 205 (on 5 levels)
+Number of degrees of freedom: 4,645 (1,840+245+920+205+615+820)
 
 *** Timestep 9:  t=0.5625 seconds
    Skipping temperature solve because RHS is zero.
@@ -119,9 +128,10 @@ Number of degrees of freedom: 4,468 (1,776+236+888+196+588+784)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00009
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
+Number of active cells: 232 (on 5 levels)
+Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
 *** Timestep 10:  t=0.625 seconds
    Skipping temperature solve because RHS is zero.
@@ -130,9 +140,10 @@ Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00010
 
 Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
+Number of degrees of freedom: 5,150 (2,018+267+1,009+232+696+928)
 
 *** Timestep 11:  t=0.6875 seconds
    Skipping temperature solve because RHS is zero.
@@ -141,9 +152,10 @@ Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00011
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,267 (2,060+273+1,030+238+714+952)
+Number of active cells: 244 (on 5 levels)
+Number of degrees of freedom: 5,390 (2,106+279+1,053+244+732+976)
 
 *** Timestep 12:  t=0.75 seconds
    Skipping temperature solve because RHS is zero.
@@ -152,9 +164,10 @@ Number of degrees of freedom: 5,267 (2,060+273+1,030+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00012
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
+Number of active cells: 235 (on 5 levels)
+Number of degrees of freedom: 5,210 (2,040+270+1,020+235+705+940)
 
 *** Timestep 13:  t=0.8125 seconds
    Skipping temperature solve because RHS is zero.
@@ -163,9 +176,10 @@ Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00013
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
+Number of active cells: 250 (on 5 levels)
+Number of degrees of freedom: 5,507 (2,148+285+1,074+250+750+1,000)
 
 *** Timestep 14:  t=0.875 seconds
    Skipping temperature solve because RHS is zero.
@@ -174,9 +188,10 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00014
 
-Number of active cells: 229 (on 5 levels)
-Number of degrees of freedom: 5,094 (1,998+265+999+229+687+916)
+Number of active cells: 241 (on 5 levels)
+Number of degrees of freedom: 5,330 (2,084+276+1,042+241+723+964)
 
 *** Timestep 15:  t=0.9375 seconds
    Skipping temperature solve because RHS is zero.
@@ -185,9 +200,10 @@ Number of degrees of freedom: 5,094 (1,998+265+999+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00015
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
+Number of active cells: 250 (on 5 levels)
+Number of degrees of freedom: 5,507 (2,148+285+1,074+250+750+1,000)
 
 *** Timestep 16:  t=1 seconds
    Skipping temperature solve because RHS is zero.
@@ -196,9 +212,10 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00016
 
-Number of active cells: 193 (on 5 levels)
-Number of degrees of freedom: 4,414 (1,758+233+879+193+579+772)
+Number of active cells: 223 (on 5 levels)
+Number of degrees of freedom: 4,973 (1,954+258+977+223+669+892)
 
 *** Timestep 17:  t=1.0625 seconds
    Skipping temperature solve because RHS is zero.
@@ -207,9 +224,10 @@ Number of degrees of freedom: 4,414 (1,758+233+879+193+579+772)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00017
 
-Number of active cells: 256 (on 5 levels)
-Number of degrees of freedom: 5,604 (2,178+289+1,089+256+768+1,024)
+Number of active cells: 241 (on 5 levels)
+Number of degrees of freedom: 5,330 (2,084+276+1,042+241+723+964)
 
 *** Timestep 18:  t=1.125 seconds
    Skipping temperature solve because RHS is zero.
@@ -218,9 +236,10 @@ Number of degrees of freedom: 5,604 (2,178+289+1,089+256+768+1,024)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00018
 
-Number of active cells: 229 (on 5 levels)
-Number of degrees of freedom: 5,087 (1,994+264+997+229+687+916)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,027 (1,972+261+986+226+678+904)
 
 *** Timestep 19:  t=1.1875 seconds
    Skipping temperature solve because RHS is zero.
@@ -229,9 +248,10 @@ Number of degrees of freedom: 5,087 (1,994+264+997+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00019
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
+Number of active cells: 232 (on 5 levels)
+Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
 *** Timestep 20:  t=1.25 seconds
    Skipping temperature solve because RHS is zero.
@@ -240,9 +260,10 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00020
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
+Number of active cells: 241 (on 5 levels)
+Number of degrees of freedom: 5,337 (2,088+277+1,044+241+723+964)
 
 *** Timestep 21:  t=1.3125 seconds
    Skipping temperature solve because RHS is zero.
@@ -251,9 +272,10 @@ Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00021
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,034 (1,976+262+988+226+678+904)
 
 *** Timestep 22:  t=1.375 seconds
    Skipping temperature solve because RHS is zero.
@@ -262,9 +284,10 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00022
 
-Number of active cells: 229 (on 5 levels)
-Number of degrees of freedom: 5,094 (1,998+265+999+229+687+916)
+Number of active cells: 232 (on 5 levels)
+Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
 *** Timestep 23:  t=1.4375 seconds
    Skipping temperature solve because RHS is zero.
@@ -273,9 +296,10 @@ Number of degrees of freedom: 5,094 (1,998+265+999+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00023
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
+Number of active cells: 220 (on 5 levels)
+Number of degrees of freedom: 4,921 (1,936+257+968+220+660+880)
 
 *** Timestep 24:  t=1.5 seconds
    Skipping temperature solve because RHS is zero.
@@ -284,9 +308,10 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00024
 
-Number of active cells: 199 (on 5 levels)
-Number of degrees of freedom: 4,525 (1,796+239+898+199+597+796)
+Number of active cells: 205 (on 5 levels)
+Number of degrees of freedom: 4,612 (1,820+242+910+205+615+820)
 
 *** Timestep 25:  t=1.5625 seconds
    Skipping temperature solve because RHS is zero.
@@ -295,9 +320,10 @@ Number of degrees of freedom: 4,525 (1,796+239+898+199+597+796)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00025
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
+Number of active cells: 202 (on 5 levels)
+Number of degrees of freedom: 4,559 (1,802+240+901+202+606+808)
 
 *** Timestep 26:  t=1.625 seconds
    Skipping temperature solve because RHS is zero.
@@ -306,9 +332,10 @@ Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00026
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,144 (2,014+267+1,007+232+696+928)
+Number of active cells: 196 (on 5 levels)
+Number of degrees of freedom: 4,436 (1,756+234+878+196+588+784)
 
 *** Timestep 27:  t=1.6875 seconds
    Skipping temperature solve because RHS is zero.
@@ -317,9 +344,10 @@ Number of degrees of freedom: 5,144 (2,014+267+1,007+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00027
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
+Number of active cells: 208 (on 5 levels)
+Number of degrees of freedom: 4,682 (1,848+246+924+208+624+832)
 
 *** Timestep 28:  t=1.75 seconds
    Skipping temperature solve because RHS is zero.
@@ -328,9 +356,10 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00028
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,267 (2,060+273+1,030+238+714+952)
+Number of active cells: 205 (on 5 levels)
+Number of degrees of freedom: 4,612 (1,820+242+910+205+615+820)
 
 *** Timestep 29:  t=1.8125 seconds
    Skipping temperature solve because RHS is zero.
@@ -339,9 +368,10 @@ Number of degrees of freedom: 5,267 (2,060+273+1,030+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00029
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
+Number of active cells: 244 (on 5 levels)
+Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
 
 *** Timestep 30:  t=1.875 seconds
    Skipping temperature solve because RHS is zero.
@@ -350,9 +380,10 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00030
 
-Number of active cells: 235 (on 5 levels)
-Number of degrees of freedom: 5,201 (2,034+270+1,017+235+705+940)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,015 (1,964+261+982+226+678+904)
 
 *** Timestep 31:  t=1.9375 seconds
    Skipping temperature solve because RHS is zero.
@@ -361,9 +392,10 @@ Number of degrees of freedom: 5,201 (2,034+270+1,017+235+705+940)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00031
 
-Number of active cells: 229 (on 5 levels)
-Number of degrees of freedom: 5,088 (1,994+265+997+229+687+916)
+Number of active cells: 220 (on 5 levels)
+Number of degrees of freedom: 4,898 (1,922+255+961+220+660+880)
 
 *** Timestep 32:  t=2 seconds
    Skipping temperature solve because RHS is zero.
@@ -372,9 +404,10 @@ Number of degrees of freedom: 5,088 (1,994+265+997+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00032
 
-Number of active cells: 205 (on 5 levels)
-Number of degrees of freedom: 4,658 (1,848+246+924+205+615+820)
+Number of active cells: 211 (on 5 levels)
+Number of degrees of freedom: 4,758 (1,880+250+940+211+633+844)
 
 *** Timestep 33:  t=2.0625 seconds
    Skipping temperature solve because RHS is zero.
@@ -383,9 +416,10 @@ Number of degrees of freedom: 4,658 (1,848+246+924+205+615+820)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00033
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,144 (2,014+267+1,007+232+696+928)
+Number of active cells: 235 (on 5 levels)
+Number of degrees of freedom: 5,194 (2,030+269+1,015+235+705+940)
 
 *** Timestep 34:  t=2.125 seconds
    Skipping temperature solve because RHS is zero.
@@ -394,9 +428,10 @@ Number of degrees of freedom: 5,144 (2,014+267+1,007+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00034
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
+Number of active cells: 232 (on 5 levels)
+Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
 
 *** Timestep 35:  t=2.1875 seconds
    Skipping temperature solve because RHS is zero.
@@ -405,9 +440,10 @@ Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00035
 
 Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,134 (2,008+266+1,004+232+696+928)
+Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
 
 *** Timestep 36:  t=2.25 seconds
    Skipping temperature solve because RHS is zero.
@@ -416,9 +452,10 @@ Number of degrees of freedom: 5,134 (2,008+266+1,004+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00036
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
+Number of active cells: 214 (on 5 levels)
+Number of degrees of freedom: 4,811 (1,898+252+949+214+642+856)
 
 *** Timestep 37:  t=2.3125 seconds
    Skipping temperature solve because RHS is zero.
@@ -427,9 +464,10 @@ Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00037
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
+Number of active cells: 208 (on 5 levels)
+Number of degrees of freedom: 4,695 (1,856+247+928+208+624+832)
 
 *** Timestep 38:  t=2.375 seconds
    Skipping temperature solve because RHS is zero.
@@ -438,9 +476,10 @@ Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00038
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
+Number of active cells: 208 (on 5 levels)
+Number of degrees of freedom: 4,662 (1,836+244+918+208+624+832)
 
 *** Timestep 39:  t=2.4375 seconds
    Skipping temperature solve because RHS is zero.
@@ -449,9 +488,10 @@ Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00039
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
+Number of active cells: 214 (on 5 levels)
+Number of degrees of freedom: 4,775 (1,876+249+938+214+642+856)
 
 *** Timestep 40:  t=2.5 seconds
    Skipping temperature solve because RHS is zero.
@@ -460,9 +500,10 @@ Number of degrees of freedom: 5,118 (1,998+265+999+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00040
 
-Number of active cells: 208 (on 5 levels)
-Number of degrees of freedom: 4,688 (1,852+246+926+208+624+832)
+Number of active cells: 205 (on 5 levels)
+Number of degrees of freedom: 4,615 (1,822+242+911+205+615+820)
 
 *** Timestep 41:  t=2.5625 seconds
    Skipping temperature solve because RHS is zero.
@@ -471,9 +512,10 @@ Number of degrees of freedom: 4,688 (1,852+246+926+208+624+832)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00041
 
-Number of active cells: 229 (on 5 levels)
-Number of degrees of freedom: 5,087 (1,994+264+997+229+687+916)
+Number of active cells: 223 (on 5 levels)
+Number of degrees of freedom: 4,977 (1,956+259+978+223+669+892)
 
 *** Timestep 42:  t=2.625 seconds
    Skipping temperature solve because RHS is zero.
@@ -482,9 +524,10 @@ Number of degrees of freedom: 5,087 (1,994+264+997+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00042
 
-Number of active cells: 250 (on 5 levels)
-Number of degrees of freedom: 5,487 (2,136+283+1,068+250+750+1,000)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,030 (1,974+261+987+226+678+904)
 
 *** Timestep 43:  t=2.6875 seconds
    Skipping temperature solve because RHS is zero.
@@ -493,9 +536,10 @@ Number of degrees of freedom: 5,487 (2,136+283+1,068+250+750+1,000)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00043
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,140 (2,012+266+1,006+232+696+928)
+Number of active cells: 247 (on 5 levels)
+Number of degrees of freedom: 5,437 (2,120+281+1,060+247+741+988)
 
 *** Timestep 44:  t=2.75 seconds
    Skipping temperature solve because RHS is zero.
@@ -504,9 +548,10 @@ Number of degrees of freedom: 5,140 (2,012+266+1,006+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00044
 
-Number of active cells: 250 (on 5 levels)
-Number of degrees of freedom: 5,487 (2,136+283+1,068+250+750+1,000)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,000 (1,956+258+978+226+678+904)
 
 *** Timestep 45:  t=2.8125 seconds
    Skipping temperature solve because RHS is zero.
@@ -515,9 +560,10 @@ Number of degrees of freedom: 5,487 (2,136+283+1,068+250+750+1,000)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00045
 
-Number of active cells: 229 (on 5 levels)
-Number of degrees of freedom: 5,070 (1,984+262+992+229+687+916)
+Number of active cells: 223 (on 5 levels)
+Number of degrees of freedom: 4,940 (1,934+255+967+223+669+892)
 
 *** Timestep 46:  t=2.875 seconds
    Skipping temperature solve because RHS is zero.
@@ -526,9 +572,10 @@ Number of degrees of freedom: 5,070 (1,984+262+992+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00046
 
-Number of active cells: 235 (on 5 levels)
-Number of degrees of freedom: 5,187 (2,026+268+1,013+235+705+940)
+Number of active cells: 220 (on 5 levels)
+Number of degrees of freedom: 4,880 (1,912+252+956+220+660+880)
 
 *** Timestep 47:  t=2.9375 seconds
    Skipping temperature solve because RHS is zero.
@@ -537,9 +584,10 @@ Number of degrees of freedom: 5,187 (2,026+268+1,013+235+705+940)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00047
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,367 (2,092+277+1,046+244+732+976)
+Number of active cells: 217 (on 5 levels)
+Number of degrees of freedom: 4,820 (1,890+249+945+217+651+868)
 
 *** Timestep 48:  t=3 seconds
    Skipping temperature solve because RHS is zero.
@@ -548,9 +596,10 @@ Number of degrees of freedom: 5,367 (2,092+277+1,046+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00048
 
-Number of active cells: 214 (on 5 levels)
-Number of degrees of freedom: 4,780 (1,880+248+940+214+642+856)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,000 (1,956+258+978+226+678+904)
 
 *** Timestep 49:  t=3.0625 seconds
    Skipping temperature solve because RHS is zero.
@@ -559,9 +608,10 @@ Number of degrees of freedom: 4,780 (1,880+248+940+214+642+856)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00049
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
+Number of active cells: 244 (on 5 levels)
+Number of degrees of freedom: 5,367 (2,092+277+1,046+244+732+976)
 
 *** Timestep 50:  t=3.125 seconds
    Skipping temperature solve because RHS is zero.
@@ -570,9 +620,10 @@ Number of degrees of freedom: 5,147 (2,016+267+1,008+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00050
 
-Number of active cells: 235 (on 5 levels)
-Number of degrees of freedom: 5,184 (2,024+268+1,012+235+705+940)
+Number of active cells: 232 (on 5 levels)
+Number of degrees of freedom: 5,124 (2,002+265+1,001+232+696+928)
 
 *** Timestep 51:  t=3.1875 seconds
    Skipping temperature solve because RHS is zero.
@@ -581,9 +632,10 @@ Number of degrees of freedom: 5,184 (2,024+268+1,012+235+705+940)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00051
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,257 (2,054+272+1,027+238+714+952)
+Number of active cells: 244 (on 5 levels)
+Number of degrees of freedom: 5,364 (2,090+277+1,045+244+732+976)
 
 *** Timestep 52:  t=3.25 seconds
    Skipping temperature solve because RHS is zero.
@@ -592,9 +644,10 @@ Number of degrees of freedom: 5,257 (2,054+272+1,027+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00052
 
-Number of active cells: 235 (on 5 levels)
-Number of degrees of freedom: 5,184 (2,024+268+1,012+235+705+940)
+Number of active cells: 232 (on 5 levels)
+Number of degrees of freedom: 5,124 (2,002+265+1,001+232+696+928)
 
 *** Timestep 53:  t=3.3125 seconds
    Skipping temperature solve because RHS is zero.
@@ -603,9 +656,10 @@ Number of degrees of freedom: 5,184 (2,024+268+1,012+235+705+940)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00053
 
-Number of active cells: 229 (on 5 levels)
-Number of degrees of freedom: 5,061 (1,978+262+989+229+687+916)
+Number of active cells: 238 (on 5 levels)
+Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
 
 *** Timestep 54:  t=3.375 seconds
    Skipping temperature solve because RHS is zero.
@@ -614,9 +668,10 @@ Number of degrees of freedom: 5,061 (1,978+262+989+229+687+916)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00054
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
+Number of active cells: 223 (on 5 levels)
+Number of degrees of freedom: 4,935 (1,930+256+965+223+669+892)
 
 *** Timestep 55:  t=3.4375 seconds
    Skipping temperature solve because RHS is zero.
@@ -625,9 +680,10 @@ Number of degrees of freedom: 5,241 (2,044+271+1,022+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00055
 
-Number of active cells: 223 (on 5 levels)
-Number of degrees of freedom: 4,938 (1,932+256+966+223+669+892)
+Number of active cells: 214 (on 5 levels)
+Number of degrees of freedom: 4,742 (1,856+246+928+214+642+856)
 
 *** Timestep 56:  t=3.5 seconds
    Skipping temperature solve because RHS is zero.
@@ -636,9 +692,10 @@ Number of degrees of freedom: 4,938 (1,932+256+966+223+669+892)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00056
 
-Number of active cells: 205 (on 5 levels)
-Number of degrees of freedom: 4,588 (1,806+239+903+205+615+820)
+Number of active cells: 202 (on 5 levels)
+Number of degrees of freedom: 4,525 (1,782+236+891+202+606+808)
 
 *** Timestep 57:  t=3.5625 seconds
    Skipping temperature solve because RHS is zero.
@@ -647,9 +704,10 @@ Number of degrees of freedom: 4,588 (1,806+239+903+205+615+820)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00057
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
+Number of active cells: 190 (on 5 levels)
+Number of degrees of freedom: 4,296 (1,700+226+850+190+570+760)
 
 *** Timestep 58:  t=3.625 seconds
    Skipping temperature solve because RHS is zero.
@@ -658,9 +716,10 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00058
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
+Number of active cells: 196 (on 5 levels)
+Number of degrees of freedom: 4,399 (1,734+230+867+196+588+784)
 
 *** Timestep 59:  t=3.6875 seconds
    Skipping temperature solve because RHS is zero.
@@ -669,9 +728,10 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00059
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,277 (2,066+274+1,033+238+714+952)
+Number of active cells: 187 (on 5 levels)
+Number of degrees of freedom: 4,223 (1,670+222+835+187+561+748)
 
 *** Timestep 60:  t=3.75 seconds
    Skipping temperature solve because RHS is zero.
@@ -680,9 +740,10 @@ Number of degrees of freedom: 5,277 (2,066+274+1,033+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00060
 
-Number of active cells: 244 (on 5 levels)
-Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
+Number of active cells: 187 (on 5 levels)
+Number of degrees of freedom: 4,203 (1,658+220+829+187+561+748)
 
 *** Timestep 61:  t=3.8125 seconds
    Skipping temperature solve because RHS is zero.
@@ -691,9 +752,10 @@ Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00061
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
+Number of active cells: 244 (on 5 levels)
+Number of degrees of freedom: 5,384 (2,102+279+1,051+244+732+976)
 
 *** Timestep 62:  t=3.875 seconds
    Skipping temperature solve because RHS is zero.
@@ -702,9 +764,10 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00062
 
-Number of active cells: 238 (on 5 levels)
-Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
+Number of active cells: 226 (on 5 levels)
+Number of degrees of freedom: 5,035 (1,976+263+988+226+678+904)
 
 *** Timestep 63:  t=3.9375 seconds
    Skipping temperature solve because RHS is zero.
@@ -713,9 +776,10 @@ Number of degrees of freedom: 5,271 (2,062+274+1,031+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.462
+     Writing graphical output: output-vof_linear_periodic_amr_mpi/solution/solution-00063
 
-Number of active cells: 232 (on 5 levels)
-Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
+Number of active cells: 220 (on 5 levels)
+Number of degrees of freedom: 4,928 (1,940+258+970+220+660+880)
 
 *** Timestep 64:  t=4 seconds
    Skipping temperature solve because RHS is zero.
@@ -724,10 +788,11 @@ Number of degrees of freedom: 5,158 (2,022+269+1,011+232+696+928)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.462
-     VoF Calculation(IEstL1/FEstL1): 2.72615639e-08/2.20822396e-08
+     VoF Calculation(IEstL1/FEstL1): 1.90489041e-05/1.62158396e-05
+     Writing graphical output:       output-vof_linear_periodic_amr_mpi/solution/solution-00064
 
-Number of active cells: 205 (on 5 levels)
-Number of degrees of freedom: 4,668 (1,854+247+927+205+615+820)
+Number of active cells: 202 (on 5 levels)
+Number of degrees of freedom: 4,589 (1,820+243+910+202+606+808)
 
 Termination requested by criterion: end time
 
