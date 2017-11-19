@@ -194,6 +194,7 @@ namespace aspect
                     local_vofs (3 * j + i) = solution (cell_dof_indicies[vof_ind]);
                   }
               }
+
             // Gather cell strip sums
             for (unsigned int i = 0; i < dim * n_sums; ++i)
               strip_sums[i] = 0.0;
@@ -274,15 +275,25 @@ namespace aspect
               {
                 errs[nind] = 0.0;
                 d = VolumeOfFluid::d_from_vof<dim> (normals[nind], cell_vof);
+                const double normal_norm = normals[nind]*normals[nind];
+
                 for (unsigned int i = 0; i < n_local; ++i)
                   {
                     double dot = 0.0;
                     for (unsigned int di = 0; di < dim; ++di)
                       dot += normals[nind][di] * resc_cell_centers[i][di];
-                    double val = local_vofs (i)
-                                 - VolumeOfFluid::vof_from_d<dim> (normals[nind],
-                                                                   d - dot);
-                    errs[nind] += val * val;
+                    double cell_err;
+                    if (normal_norm < vof_epsilon) // If candidate normal too small assume equal volume fraction in all neighboring cells
+                      {
+                        cell_err = local_vofs(i)-cell_vof;
+                      }
+                    else // otherwise can use normal for calculation
+                      {
+                        cell_err = local_vofs (i)
+                                   - VolumeOfFluid::vof_from_d<dim> (normals[nind],
+                                                                     d - dot);
+                      }
+                    errs[nind] += cell_err * cell_err;
                   }
                 if (errs[mn_ind] >= errs[nind])
                   mn_ind = nind;
