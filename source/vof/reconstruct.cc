@@ -277,23 +277,22 @@ namespace aspect
                 d = VolumeOfFluid::d_from_vof<dim> (normals[nind], cell_vof);
                 const double normal_norm = normals[nind]*normals[nind];
 
-                for (unsigned int i = 0; i < n_local; ++i)
+                if (normal_norm < vof_epsilon) // If candidate normal too small set error to maximum
                   {
-                    double dot = 0.0;
-                    for (unsigned int di = 0; di < dim; ++di)
-                      dot += normals[nind][di] * resc_cell_centers[i][di];
-                    double cell_err;
-                    if (normal_norm < vof_epsilon) // If candidate normal too small assume equal volume fraction in all neighboring cells
+                      errs[nind] = 8.0;
+                  }
+                else
+                  {
+                    for (unsigned int i = 0; i < n_local; ++i)
                       {
-                        cell_err = local_vofs(i)-cell_vof;
+                        double dot = 0.0;
+                        for (unsigned int di = 0; di < dim; ++di)
+                          dot += normals[nind][di] * resc_cell_centers[i][di];
+                        double cell_err = local_vofs (i)
+                                          - VolumeOfFluid::vof_from_d<dim> (normals[nind],
+                                                                            d - dot);
+                        errs[nind] += cell_err * cell_err;
                       }
-                    else // otherwise can use normal for calculation
-                      {
-                        cell_err = local_vofs (i)
-                                   - VolumeOfFluid::vof_from_d<dim> (normals[nind],
-                                                                     d - dot);
-                      }
-                    errs[nind] += cell_err * cell_err;
                   }
                 if (errs[mn_ind] >= errs[nind])
                   mn_ind = nind;
