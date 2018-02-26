@@ -17,7 +17,7 @@ subsection Mesh refinement
   set Initial adaptive refinement        = 1
   set Initial global refinement          = 3
   set Time steps between mesh refinement = 1
-  set Strategy = vof interface
+  set Strategy                           = vof interface
 end
 
 subsection Geometry model

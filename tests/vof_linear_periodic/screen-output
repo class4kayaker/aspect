@@ -268,7 +268,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.462
-     VoF Calculation(IEstL1/FEstL1): 2.15583517e-17/1.55583012e-17
+     VoF Calculation(IEstL1/FEstL1): 2.16235732e-17/1.62088225e-17
 
 Termination requested by criterion: end time
 
