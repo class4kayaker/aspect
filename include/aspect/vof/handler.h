@@ -57,6 +57,7 @@ namespace aspect
       const std::string get_field_name(unsigned int i) const;
       const VoFField<dim> &get_field(unsigned int i) const;
       double get_vof_epsilon() const;
+      unsigned int get_vof_field(std::string composition_fieldname) const;
 
       // initialiation
       void initialize (ParameterHandler &prm);
@@ -69,6 +70,9 @@ namespace aspect
       // Do interface reconstruction
       void update_vof_normals (const VoFField<dim> field,
                                LinearAlgebra::BlockVector &solution);
+      void update_vof_composition (const typename Simulator<dim>::AdvectionField composition_field,
+                                   const VoFField<dim> vof_field,
+                                   LinearAlgebra::BlockVector &solution);
 
       // Logic to handle dimensionally split update
       void do_vof_update ();
@@ -106,7 +110,7 @@ namespace aspect
       double vof_solver_tolerance;
 
       std::vector<std::string> vof_field_names;
-      std::vector<std::string> vof_composition_vars;
+      std::map<std::string, unsigned int> vof_composition_map_index;
 
       // Order for split update
       bool vof_dir_order_dsc;

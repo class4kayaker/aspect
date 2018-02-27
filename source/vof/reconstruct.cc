@@ -81,21 +81,6 @@ namespace aspect
     const unsigned int n_vofLS_dofs = vofLS_var.fe->dofs_per_cell;
     const unsigned int vofLS_blockidx = vofLS_var.block_index;
 
-    //
-    bool use_vof_composition = field.c_field_name!="";
-    const unsigned int c_var_index =
-      ( (!use_vof_composition) ? numbers::invalid_unsigned_int
-        : sim.introspection.compositional_index_for_name(field.c_field_name));
-    Simulator<dim>::AdvectionField advf =
-      ( (!use_vof_composition) ? Simulator<dim>::AdvectionField::temperature()
-        : Simulator<dim>::AdvectionField::composition(c_var_index));
-    const unsigned int base_element =
-      ( (!use_vof_composition) ? numbers::invalid_unsigned_int
-        : advf.base_element(sim.introspection));
-    const std::vector<Point<dim> > support_points =
-      ( (!use_vof_composition) ? std::vector<Point<dim>>(0)
-        : sim.finite_element.base_element(base_element).get_unit_support_points());
-
     //Iterate over cells
     for (auto cell : sim.dof_handler.active_cell_iterators ())
       {
@@ -279,7 +264,7 @@ namespace aspect
 
                 if (normal_norm < vof_epsilon) // If candidate normal too small set error to maximum
                   {
-                      errs[nind] = 8.0;
+                    errs[nind] = 8.0;
                   }
                 else
                   {
@@ -331,36 +316,6 @@ namespace aspect
                                                  .component_to_system_index(vofLS_c_index, i)])
               = d-uSupp*normal;
           }
-
-        // If specified, write unit cell linear approximation to specified composition variable
-        if (use_vof_composition)
-          {
-            Tensor<1, dim, double> nnormal;
-            double normall1n = 0.0;
-            for (unsigned int i=0; i<dim; ++i)
-              {
-                normall1n += numbers::NumberTraits<double>::abs(normal[i]);
-                nnormal[i] = 0.0;
-              }
-            if (normall1n > vof_epsilon)
-              {
-                nnormal = normal / normall1n;
-              }
-            //Calculate correct factor to retain vol frac and [0,1] bound
-            double fact = 2.0*(0.5-abs(cell_vof-0.5));
-            for (unsigned int i=0; i<sim.finite_element.base_element(base_element).dofs_per_cell; ++i)
-              {
-                const unsigned int system_local_dof
-                  = sim.finite_element.component_to_system_index(advf.component_index(sim.introspection),
-                                                                 /*dof index within component*/i);
-
-                Tensor<1, dim, double> uSupp = support_points[i]-uReCen;
-
-                const double value = cell_vof - fact*(uSupp*nnormal);
-
-                initial_solution(local_dof_indicies[system_local_dof]) = value;
-              }
-          }
       }
 
     initial_solution.compress(VectorOperation::insert);
@@ -370,11 +325,6 @@ namespace aspect
 
     solution.block(vofN_blockidx) = initial_solution.block(vofN_blockidx);
     solution.block(vofLS_blockidx) = initial_solution.block(vofLS_blockidx);
-    if (use_vof_composition)
-      {
-        const unsigned int blockidx = advf.block_index(sim.introspection);
-        solution.block(blockidx) = initial_solution.block(blockidx);
-      }
 
     sim.computing_timer.exit_section();
   }
@@ -383,6 +333,96 @@ namespace aspect
   template <>
   void VoFHandler<3>::update_vof_normals (const VoFField<3> /*field*/,
                                           LinearAlgebra::BlockVector &/*solution*/)
+  {
+    Assert(false, ExcNotImplemented());
+  }
+
+  template <>
+  void VoFHandler<2>::update_vof_composition (const typename Simulator<2>::AdvectionField composition_field,
+                                              const VoFField<2> vof_field,
+                                              LinearAlgebra::BlockVector &solution)
+  {
+    const int dim = 2;
+
+    LinearAlgebra::BlockVector initial_solution;
+
+    sim.computing_timer.enter_section("  Compute VoF compositions");
+    
+    initial_solution.reinit(sim.system_rhs, false);
+
+    // Normal holding vars
+    Point<dim> uReCen;
+
+    for (unsigned int i=0; i<dim; ++i)
+      uReCen[i] = 0.5;
+
+    std::vector<types::global_dof_index> local_dof_indicies (sim.finite_element.dofs_per_cell);
+
+    const FEVariable<dim> &vof_var = vof_field.fraction;
+    const unsigned int vof_c_index = vof_var.first_component_index;
+    const unsigned int vof_ind
+      = sim.finite_element.component_to_system_index(vof_c_index, 0);
+
+    const FEVariable<dim> &vofN_var = vof_field.reconstruction;
+    const unsigned int vofN_c_index = vofN_var.first_component_index;
+
+    const unsigned int base_element = composition_field.base_element(sim.introspection);
+    const std::vector<Point<dim> > support_points = sim.finite_element.base_element(base_element).get_unit_support_points();
+
+    for (auto cell : sim.dof_handler.active_cell_iterators ())
+      {
+        if (!cell->is_locally_owned())
+          continue;
+
+        cell->get_dof_indices (local_dof_indicies);
+        const double cell_vof = solution(local_dof_indicies[vof_ind]);
+
+        Tensor<1, dim, double> normal;
+
+        for (unsigned int i=0; i<dim; ++i)
+          normal[i] = solution(local_dof_indicies[sim.finite_element
+                                                  .component_to_system_index(vofN_c_index+i, 0)]);
+
+        const double d = solution(local_dof_indicies[sim.finite_element
+                                                     .component_to_system_index(vofN_c_index+dim, 0)]);
+        Tensor<1, dim, double> nnormal;
+        double normall1n = 0.0;
+        for (unsigned int i=0; i<dim; ++i)
+          {
+            normall1n += numbers::NumberTraits<double>::abs(normal[i]);
+            nnormal[i] = 0.0;
+          }
+        if (normall1n > vof_epsilon)
+          {
+            nnormal = normal / normall1n;
+          }
+        //Calculate correct factor to retain vol frac and [0,1] bound
+        double fact = 2.0*(0.5-abs(cell_vof-0.5));
+        for (unsigned int i=0; i<sim.finite_element.base_element(base_element).dofs_per_cell; ++i)
+          {
+            const unsigned int system_local_dof
+              = sim.finite_element.component_to_system_index(composition_field.component_index(sim.introspection),
+                                                             /*dof index within component*/i);
+
+            Tensor<1, dim, double> uSupp = support_points[i]-uReCen;
+
+            const double value = cell_vof - fact*(uSupp*nnormal);
+
+            initial_solution(local_dof_indicies[system_local_dof]) = value;
+          }
+
+      }
+
+
+    const unsigned int blockidx = composition_field.block_index(sim.introspection);
+    solution.block(blockidx) = initial_solution.block(blockidx);
+    sim.computing_timer.exit_section();
+  }
+
+  template <>
+  void VoFHandler<3>::update_vof_composition (const typename Simulator<3>::AdvectionField composition_field,
+                                              const VoFField<3> vof_field,
+                                              LinearAlgebra::BlockVector &solution)
   {
     Assert(false, ExcNotImplemented());
   }

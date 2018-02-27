@@ -33,12 +33,10 @@ namespace aspect
   template <int dim>
   VoFField<dim>::VoFField(const FEVariable<dim> &fraction,
                           const FEVariable<dim> &reconstruction,
-                          const FEVariable<dim> &level_set,
-                          const std::string c_field_name)
+                          const FEVariable<dim> &level_set)
     : fraction (fraction),
       reconstruction (reconstruction),
-      level_set (level_set),
-      c_field_name (c_field_name)
+      level_set (level_set)
   {}
 
   template <int dim>
@@ -110,10 +108,9 @@ namespace aspect
                          Patterns::List(Patterns::Anything()),
                          "User-defined names for VoF fields.");
 
-      // TODO: Replace with Map
-      prm.declare_entry ("VoF composition variable", "",
-                         Patterns::List(Patterns::Anything()),
-                         "Name of compositional field to write VoF composition to.");
+      prm.declare_entry ("VoF composition mapping", "",
+                         Patterns::Map(Patterns::Anything(), Patterns::Anything()),
+                         "Links between composition and VoF fields in composition:VoF form");
     }
     prm.leave_subsection ();
   }
@@ -162,57 +159,65 @@ namespace aspect
             vof_field_names.push_back("F_" + Utilities::int_to_string(i+1));
         }
 
-      vof_composition_vars = Utilities::split_string_list (prm.get("VoF composition variable"));
-      AssertThrow((vof_composition_vars.size() == 0) ||
-                  (vof_composition_vars.size() == n_vof_fields),
-                  ExcMessage("The length of the list of names for the VoF fields "
-                             "needs to either be empty or have length equal to the "
-                             "number of compositional fields."));
+      const std::vector<std::string> x_vof_composition_vars =
+        Utilities::split_string_list
+        (prm.get ("VoF composition mapping"));
 
-      // check that names use only allowed characters, are not empty strings, and are unique
-      for (unsigned int i=0; i<vof_composition_vars.size(); ++i)
+      if (x_vof_composition_vars.size()>0 && !sim.parameters.use_discontinuous_composition_discretization)
         {
-          Assert (vof_composition_vars[i].find_first_not_of("abcdefghijklmnopqrstuvwxyz"
-                                                            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                                            "0123456789_") == std::string::npos,
-                  ExcMessage("Invalid character in field " + vof_composition_vars[i] + ". "
-                             "Names of VoF fields should consist of a "
-                             "combination of letters, numbers and underscores."));
-
-          for (unsigned int j=0; j<i; ++j)
-            Assert (vof_composition_vars[i] != vof_composition_vars[j],
-                    ExcMessage("Names of VoF fields have to be unique! " + vof_composition_vars[i] +
-                               " is used more than once."));
+          AssertThrow(false, ExcMessage("VoF composition field not implemented for continuous composition."));
         }
 
-      if (vof_composition_vars.size()>0)
+      for (std::vector<std::string>::const_iterator p = x_vof_composition_vars.begin();
+           p != x_vof_composition_vars.end(); ++p)
         {
-          if (!sim.parameters.use_discontinuous_composition_discretization)
+          const std::vector<std::string> split_parts = Utilities::split_string_list(*p, ':');
+          AssertThrow (split_parts.size() == 2,
+                       ExcMessage("The format for VoF composition mappings requires that each entry has the form"
+                                  "`composition:Vof field', but there does not appear to be a colon in the entry <" + *p + ">."));
+
+          const std::string composition_field = split_parts[0];
+          const std::string vof_field = split_parts[1];
+
+          // Check composition_field exists
+          bool field_exists=false;
+
+          for (unsigned int i=0; i<sim.parameters.n_compositional_fields; ++i)
             {
-              AssertThrow(false, ExcMessage("VoF composition field not implemented for continuous composition."));
+              field_exists = field_exists ||
+                             (composition_field==sim.parameters.names_of_compositional_fields[i]);
             }
 
-          for (unsigned int f=0; f<vof_composition_vars.size(); ++f)
-            {
-              bool field_exists=false;
+          Assert(field_exists, ExcMessage("Composition field variable " +
+                                          composition_field +
+                                          " does not exist."));
 
-              for (unsigned int i=0; i<sim.parameters.n_compositional_fields; ++i)
-                {
-                  field_exists = field_exists ||
-                                 (vof_composition_vars[f]==sim.parameters.names_of_compositional_fields[i]);
-                }
+          // Check vof_field exists
+          field_exists=false;
+          unsigned int vof_field_index = n_vof_fields;
 
-              Assert(field_exists, ExcMessage("VoF composition field variable " +
-                                              vof_composition_vars[f] +
-                                              " does not exist."));
-            }
-        }
-
-      // no connection if not empty
-      if (vof_composition_vars.size()==0)
-        {
           for (unsigned int i=0; i<n_vof_fields; ++i)
-            vof_composition_vars.push_back("");
+            {
+              if (vof_field == vof_field_names[i])
+                {
+                  field_exists = true;
+                  vof_field_index = i;
+                  break;
+                }
+            }
+
+          Assert(field_exists, ExcMessage("VoF field variable " +
+                                          vof_field +
+                                          " does not exist."));
+
+          // Ensure no duplicate mapping to a composition field
+          Assert (vof_composition_map_index.count(composition_field) == 0,
+                  ExcMessage("VoF composition field mappings have to be unique! " + composition_field +
+                             " is used more than once."));
+
+
+          // Add to mappings
+          vof_composition_map_index[composition_field] = vof_field_index;
         }
     }
     prm.leave_subsection ();
@@ -245,8 +250,7 @@ namespace aspect
       {
         data.push_back(VoFField<dim>(sim.introspection.variable("vof_"+vof_field_names[f]),
                                      sim.introspection.variable("vofN_"+vof_field_names[f]),
-                                     sim.introspection.variable("vofLS_"+vof_field_names[f]),
-                                     vof_composition_vars[f]));
+                                     sim.introspection.variable("vofLS_"+vof_field_names[f])));
       }
 
     // Do initial conditions setup
@@ -289,6 +293,14 @@ namespace aspect
   }
 
   template <int dim>
+  unsigned int VoFHandler<dim>::get_vof_field(std::string composition_fieldname) const
+  {
+    if (vof_composition_map_index.count(composition_fieldname) ==0)
+      return n_vof_fields;
+    return vof_composition_map_index.at(composition_fieldname);
+  }
+
+  template <int dim>
   void VoFHandler<dim>::do_vof_update ()
   {
     for (unsigned int f=0; f<n_vof_fields; ++f)
@@ -322,6 +334,14 @@ namespace aspect
             sim.current_linearization_point.block(vofN_block_idx) = sim.solution.block(vofN_block_idx);
             update_from_old = false;
           }
+      }
+    for (std::map<std::string, unsigned int>::const_iterator iter=vof_composition_map_index.begin();
+         iter!=vof_composition_map_index.end(); ++iter)
+      {
+        const unsigned int c_var_index = sim.introspection.compositional_index_for_name(iter->first);
+        const typename Simulator<dim>::AdvectionField adv_f = Simulator<dim>::AdvectionField::composition(c_var_index);
+        const VoFField<dim> vof_f= get_field(iter->second);
+        update_vof_composition(adv_f, vof_f, sim.solution);
       }
     // change dimension iteration order
     vof_dir_order_dsc = !vof_dir_order_dsc;

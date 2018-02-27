@@ -1258,9 +1258,9 @@ namespace aspect
     // Skip if this composition field is being set from the vof handler
     if (!advection_field.is_temperature() &&
         parameters.vof_tracking_enabled)
-      for (unsigned int f=0; f<vof_handler->get_n_fields(); ++f)
-        if (vof_handler->get_field(f).c_field_name == introspection.name_for_compositional_index(advection_field.compositional_variable))
-          return;
+      if (vof_handler->get_vof_field(introspection.name_for_compositional_index(advection_field.compositional_variable))
+          != vof_handler->get_n_fields())
+        return;
 
     /*
      * First setup the quadrature points which are used to find the maximum and minimum solution values at those points.

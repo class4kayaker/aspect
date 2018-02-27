@@ -35,12 +35,10 @@ namespace aspect
      */
     VoFField(const FEVariable<dim> &fraction,
              const FEVariable<dim> &reconstruction,
-             const FEVariable<dim> &level_set,
-             const std::string c_field_name);
+             const FEVariable<dim> &level_set);
 
     const FEVariable<dim> &fraction, &reconstruction, &level_set;
 
-    const std::string c_field_name;
   };
 }
 

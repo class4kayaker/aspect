@@ -59,7 +59,8 @@ subsection Discretization
 end
 
 subsection VoF config
-    set VoF composition variable = C_1
+    set VoF field names = F_1
+    set VoF composition mapping = C_1:F_1
 end
 
 subsection VoF initial conditions
