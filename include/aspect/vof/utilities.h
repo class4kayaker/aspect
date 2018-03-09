@@ -53,13 +53,13 @@ namespace aspect
     double d_from_vof (const Tensor<1, dim, double> normal,
                        const double vol);
 
-
     /**
      * Function to calculate xFEM-like function values on the unit cell.
      * Currently exact for basises up to degree 1.
      */
     template<int dim>
-    void xFEM_Heaviside(const Tensor<1, dim, double> normal,
+    void xFEM_Heaviside(const int degree,
+                        const Tensor<1, dim, double> normal,
                         const double d,
                         const std::vector<Point<dim>> &points,
                         std::vector<double> &values);

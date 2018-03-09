@@ -351,77 +351,86 @@ namespace aspect
       return -0.5+m1*vol+0.5*m12;
     }
 
-    inline double xFEM_Heaviside_triangle(const double d,
-                                          const Tensor<1,2,double> normal,
-                                          const Point<2> point)
-    {
-      const double n_x = normal[0], n_y = normal[1];
-      const double x = point[0], y = point[1];
-      const double d_n = d + 0.5* (fabs(n_x) + fabs(n_y));
-      return (1.0L/2.0L)*d_n*d_n*(1 + (2*d_n - 3*fabs(n_y))*(2*y - 1)/n_y + (2*d_n - 3*fabs(n_x))*(2*x - 1)/n_x + (2*x - 1)*(2*y - 1)*(3*d_n*d_n - 6*d_n*fabs(n_x) - 6*d_n*fabs(n_y) + 9*fabs(n_x*n_y))/(n_x*n_y))/fabs(n_x*n_y);
-    }
-
-    inline double xFEM_Heaviside_trapezoid(const double d,
-                                           const Tensor<1,2,double> normal,
-                                           const Point<2> point)
-    {
-      const double n_0 = normal[0], n_1 = normal[1];
-      const double n_x = (fabs(n_1)>fabs(n_0)?n_0:n_1),
-                   n_y = (fabs(n_1)>fabs(n_0)?n_1:n_0);
-      const double x = (fabs(n_1)>fabs(n_0)?point[0]:point[1]),
-                   y = (fabs(n_1)>fabs(n_0)?point[1]:point[0]);
-      return -3*d*n_x*(2*x - 1)*(2*y - 1)/(n_y*fabs(n_y)) + d/fabs(n_y) + (1.0L/2.0L)*n_x*(-2*x + 1)/fabs(n_y) + 1.0L/2.0L + (2*y - 1)*(3*pow(d, 2) + (1.0L/4.0L)*pow(n_x, 2) - 3.0L/4.0L*pow(n_y, 2))/(n_y*fabs(n_y));
-    }
-
     template<>
-    void xFEM_Heaviside<2>(const Tensor<1, 2, double> normal,
+    void xFEM_Heaviside<2>(const int degree,
+                           const Tensor<1, 2, double> normal,
                            const double d,
                            const std::vector<Point<2>> &points,
                            std::vector<double> &values)
     {
-      const double norm1 = fabs(normal[0]) + fabs(normal[1]);
       const double triangle_break = fabs(fabs(normal[0])-fabs(normal[1]));
-      int cut_case = 0;
+      const int basis_count=4;
+      std::vector<double> coeffs(basis_count);
+
+      const double n_xp = fabs(normal[0]), n_yp = fabs(normal[1]);
+      const double sign_n_x = (((normal[0]) > 0) - ((normal[0]) < 0)),
+                   sign_n_y = (((normal[1]) > 0) - ((normal[1]) < 0));
+
+      const double norm1 = n_x + n_y;
+      const double triangle_break = fabs(n_x-n_y);
+
+      const int max_degree = 1;
+
+      AssertThrow(degree>max_degree,
+                  ExcMessage("Cannot generate xFEM polynomial for degree>"+max_degree+"."));
 
       if (d<-0.5*norm1)
         {
-          cut_case = 0; // No fluid
+          for (int i =0; i < basis_count; ++i)
+            coeffs[i] = 0.0;
         }
-      else if (d<(-triangle_break))
+      else if (d<=-triangle_break)
         {
-          cut_case = 1;
+          //Triangle
+          const double d_n = d + 0.5* (n_x + n_y);
+          coeff[0]=0.5L*d_n*d_n/(n_xp*n_yp); // 1
+          coeff[0]=0.5L*d_n*d_n/(n_xp*n_yp); // 1
+          coeff[1]=d_n*d_n*(d_n - 1.5L*n_yp)/(n_xp*n_yp*n_yp)*sign_n_y; // 2*y - 1
+          coeff[2]=d_n*d_n*(d_n - 1.5L*n_xp)/(n_xp*n_xp*n_yp)*sign_n_x; // 2*x - 1
+          coeff[3]=1.5L*d_n*d_n*(d_n*d_n - 2*d_n*n_xp - 2*d_n*n_yp + 3*n_xp*n_yp)/(n_xp*n_xp*n_yp*n_yp)*sign_n_x*sign_n_y; // (2*x - 1)*(2*y - 1)
         }
-      else if (d<triangle_break)
+      else if (d<triangle_break && n_x<n_y)
         {
-          cut_case = 2;
+          //Trapezoid X
+          coeff[0]=(d + 0.5L*n_yp)/n_yp; // 1
+          coeff[1]=0.25L*(12*d*d + n_xp*n_xp - 3*n_yp*n_yp)/(n_yp*n_yp)*sign_n_y; // 2*y - 1
+          coeff[2]=-0.5L*n_xp/n_yp*sign_n_x; // 2*x - 1
+          coeff[3]=-3*d*n_xp/(n_yp*n_yp)*sign_n_x*sign_n_y; // (2*x - 1)*(2*y - 1)
+        }
+      else if (d<triangle_break && n_y<n_x)
+        {
+          //Trapezoid Y
+          coeff[0]=(d + 0.5L*n_xp)/n_xp; // 1
+          coeff[1]=-0.5L*n_yp/n_xp*sign_n_y; // 2*y - 1
+          coeff[2]=0.25L*(12*pow(d, 2) - 3*n_xp*n_xp + n_yp*n_yp)/(n_xp*n_xp)*sign_n_x; // 2*x - 1
+          coeff[3]=-3*d*n_yp/(n_xp*n_xp)*sign_n_x*sign_n_y; // (2*x - 1)*(2*y - 1)
         }
       else if (d<0.5*norm1)
         {
-          cut_case = 3;
+          //ITriangle
+          const double d_nn = 0.5* (n_x + n_y)-d;
+          coeff[0]=1.0L-0.5L*d_nn*d_nn/(n_xp*n_yp); // 1
+          coeff[1]=d_nn*d_nn*(d_nn - 1.5L*n_yp)/(n_xp*n_yp*n_yp)*sign_n_y; // 2*y - 1
+          coeff[2]=d_nn*d_nn*(d_nn - 1.5L*n_xp)/(n_xp*n_xp*n_yp)*sign_n_x; // 2*x - 1
+          coeff[3]=-1.5L*d_nn*d_nn*(d_nn*d_nn - 2*d_nn*n_xp - 2*d_nn*n_yp + 3*n_xp*n_yp)/(n_xp*n_yp*n_yp*n_yp)*sign_n_x*sign_n_y; // (2*x - 1)*(2*y - 1)
         }
       else
         {
-          cut_case = 4;
+          // Full cell
+          for (int i =0; i < basis_count; ++i)
+            coeffs[i] = 1.0;
         }
 
       for (unsigned int i = 0; i<points.size(); ++i)
         {
-          switch (cut_case)
+          const Point<2> point = points[i];
+          const double x = point[0], y = point[1];
+          values[i] = coeffs[0];
+          if (degree>=1)
             {
-              case 0:
-                values[i] = 0.0;
-                break;
-              case 4:
-                  values[i] = 1.0;
-                break;
-              case 1:
-                values[i] = xFEM_Heaviside_triangle(d, normal, points[i]);
-                break;
-              case 2:
-                values[i] = xFEM_Heaviside_trapezoid(d, normal, points[i]);
-              case 3:
-                values[i] = 1-xFEM_Heaviside_triangle(-d, -normal, points[i]);
-                break;
+              values[i] += coeffs[1]*(2.0L*y-1.0) +
+                           coeffs[2](2.0*x-1.0) +
+                           coeffs[3]*(2*x - 1)*(2*y - 1);
             }
         }
     }
