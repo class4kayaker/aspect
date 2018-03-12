@@ -373,6 +373,7 @@ namespace aspect
       AssertThrow(degree>max_degree,
                   ExcMessage("Cannot generate xFEM polynomials are only functional for degrees<2."));
 
+      // Values calculated using sympy
       if (d<-0.5*norm1)
         {
           for (int i =0; i < basis_count; ++i)
@@ -411,6 +412,89 @@ namespace aspect
           coeffs[1]=d_nn*d_nn*(d_nn - 1.5L*n_yp)/(n_xp*n_yp*n_yp)*sign_n_y; // 2*y - 1
           coeffs[2]=d_nn*d_nn*(d_nn - 1.5L*n_xp)/(n_xp*n_xp*n_yp)*sign_n_x; // 2*x - 1
           coeffs[3]=-1.5L*d_nn*d_nn*(d_nn*d_nn - 2*d_nn*n_xp - 2*d_nn*n_yp + 3*n_xp*n_yp)/(n_xp*n_yp*n_yp*n_yp)*sign_n_x*sign_n_y; // (2*x - 1)*(2*y - 1)
+        }
+      else
+        {
+          // Full cell
+          for (int i =0; i < basis_count; ++i)
+            coeffs[i] = 1.0;
+        }
+
+      for (unsigned int i = 0; i<points.size(); ++i)
+        {
+          const Point<2> point = points[i];
+          const double x = point[0], y = point[1];
+          values[i] = coeffs[0];
+          if (degree>=1)
+            {
+              values[i] += coeffs[1]*(2*y-1.0) +
+                           coeffs[2]*(2*x-1.0) +
+                           coeffs[3]*(2*x - 1)*(2*y - 1);
+            }
+        }
+    }
+
+    template<>
+    void xFEM_Heaviside_d_d<2>(const int degree,
+                               const Tensor<1, 2, double> normal,
+                               const double d,
+                               const std::vector<Point<2>> &points,
+                               std::vector<double> &values)
+    {
+      const int basis_count=4;
+      std::vector<double> coeffs(basis_count);
+
+      const double n_xp = fabs(normal[0]), n_yp = fabs(normal[1]);
+      const double sign_n_x = (((normal[0]) > 0) - ((normal[0]) < 0)),
+                   sign_n_y = (((normal[1]) > 0) - ((normal[1]) < 0));
+
+      const double norm1 = n_xp + n_yp;
+      const double triangle_break = fabs(n_xp-n_yp);
+
+      const int max_degree = 1;
+
+      AssertThrow(degree>max_degree,
+                  ExcMessage("Cannot generate xFEM polynomials are only functional for degrees<2."));
+
+      // Values calculated using sympy
+      if (d<-0.5*norm1)
+        {
+          for (int i =0; i < basis_count; ++i)
+            coeffs[i] = 0.0;
+        }
+      else if (d<=-triangle_break)
+        {
+          //D Triangle
+          const double d_n = d + 0.5* (n_xp + n_yp);
+          coeffs[0]=d_n/(n_xp*n_yp); // 1
+          coeffs[1]=3*d_n*sign_n_y*(d_n - n_yp)/(n_xp*(n_yp*n_yp)); // 2*y - 1
+          coeffs[2]=3*d_n*sign_n_x*(d_n - n_xp)/((n_xp*n_xp)*n_yp); // 2*x - 1
+          coeffs[3]=3*d_n*sign_n_x*sign_n_y*(2*(d_n*d_n) - 3*d_n*n_xp - 3*d_n*n_yp + 3*n_xp*n_yp)/((n_xp*n_xp)*(n_yp*n_yp)); // (2*x - 1)*(2*y - 1)
+        }
+      else if (d<triangle_break && n_xp<n_yp)
+        {
+          //D Trapezoid X
+          coeffs[0]=1.0/n_yp; // 1
+          coeffs[1]=6*d*sign_n_y/(n_yp*n_yp); // 2*y - 1
+          coeffs[2]=0; // 2*x - 1
+          coeffs[3]=-3*n_xp*sign_n_x*sign_n_y/(n_yp*n_yp); // (2*x - 1)*(2*y - 1)
+        }
+      else if (d<triangle_break && n_yp<n_xp)
+        {
+          //D Trapezoid Y
+          coeffs[0]=1.0/n_xp; // 1
+          coeffs[1]=0; // 2*y - 1
+          coeffs[2]=6*d*sign_n_x/(n_xp*n_xp); // 2*x - 1
+          coeffs[3]=-3*n_yp*sign_n_x*sign_n_y/(n_xp*n_xp); // (2*x - 1)*(2*y - 1)
+        }
+      else if (d<0.5*norm1)
+        {
+          //D ITriangle
+          const double d_nn = 0.5* (n_xp + n_yp)-d;
+          coeffs[0]=d_nn/(n_xp*n_yp); // 1
+          coeffs[1]=3*d_nn*sign_n_y*(-d_nn + n_yp)/(n_xp*(n_yp*n_yp)); // 2*y - 1
+          coeffs[2]=3*d_nn*sign_n_x*(-d_nn + n_xp)/((n_xp*n_xp)*n_yp); // 2*x - 1
+          coeffs[3]=3*d_nn*sign_n_x*sign_n_y*(2*(d_nn*d_nn) - 3*d_nn*n_xp - 3*d_nn*n_yp + 3*n_xp*n_yp)/((n_xp*n_xp)*(n_yp*n_yp)); // (2*x - 1)*(2*y - 1)
         }
       else
         {

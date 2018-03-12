@@ -63,6 +63,16 @@ namespace aspect
                         const double d,
                         const std::vector<Point<dim>> &points,
                         std::vector<double> &values);
+    /**
+     * Function to calculate xFEM-like function values on the unit cell.
+     * Currently exact for basises up to degree 1.
+     */
+    template<int dim>
+    void xFEM_Heaviside_d_d(const int degree,
+                        const Tensor<1, dim, double> normal,
+                        const double d,
+                        const std::vector<Point<dim>> &points,
+                        std::vector<double> &values);
 
     /**
      * Function to calculate flux volume fraction based on a method of
