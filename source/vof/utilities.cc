@@ -517,6 +517,73 @@ namespace aspect
         }
     }
 
+
+    template<int dim>
+    double newton_d(const int degree,
+                    const Tensor<1, dim, double> normal,
+                    const double vol_frac,
+                    const double epsilon,
+                    const std::vector<Point<dim>> &points,
+                    const std::vector<double> &weights)
+    {
+      double norm1=0.0;
+      for (int i=0; i<dim; ++i) norm1+=fabs(normal[0]);
+      double d_l=-0.5L*norm1, d_h=0.5L*norm1;
+      double f_l=0.0, f_h=1.0;
+      double d_guess=0.0;
+      double f_guess, df_guess;
+
+      std::vector<double> f_values(points.size());
+      std::vector<double> df_values(points.size());
+
+      for (int iter=0; iter<10; ++iter)
+        {
+          xFEM_Heaviside(degree, normal, d_guess, points, f_values);
+          xFEM_Heavisided_d_d(degree, normal, d_guess, points, df_values);
+
+          f_guess=0.0;
+          df_guess=0.0;
+          for (int i=0; i<points.size(); ++i)
+            {
+              f_guess  += f_values[i]*weights[i];
+              df_guess += df_values[i]*weights[i];
+            }
+
+          // Break if within tolerance
+          if (fabs(f_guess-vol_frac)<epsilon)
+            {
+              break;
+            }
+
+          if (vol_frac<f_guess)
+            {
+              d_h = d_guess;
+              f_h = f_guess;
+            }
+          else
+            {
+              d_l = d_guess;
+              f_l = f_guess;
+            }
+
+          if (fabs(df_guess)<epsilon)
+            {
+              d_guess = (vol_frac-f_l)/(f_h-f_l)*(d_h-d_l);
+            }
+          else
+            {
+              d_guess += (vol_frac-f_guess)/(df_guess);
+
+              if (d_guess < d_l || d_guess > d_h)
+                {
+                  d_guess = (vol_frac-f_l)/(f_h-f_l)*(d_h-d_l);
+                }
+            }
+        }
+
+      return d_guess;
+    }
+
     template<int dim>
     double calc_vof_flux_edge (const unsigned int dir,
                                const double timeGrad,

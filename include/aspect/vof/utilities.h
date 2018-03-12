@@ -69,10 +69,24 @@ namespace aspect
      */
     template<int dim>
     void xFEM_Heaviside_d_d(const int degree,
-                        const Tensor<1, dim, double> normal,
-                        const double d,
-                        const std::vector<Point<dim>> &points,
-                        std::vector<double> &values);
+                            const Tensor<1, dim, double> normal,
+                            const double d,
+                            const std::vector<Point<dim>> &points,
+                            std::vector<double> &values);
+
+
+    /**
+     * Function to do newton iteration calculation of correct d for a given
+     * normal to get vol_frac from xFEM_Heaviside integrated against the given
+     * weights.
+     */
+    template<int dim>
+    double newton_d(const int degree,
+                    const Tensor<1, dim, double> normal,
+                    const double vol_frac,
+                    const double epsilon,
+                    const std::vector<Point<dim>> &points,
+                    const std::vector<double> &weights);
 
     /**
      * Function to calculate flux volume fraction based on a method of
