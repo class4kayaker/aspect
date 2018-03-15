@@ -81,12 +81,25 @@ namespace aspect
      * weights.
      */
     template<int dim>
-    double newton_d(const int degree,
-                    const Tensor<1, dim, double> normal,
-                    const double vol_frac,
-                    const double epsilon,
-                    const std::vector<Point<dim>> &points,
-                    const std::vector<double> &weights);
+    double d_from_vof_newton(const int degree,
+                             const Tensor<1, dim, double> normal,
+                             const double vol_frac,
+                             const double vol,
+                             const double epsilon,
+                             const std::vector<Point<dim>> &points,
+                             const std::vector<double> &weights);
+
+    /**
+     * Function to calculate volume fraction contained by indicator function
+     * H(d-normal*(x'-x_{cen}')) on the [0, 1]^dim unit cell where x_{cen} is
+     * the unit cell center, using a polynomial mapping of degree up to "degree".
+     */
+    template<int dim>
+    double vol_from_d(const int degree,
+                      const Tensor<1, dim, double> normal,
+                      const double d,
+                      const std::vector<Point<dim>> &points,
+                      const std::vector<double> &weights);
 
     /**
      * Function to calculate flux volume fraction based on a method of

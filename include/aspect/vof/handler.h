@@ -106,6 +106,7 @@ namespace aspect
 
       // Minimal considered volume fraction
       double vof_epsilon;
+      double vof_reconstruct_epsilon;
 
       double vof_solver_tolerance;
 

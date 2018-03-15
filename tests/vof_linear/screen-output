@@ -11,7 +11,8 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.5
-     VoF Calculation(IEstL1/FEstL1): 2.13316777e-17/0.00000000e+00
+     VoF Calculation(IEstL1/FEstL1): 1.51815409e-16/0.00000000e+00
+     Writing graphical output:       output-vof_linear/solution/solution-00000
 
 *** Timestep 1:  t=0.0883883 seconds
    Skipping temperature solve because RHS is zero.
@@ -20,6 +21,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.457
+     Writing graphical output: output-vof_linear/solution/solution-00001
 
 *** Timestep 2:  t=0.176777 seconds
    Skipping temperature solve because RHS is zero.
@@ -28,6 +30,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.416
+     Writing graphical output: output-vof_linear/solution/solution-00002
 
 *** Timestep 3:  t=0.265165 seconds
    Skipping temperature solve because RHS is zero.
@@ -36,7 +39,8 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.376
-     VoF Calculation(IEstL1/FEstL1): 3.39440182e-17/2.86229374e-17
+     VoF Calculation(IEstL1/FEstL1): 3.11998240e-16/2.92300906e-16
+     Writing graphical output:       output-vof_linear/solution/solution-00003
 
 *** Timestep 4:  t=0.353553 seconds
    Skipping temperature solve because RHS is zero.
@@ -45,6 +49,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.339
+     Writing graphical output: output-vof_linear/solution/solution-00004
 
 *** Timestep 5:  t=0.441942 seconds
    Skipping temperature solve because RHS is zero.
@@ -53,6 +58,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.303
+     Writing graphical output: output-vof_linear/solution/solution-00005
 
 *** Timestep 6:  t=0.53033 seconds
    Skipping temperature solve because RHS is zero.
@@ -61,7 +67,8 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.27
-     VoF Calculation(IEstL1/FEstL1): 3.04123739e-17/3.64291930e-17
+     VoF Calculation(IEstL1/FEstL1): 4.20566853e-16/4.73579509e-16
+     Writing graphical output:       output-vof_linear/solution/solution-00006
 
 *** Timestep 7:  t=0.618718 seconds
    Skipping temperature solve because RHS is zero.
@@ -70,6 +77,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.238
+     Writing graphical output: output-vof_linear/solution/solution-00007
 
 *** Timestep 8:  t=0.707107 seconds
    Skipping temperature solve because RHS is zero.
@@ -78,6 +86,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.209
+     Writing graphical output: output-vof_linear/solution/solution-00008
 
 *** Timestep 9:  t=0.795495 seconds
    Skipping temperature solve because RHS is zero.
@@ -86,7 +95,8 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.181
-     VoF Calculation(IEstL1/FEstL1): 5.44734300e-17/4.59701721e-17
+     VoF Calculation(IEstL1/FEstL1): 4.78020450e-16/4.62303806e-16
+     Writing graphical output:       output-vof_linear/solution/solution-00009
 
 *** Timestep 10:  t=0.883883 seconds
    Skipping temperature solve because RHS is zero.
@@ -95,6 +105,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.156
+     Writing graphical output: output-vof_linear/solution/solution-00010
 
 *** Timestep 11:  t=0.972272 seconds
    Skipping temperature solve because RHS is zero.
@@ -103,6 +114,7 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3): 0.132
+     Writing graphical output: output-vof_linear/solution/solution-00011
 
 *** Timestep 12:  t=1 seconds
    Skipping temperature solve because RHS is zero.
@@ -111,7 +123,8 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.125
-     VoF Calculation(IEstL1/FEstL1): 4.52654407e-17/4.53332033e-17
+     VoF Calculation(IEstL1/FEstL1): 1.19712183e-15/7.78101406e-16
+     Writing graphical output:       output-vof_linear/solution/solution-00012
 
 Termination requested by criterion: end time
 

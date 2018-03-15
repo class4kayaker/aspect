@@ -32,6 +32,7 @@ namespace aspect
                                           LinearAlgebra::BlockVector &solution)
   {
     const int dim = 2;
+    const unsigned int max_degree = 1;
 
     LinearAlgebra::BlockVector initial_solution;
 
@@ -48,13 +49,24 @@ namespace aspect
 
     Vector<double> local_vofs (n_local);
     std::vector<Point<dim>> resc_cell_centers (n_local);
+    std::vector<typename DoFHandler<dim>::active_cell_iterator> neighbor_cells(n_local);
 
     const unsigned int n_sums = 3;
     std::vector<double> strip_sums (dim * n_sums);
 
     const unsigned int n_normals = 6+1;
     std::vector<Tensor<1, dim, double>> normals (n_normals);
+    std::vector<double> d_vals (n_normals);
     std::vector<double> errs (n_normals);
+
+    // Variables to do volume calculations
+
+    QGauss<dim> quadrature(max_degree);
+
+    std::vector<double> xFEM_values(quadrature.size());
+
+    FEValues<dim> fevalues(this->get_mapping(), this->get_fe(), quadrature,
+                           update_JxW_values);
 
     // Normal holding vars
     Point<dim> uReCen;
@@ -71,6 +83,7 @@ namespace aspect
     const unsigned int vof_c_index = vof_var.first_component_index;
     const unsigned int vof_ind
       = sim.finite_element.component_to_system_index(vof_c_index, 0);
+    const unsigned int vof_blockidx = vof_var.block_index;
 
     const FEVariable<dim> &vofN_var = field.reconstruction;
     const unsigned int vofN_c_index = vofN_var.first_component_index;
@@ -109,6 +122,8 @@ namespace aspect
           }
         else
           {
+            initial_solution(local_dof_indicies[vof_ind]) = cell_vof;
+
             //Identify best normal
             // Get references to neighboring cells
             for (unsigned int i = 0; i < 3; ++i)
@@ -177,6 +192,7 @@ namespace aspect
                                                                    0.0);
                       }
                     local_vofs (3 * j + i) = solution (cell_dof_indicies[vof_ind]);
+                    neighbor_cells[3 * j + i] = curr;
                   }
               }
 
@@ -256,50 +272,91 @@ namespace aspect
               }
 
             unsigned int mn_ind = 0;
-            for (unsigned int nind = 0; nind < n_normals; ++nind)
-              {
-                errs[nind] = 0.0;
-                d = VolumeOfFluid::d_from_vof<dim> (normals[nind], cell_vof);
-                const double normal_norm = normals[nind]*normals[nind];
+            {
+              fevalues.reinit(cell);
+              const std::vector<double> weights = fevalues.get_JxW_values();
 
-                if (normal_norm < vof_epsilon) // If candidate normal too small set error to maximum
+              double cell_vol = 0.0;
+              for (unsigned int j=0; j<weights.size(); ++j)
+                {
+                  cell_vol+=weights[j];
+                }
+              for (unsigned int nind = 0; nind < n_normals; ++nind)
+                {
+                  errs[nind] = 0.0;
+                  const double normal_norm = normals[nind].norm_square();
+
+                  if (normal_norm > vof_epsilon) // If candidate normal too small set error to maximum
+                    {
+                      d_vals[nind] = VolumeOfFluid::d_from_vof_newton<dim> (max_degree, normals[nind], cell_vof, cell_vol,
+                                                                            vof_reconstruct_epsilon,
+                                                                            quadrature.get_points(), weights);
+                    }
+                  else
+                    {
+                      errs[nind] = 9.0;
+                    }
+                }
+            }
+
+            for (unsigned int i = 0; i < n_local; ++i)
+              {
+                if (neighbor_cells[i] == endc)
                   {
-                    errs[nind] = 8.0;
+                    continue;
                   }
-                else
+
+                fevalues.reinit(neighbor_cells[i]);
+
+                const std::vector<double> weights = fevalues.get_JxW_values();
+
+                double cell_vol = 0.0;
+                for (unsigned int j=0; j<weights.size(); ++j)
                   {
-                    for (unsigned int i = 0; i < n_local; ++i)
+                    cell_vol+=weights[j];
+                  }
+
+                for (unsigned int nind = 0; nind < n_normals; ++nind)
+                  {
+                    const double normal_norm = normals[nind]*normals[nind];
+
+                    if (normal_norm > vof_epsilon) // If candidate normal too small skip as set to max already
                       {
                         double dot = 0.0;
                         for (unsigned int di = 0; di < dim; ++di)
                           dot += normals[nind][di] * resc_cell_centers[i][di];
-                        double cell_err = local_vofs (i)
-                                          - VolumeOfFluid::vof_from_d<dim> (normals[nind],
-                                                                            d - dot);
+                        const double n_vof = VolumeOfFluid::vol_from_d<dim> (max_degree, normals[nind], d_vals[nind]-dot,
+                                                                       quadrature.get_points(), weights)/cell_vol;
+                        const double cell_err = local_vofs (i) - n_vof;
                         errs[nind] += cell_err * cell_err;
                       }
                   }
+              }
+
+            for (unsigned int nind = 0; nind < n_normals; ++nind)
+              {
                 if (errs[mn_ind] >= errs[nind])
                   mn_ind = nind;
-                // std::cout << "   " << normals[nind] << " e ";
-                // std::cout  << errs[nind] << " " << mn_ind << std::endl;
+                // std::cout << "\t" << normals[nind] << " d ";
+                // std::cout << d_vals[nind] << " e ";
+                // std::cout << errs[nind] << " " << mn_ind << std::endl;
               }
 
             normal = normals[mn_ind];
-            d = VolumeOfFluid::d_from_vof<dim> (normal, cell_vof);
+            d = d_vals[mn_ind];
           }
 
-        double n2 = (normal*normal);
-        if (n2 > vof_epsilon)
-          {
-            normal = (normal / n2);
-            d = VolumeOfFluid::d_from_vof<dim> (normal, cell_vof);
-          }
-        else
-          {
-            normal[0] = 0.0;
-            normal[1] = 0.0;
-          }
+        // double n2 = sqrt(normal*normal);
+        // if (n2 > vof_epsilon)
+        //   {
+        //     normal = (normal / n2);
+        //     d = d / n2;
+        //   }
+        // else
+        //   {
+        //     normal[0] = 0.0;
+        //     normal[1] = 0.0;
+        //   }
 
         for (unsigned int i=0; i<dim; ++i)
           initial_solution (local_dof_indicies[sim.finite_element
@@ -323,6 +380,7 @@ namespace aspect
     sim.compute_current_constraints();
     sim.current_constraints.distribute(initial_solution);
 
+    // solution.block(vof_blockidx) = initial_solution.block(vof_blockidx);
     solution.block(vofN_blockidx) = initial_solution.block(vofN_blockidx);
     solution.block(vofLS_blockidx) = initial_solution.block(vofLS_blockidx);
 
@@ -347,7 +405,7 @@ namespace aspect
     LinearAlgebra::BlockVector initial_solution;
 
     sim.computing_timer.enter_section("  Compute VoF compositions");
-    
+
     initial_solution.reinit(sim.system_rhs, false);
 
     // Normal holding vars

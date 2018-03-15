@@ -166,7 +166,7 @@ Number of degrees of freedom: 5,400 (2,146+277+1,073+238+714+952)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.785
-     VoF Calculation(IEstL1/FEstL1): 7.35777771e-03/5.07226890e-03
+     VoF Calculation(IEstL1/FEstL1): 7.35923266e-03/5.09043195e-03
 
 Number of active cells: 247 (on 6 levels)
 Number of degrees of freedom: 5,589 (2,218+286+1,109+247+741+988)
@@ -288,7 +288,7 @@ Number of degrees of freedom: 5,529 (2,196+283+1,098+244+732+976)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.785
-     VoF Calculation(IEstL1/FEstL1): 1.01194495e-02/8.19541070e-03
+     VoF Calculation(IEstL1/FEstL1): 1.01165645e-02/8.20287200e-03
 
 Number of active cells: 244 (on 6 levels)
 Number of degrees of freedom: 5,552 (2,210+285+1,105+244+732+976)
@@ -410,7 +410,7 @@ Number of degrees of freedom: 6,119 (2,426+312+1,213+271+813+1,084)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.785
-     VoF Calculation(IEstL1/FEstL1): 1.25353963e-02/1.13797163e-02
+     VoF Calculation(IEstL1/FEstL1): 1.25347142e-02/1.13765203e-02
 
 Number of active cells: 271 (on 6 levels)
 Number of degrees of freedom: 6,145 (2,442+314+1,221+271+813+1,084)
@@ -543,7 +543,7 @@ Number of degrees of freedom: 6,234 (2,482+319+1,241+274+822+1,096)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.785
-     VoF Calculation(IEstL1/FEstL1): 1.61500789e-02/1.51904619e-02
+     VoF Calculation(IEstL1/FEstL1): 1.61145824e-02/1.51878869e-02
 
 Number of active cells: 256 (on 6 levels)
 Number of degrees of freedom: 5,804 (2,306+297+1,153+256+768+1,024)
@@ -665,7 +665,7 @@ Number of degrees of freedom: 6,119 (2,426+312+1,213+271+813+1,084)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.785
-     VoF Calculation(IEstL1/FEstL1): 1.79730445e-02/1.73091006e-02
+     VoF Calculation(IEstL1/FEstL1): 1.81954154e-02/1.74628247e-02
 
 Number of active cells: 277 (on 6 levels)
 Number of degrees of freedom: 6,271 (2,490+320+1,245+277+831+1,108)
@@ -787,7 +787,7 @@ Number of degrees of freedom: 6,056 (2,402+309+1,201+268+804+1,072)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.785
-     VoF Calculation(IEstL1/FEstL1): 2.01816561e-02/1.93360826e-02
+     VoF Calculation(IEstL1/FEstL1): 2.03944816e-02/1.95693738e-02
 
 Number of active cells: 283 (on 6 levels)
 Number of degrees of freedom: 6,393 (2,534+328+1,267+283+849+1,132)
@@ -800,8 +800,8 @@ Number of degrees of freedom: 6,393 (2,534+328+1,267+283+849+1,132)
    Postprocessing:
      Global VoF volumes (m^3): 0.785
 
-Number of active cells: 241 (on 6 levels)
-Number of degrees of freedom: 5,466 (2,172+280+1,086+241+723+964)
+Number of active cells: 247 (on 6 levels)
+Number of degrees of freedom: 5,589 (2,218+286+1,109+247+741+988)
 
 *** Timestep 70:  t=1.5468 seconds
    Skipping temperature solve because RHS is zero.
@@ -920,7 +920,7 @@ Number of degrees of freedom: 5,741 (2,282+294+1,141+253+759+1,012)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.785
-     VoF Calculation(IEstL1/FEstL1): 2.26589075e-02/2.19707639e-02
+     VoF Calculation(IEstL1/FEstL1): 2.27724214e-02/2.21553580e-02
 
 Number of active cells: 244 (on 6 levels)
 Number of degrees of freedom: 5,526 (2,194+283+1,097+244+732+976)
@@ -1042,7 +1042,7 @@ Number of degrees of freedom: 5,589 (2,218+286+1,109+247+741+988)
 
    Postprocessing:
      Global VoF volumes (m^3):       0.785
-     VoF Calculation(IEstL1/FEstL1): 2.44127743e-02/2.37366738e-02
+     VoF Calculation(IEstL1/FEstL1): 2.45543910e-02/2.38849526e-02
 
 Number of active cells: 268 (on 6 levels)
 Number of degrees of freedom: 6,017 (2,376+309+1,188+268+804+1,072)

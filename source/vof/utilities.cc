@@ -366,11 +366,11 @@ namespace aspect
                    sign_n_y = (((normal[1]) > 0) - ((normal[1]) < 0));
 
       const double norm1 = n_xp + n_yp;
-      const double triangle_break = fabs(n_xp-n_yp);
+      const double triangle_break = 0.5L*fabs(n_xp-n_yp);
 
       const int max_degree = 1;
 
-      AssertThrow(degree>max_degree,
+      AssertThrow(degree<=max_degree,
                   ExcMessage("Cannot generate xFEM polynomials are only functional for degrees<2."));
 
       // Values calculated using sympy
@@ -379,10 +379,23 @@ namespace aspect
           for (int i =0; i < basis_count; ++i)
             coeffs[i] = 0.0;
         }
+      else if (d>0.5*norm1)
+        {
+          // Full cell
+          coeffs[0] = 1.0;
+          for (int i =1; i < basis_count; ++i)
+            coeffs[i] = 0.0;
+        }
+      else if (norm1< 1e-7)
+        {
+          coeffs[0] = 0.5;
+          for (int i =1; i < basis_count; ++i)
+            coeffs[i] = 0.0;
+        }
       else if (d<=-triangle_break)
         {
           //Triangle
-          const double d_n = d + 0.5* (n_xp + n_yp);
+          const double d_n = d + 0.5*norm1;
           coeffs[0]=0.5L*d_n*d_n/(n_xp*n_yp); // 1
           coeffs[1]=d_n*d_n*(d_n - 1.5L*n_yp)/(n_xp*n_yp*n_yp)*sign_n_y; // 2*y - 1
           coeffs[2]=d_n*d_n*(d_n - 1.5L*n_xp)/(n_xp*n_xp*n_yp)*sign_n_x; // 2*x - 1
@@ -404,20 +417,14 @@ namespace aspect
           coeffs[2]=0.25L*(12*pow(d, 2) - 3*n_xp*n_xp + n_yp*n_yp)/(n_xp*n_xp)*sign_n_x; // 2*x - 1
           coeffs[3]=-3*d*n_yp/(n_xp*n_xp)*sign_n_x*sign_n_y; // (2*x - 1)*(2*y - 1)
         }
-      else if (d<0.5*norm1)
-        {
-          //ITriangle
-          const double d_nn = 0.5* (n_xp + n_yp)-d;
-          coeffs[0]=1.0L-0.5L*d_nn*d_nn/(n_xp*n_yp); // 1
-          coeffs[1]=d_nn*d_nn*(d_nn - 1.5L*n_yp)/(n_xp*n_yp*n_yp)*sign_n_y; // 2*y - 1
-          coeffs[2]=d_nn*d_nn*(d_nn - 1.5L*n_xp)/(n_xp*n_xp*n_yp)*sign_n_x; // 2*x - 1
-          coeffs[3]=-1.5L*d_nn*d_nn*(d_nn*d_nn - 2*d_nn*n_xp - 2*d_nn*n_yp + 3*n_xp*n_yp)/(n_xp*n_yp*n_yp*n_yp)*sign_n_x*sign_n_y; // (2*x - 1)*(2*y - 1)
-        }
       else
         {
-          // Full cell
-          for (int i =0; i < basis_count; ++i)
-            coeffs[i] = 1.0;
+          //ITriangle
+          const double d_nn = 0.5*norm1-d;
+          coeffs[0]=1.0L-0.5L*d_nn*d_nn/(n_xp*n_yp); // 1
+          coeffs[1]=0.5L*(d_nn*d_nn)*sign_n_y*(2*d_nn - 3*n_yp)/(n_xp*(n_yp*n_yp)); // 2*y - 1
+          coeffs[2]=0.5L*(d_nn*d_nn)*sign_n_x*(2*d_nn - 3*n_xp)/((n_xp*n_xp)*n_yp); // 2*x - 1
+          coeffs[3]=1.5L*(d_nn*d_nn)*sign_n_x*sign_n_y*(-(d_nn*d_nn) + 2*d_nn*n_xp + 2*d_nn*n_yp - 3*n_xp*n_yp)/((n_xp*n_xp)*(n_yp*n_yp)); // (2*x - 1)*(2*y - 1)
         }
 
       for (unsigned int i = 0; i<points.size(); ++i)
@@ -435,6 +442,16 @@ namespace aspect
     }
 
     template<>
+    void xFEM_Heaviside<3>(const int degree,
+                           const Tensor<1, 3, double> normal,
+                           const double d,
+                           const std::vector<Point<3>> &points,
+                           std::vector<double> &values)
+    {
+      Assert(false, ExcNotImplemented());
+    }
+
+    template<>
     void xFEM_Heaviside_d_d<2>(const int degree,
                                const Tensor<1, 2, double> normal,
                                const double d,
@@ -449,11 +466,11 @@ namespace aspect
                    sign_n_y = (((normal[1]) > 0) - ((normal[1]) < 0));
 
       const double norm1 = n_xp + n_yp;
-      const double triangle_break = fabs(n_xp-n_yp);
+      const double triangle_break = 0.5L*fabs(n_xp-n_yp);
 
       const int max_degree = 1;
 
-      AssertThrow(degree>max_degree,
+      AssertThrow(degree<=max_degree,
                   ExcMessage("Cannot generate xFEM polynomials are only functional for degrees<2."));
 
       // Values calculated using sympy
@@ -462,10 +479,21 @@ namespace aspect
           for (int i =0; i < basis_count; ++i)
             coeffs[i] = 0.0;
         }
+      else if (d>0.5*norm1)
+        {
+          // Full cell
+          for (int i =0; i < basis_count; ++i)
+            coeffs[i] = 0.0;
+        }
+      else if (norm1<1e-7)
+        {
+          for (int i =0; i < basis_count; ++i)
+            coeffs[i] = 0.0;
+        }
       else if (d<=-triangle_break)
         {
           //D Triangle
-          const double d_n = d + 0.5* (n_xp + n_yp);
+          const double d_n = d + 0.5*norm1;
           coeffs[0]=d_n/(n_xp*n_yp); // 1
           coeffs[1]=3*d_n*sign_n_y*(d_n - n_yp)/(n_xp*(n_yp*n_yp)); // 2*y - 1
           coeffs[2]=3*d_n*sign_n_x*(d_n - n_xp)/((n_xp*n_xp)*n_yp); // 2*x - 1
@@ -487,20 +515,14 @@ namespace aspect
           coeffs[2]=6*d*sign_n_x/(n_xp*n_xp); // 2*x - 1
           coeffs[3]=-3*n_yp*sign_n_x*sign_n_y/(n_xp*n_xp); // (2*x - 1)*(2*y - 1)
         }
-      else if (d<0.5*norm1)
+      else
         {
           //D ITriangle
-          const double d_nn = 0.5* (n_xp + n_yp)-d;
+          const double d_nn = 0.5*norm1-d;
           coeffs[0]=d_nn/(n_xp*n_yp); // 1
           coeffs[1]=3*d_nn*sign_n_y*(-d_nn + n_yp)/(n_xp*(n_yp*n_yp)); // 2*y - 1
           coeffs[2]=3*d_nn*sign_n_x*(-d_nn + n_xp)/((n_xp*n_xp)*n_yp); // 2*x - 1
           coeffs[3]=3*d_nn*sign_n_x*sign_n_y*(2*(d_nn*d_nn) - 3*d_nn*n_xp - 3*d_nn*n_yp + 3*n_xp*n_yp)/((n_xp*n_xp)*(n_yp*n_yp)); // (2*x - 1)*(2*y - 1)
-        }
-      else
-        {
-          // Full cell
-          for (int i =0; i < basis_count; ++i)
-            coeffs[i] = 1.0;
         }
 
       for (unsigned int i = 0; i<points.size(); ++i)
@@ -517,36 +539,48 @@ namespace aspect
         }
     }
 
+    template<>
+    void xFEM_Heaviside_d_d<3>(const int degree,
+                               const Tensor<1, 3, double> normal,
+                               const double d,
+                               const std::vector<Point<3>> &points,
+                               std::vector<double> &values)
+    {
+      Assert(false, ExcNotImplemented());
+    }
+
 
     template<int dim>
-    double newton_d(const int degree,
-                    const Tensor<1, dim, double> normal,
-                    const double vol_frac,
-                    const double epsilon,
-                    const std::vector<Point<dim>> &points,
-                    const std::vector<double> &weights)
+    double d_from_vof_newton(const int degree,
+                             const Tensor<1, dim, double> normal,
+                             const double vol_frac,
+                             const double vol,
+                             const double epsilon,
+                             const std::vector<Point<dim>> &points,
+                             const std::vector<double> &weights)
     {
       double norm1=0.0;
-      for (int i=0; i<dim; ++i) norm1+=fabs(normal[0]);
+      for (int i=0; i<dim; ++i) norm1+=fabs(normal[i]);
       double d_l=-0.5L*norm1, d_h=0.5L*norm1;
       double f_l=0.0, f_h=1.0;
-      double d_guess=0.0;
+      double d_guess= d_l + (vol_frac-f_l)*(d_h-d_l)/(f_h-f_l);
       double f_guess, df_guess;
 
       std::vector<double> f_values(points.size());
       std::vector<double> df_values(points.size());
 
-      for (int iter=0; iter<10; ++iter)
+      for (int iter=0; iter<40; ++iter)
         {
           xFEM_Heaviside(degree, normal, d_guess, points, f_values);
-          xFEM_Heavisided_d_d(degree, normal, d_guess, points, df_values);
+          xFEM_Heaviside_d_d(degree, normal, d_guess, points, df_values);
 
           f_guess=0.0;
           df_guess=0.0;
-          for (int i=0; i<points.size(); ++i)
+          for (unsigned int i=0; i<points.size(); ++i)
             {
-              f_guess  += f_values[i]*weights[i];
-              df_guess += df_values[i]*weights[i];
+              const double factor = weights[i]/vol;
+              f_guess  += f_values[i]*factor;
+              df_guess += df_values[i]*factor;
             }
 
           // Break if within tolerance
@@ -576,12 +610,30 @@ namespace aspect
 
               if (d_guess < d_l || d_guess > d_h)
                 {
-                  d_guess = (vol_frac-f_l)/(f_h-f_l)*(d_h-d_l);
+                  d_guess = d_l + (vol_frac-f_l)*(d_h-d_l)/(f_h-f_l);
                 }
             }
         }
 
       return d_guess;
+    }
+
+    template<int dim>
+    double vol_from_d(const int degree,
+                      const Tensor<1, dim, double> normal,
+                      const double d,
+                      const std::vector<Point<dim>> &points,
+                      const std::vector<double> &weights)
+    {
+      std::vector<double> f_values(points.size());
+
+      xFEM_Heaviside(degree, normal, d, points, f_values);
+
+      double vol=0.0;
+      for (unsigned int i=0; i<points.size(); ++i)
+        vol += f_values[i]*weights[i];
+
+      return vol;
     }
 
     template<int dim>
@@ -610,7 +662,19 @@ namespace aspect
   template double calc_vof_flux_edge<dim>(unsigned int dir, \
                                           double timeGrad, \
                                           Tensor<1, dim, double> normal, \
-                                          double d);
+                                          double d); \
+  template double d_from_vof_newton<dim>(const int degree, \
+                                         const Tensor<1, dim, double> normal, \
+                                         const double vol_frac, \
+                                         const double vol, \
+                                         const double epsilon, \
+                                         const std::vector<Point<dim>> &points, \
+                                         const std::vector<double> &weights); \
+  template double vol_from_d<dim>(const int degree, \
+                                  const Tensor<1, dim, double> normal,\
+                                  const double d,\
+                                  const std::vector<Point<dim>> &points,\
+                                  const std::vector<double> &weights);
 
     ASPECT_INSTANTIATE(INSTANTIATE)
   }
