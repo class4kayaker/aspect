@@ -44,7 +44,8 @@ namespace aspect
                                ParameterHandler &prm)
     : sim (simulator),
       vof_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm)),
-      assembler ()
+      assembler (),
+      vof_reconstruct_epsilon(1e-13);
   {
     this->initialize_simulator(sim);
     assembler.initialize_simulator(sim);
@@ -98,10 +99,6 @@ namespace aspect
                          Patterns::Double (0, 1),
                          "Minimum significant volume. VOFs below this considered to be zero.");
 
-      prm.declare_entry ("Reconstruction tolerance", "1e-13",
-                         Patterns::Double (0, 1),
-                         "Variation tolerance for interface reconstruction location.");
-
       prm.declare_entry ("VoF solver tolerance", "1e-12",
                          Patterns::Double(0,1),
                          "The relative tolerance up to which the linear system for "
@@ -126,8 +123,6 @@ namespace aspect
     prm.enter_subsection ("VoF config");
     {
       vof_epsilon = prm.get_double("Small volume");
-
-      vof_reconstruct_epsilon = prm.get_double("Reconstruction tolerance");
 
       vof_solver_tolerance = prm.get_double("VoF solver tolerance");
 

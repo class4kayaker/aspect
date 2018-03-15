@@ -106,8 +106,11 @@ namespace aspect
 
       // Minimal considered volume fraction
       double vof_epsilon;
+
+      // Tolerance for variation in volume fraction during interface reconstruction
       double vof_reconstruct_epsilon;
 
+      // Tolerance for matrix solve in update
       double vof_solver_tolerance;
 
       std::vector<std::string> vof_field_names;
