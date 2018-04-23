@@ -3,7 +3,7 @@ set Dimension                              = 2
 set Start time                             = 0
 set End time                               = 0
 set Use years in output instead of seconds = true
-set Nonlinear solver scheme                = iterated Stokes
+set Nonlinear solver scheme                = single Advection, iterated Stokes
 set Max nonlinear iterations               = 1
 set Number of cheap Stokes solver steps    = 0
 set Output directory                       = visco_plastic_complex
@@ -107,7 +107,7 @@ end
 
 # Boundary composition specification
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
 # Material model (values for background material, strain fields and crust)
@@ -138,7 +138,8 @@ subsection Material model
     set Activation volumes for dislocation creep = 18.e-6,18.e-6,0.
 
     # Yielding mechanism and values
-    set Yield mechanism = drucker
+    set Yield mechanism = limiter
+    set Stress limiter exponents = 10, 10, 10
     set Angles of internal friction = 0.,0.,0.
     set Cohesions = 1.e6,1.e6,1.e6
 

@@ -1,7 +1,7 @@
 # A simple reference solution with RHS force vector with incompressible
 # melt transport
 
-set Nonlinear solver scheme                = IMPES
+set Nonlinear solver scheme                = single Advection, single Stokes
 set Max nonlinear iterations               = 50
 set Nonlinear solver tolerance             = 1e-10 #1e-10
 set Linear solver tolerance                = 1e-12
@@ -65,7 +65,7 @@ subsection Boundary temperature model
 end
 
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
 
@@ -137,7 +137,6 @@ subsection Model settings
   set Zero velocity boundary indicators       =           # default: 
 
   set Include melt transport                  = true
-#  set Melt transport threshold = 0
   set Enable additional Stokes RHS            = true
 end
 

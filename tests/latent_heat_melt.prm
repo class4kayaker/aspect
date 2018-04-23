@@ -11,7 +11,7 @@ set Dimension = 2
 set Start time                             = 0
 set End time                               = 4e16
 set Use years in output instead of seconds = false
-set Nonlinear solver scheme                = IMPES
+set Nonlinear solver scheme                = single Advection, single Stokes
 set Max nonlinear iterations               = 20
 
 
@@ -47,7 +47,7 @@ subsection Initial composition model
 end
 
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
 subsection Heating model

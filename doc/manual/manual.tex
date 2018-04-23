@@ -162,6 +162,7 @@ COMPUTATIONAL INFRASTRUCTURE FOR GEODYNAMICS (CIG)
     Louise Kellogg,
     Scott King,
     Martin Kronbichler,
+    Marine Lasbleis,
     Shangxin Liu,
     Elvira Mulyukova,
     John Naliboff,
@@ -1883,6 +1884,17 @@ is defined in the material model. This is the explicit compressible mass equatio
 the velocity $\textbf{u}$ on the right-hand side is an extrapolated velocity from the last timesteps.
 
 \item
+``hydrostatic compression'':
+\[
+ \nabla \cdot \textbf{u}
+= - \left( \frac{1}{\rho} \frac{\partial \rho}{\partial p} \rho \textbf{g} + \frac{1}{\rho} \frac{\partial \rho}{\partial T} \nabla T \right) \cdot \textbf{u}
+= - \left( \kappa \rho \textbf{g} - \alpha \nabla T \right) \cdot \textbf{u}
+\]
+where $\frac{1}{\rho} \frac{\partial \rho}{\partial p} = \kappa$ is the compressibility,
+$- \frac{1}{\rho}\frac{\partial \rho}{\partial T} = \alpha$ is the thermal expansion coefficient, 
+and both are defined in the material model. 
+
+\item
 ``reference density profile'':
 \[
  \nabla \cdot \textbf{u} = -\frac{1}{\bar{\rho}} \frac{\partial \bar{\rho}}{\partial z} \frac{\textbf{g}}{\|\textbf{g}\|} \cdot \textbf{u},
@@ -2438,6 +2450,7 @@ setup problems, and performance penalties.
 \end{enumerate}
 
 \subsection{Docker Container}
+\label{subsec:docker_container}
 
 \subsubsection{Installing Docker and downloading the \aspect{} image}
 
@@ -2825,6 +2838,16 @@ is given in Section~\ref{sec:parameters}.
 Running \aspect{} with an input file will produce output that will look
 something like this (numbers will all be different, of course):
 \begin{lstlisting}[frame=single,language=ksh]
+-----------------------------------------------------------------------------
+-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.
+--     . version 2.0.0-pre (include_dealii_version, c20eba0)
+--     . using deal.II 9.0.0-pre (master, 952baa0)
+--     . using Trilinos 12.10.1
+--     . using p4est 2.0.0
+--     . running in DEBUG mode
+--     . running with 1 MPI process
+-----------------------------------------------------------------------------
+
 Number of active cells: 1,536 (on 5 levels)
 Number of degrees of freedom: 20,756 (12,738+1,649+6,369)
 
@@ -2875,9 +2898,21 @@ Number of degrees of freedom: 33,859 (20,786+2,680+10,393)
 ...
 \end{lstlisting}
 
-This output was produced by a parameter file that, among other settings,
-contained the following values (we will discuss many such input files in
-Section~\ref{sec:cookbooks}:
+The output starts with a header that lists the used \aspect{}, \dealii{},
+\trilinos{} and \pfrst{} versions as well as the mode you compiled \aspect{} in
+(see \ref{sec:debug-mode}), and the number of parallel processes
+used\footnote{If you used the \texttt{git} version control system to download
+\aspect{} and/or \dealii{}, as in this example, you will also get the current
+branch, and unique revision identifier for the current version. This is very
+important if you modify either software between releases, or you use a
+development version that is not an official release. Note that this revision
+can not track changes you made to the software that are not part of a git
+commit.}.  With this information we strive to make
+\aspect{} models as reproducible as possible.
+
+The following output depends on the model, and in this case was produced by
+a parameter file that, among other settings, contained the following values
+(we will discuss many such input files in Section~\ref{sec:cookbooks}:
 \lstinputlisting[language=prmfile]{cookbooks/overview/simple.prm.out}
 
 In other words, these run-time parameters specify that we should start with a
@@ -3692,7 +3727,7 @@ requires us to solve a linear system of the form $Ax=b$ which we do through
 iterative solvers, i.e., we try to find a sequence of approximations $x^{(k)}$
 where $x^{(k)}\rightarrow x=A^{-1}b$. This iteration is terminated at iteration
 $k$ if the approximation is ``close enough'' to the exact solution. The solvers
-we use this determine this by testing after every iteration whether the
+we use determine this by testing after every iteration whether the
 \textit{residual}, $r^{(k)}=A(x-x^{(k)})=b-Ax^{(k)}$, satisfies
 $\|r^{(k)}\|\le\varepsilon\|r^{(0)}\|$ where $\varepsilon$ is called the
 (relative) \textit{tolerance}.
@@ -3839,6 +3874,30 @@ improvements in run-time.
 \index[prmindexfull]{Material model!Material averaging}
 
 
+\subsubsection{Using multithreading}
+In most cases using as many MPI processes as possible is the optimal
+parallelization strategy for \aspect{} models, but if you are limited by the
+amount of MPI communication it can be beneficial to use multiple threads per
+MPI process. While not utilized by our linear solvers, this parallelization can
+speed up the assembly of the system matrices, e.g. by around 10-15\% if you
+utilize unused logical cores, or nearly linearly if you use otherwise
+unused physical cores. This can also reduce the performance cost if you are
+memory limited and need to run your model on less than the available number of
+cores per node on a cluster to increase the available memory per core.  Running
+with for example two threads per process will offset some of the performance
+loss you will see in these situations.
+
+Multithreading is controlled by setting the command line parameter \texttt{-j}
+or \texttt{-{}-threads}. If the parameter is not set, \aspect{} will create
+exactly one thread per MPI process, i.e. multithreading is disabled.  Appending
+the parameter allows \aspect{} to spawn several threads per MPI process. Note
+that the internally used TBB library will determine the number of threads based
+on the number of available cores, i.e., if you start 2~MPI processes on a
+quadcore machine with hyperthreading (8 logical cores), \aspect{} will spawn 4
+threads on each MPI process. Also note that there is no guarantee that the
+final number of threads will exactly match the number of available logical
+cores if you start with a number of processes that is not a divisor of your
+logical cores (e.g. 3 MPI processes for 8 logical cores).
 
 \subsection{Input parameter files}
 \label{sec:parameters-overview}
@@ -4002,6 +4061,31 @@ an if-statement that has the general form
 the syntax understood, reference the documentation of the muparser library
 linked to above.
 
+\subsubsection{Compatibility of input files with newer \aspect{} versions}
+
+We strive to maintain compatibility for options in input files as long as
+possible. However, occasionally we have to reorder, rename, or remove options
+from parameter files to improve \aspect{} further. This is in particular true
+for new major versions. In order to allow running old parameter files with
+newer \aspect{} versions we provide scripts that can automatically update
+existing parameter files to the new syntax. Executing
+\texttt{doc/update\_prm\_files.sh} with one or more parameter files as
+arguments will create a backup of the old parameter file (named
+\texttt{old\_filename.bak}), and replace the existing file with a version that
+should work with the current \aspect{} version. Using this script would look
+like this:
+
+\begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
+bash doc/update_prm_files.sh cookbooks/convection_box.prm
+\end{lstlisting}
+
+\note{Not all text replacements are unique, and the structure of input files
+allows for constructions the script can not properly parse. Also we can not
+guarantee to preserve the structure and position of comments, as it is not
+always clear to which part of the input file they refer. Thus, it is important
+that you check your updated input file for errors. That being said, all input
+files in the main \aspect{} repository are updated successfully using this
+script.}
   
 \subsection{A graphical user interface for editing \aspect{} parameter files}
 Preparing a parameter file in a text editor can be a tedious task, not
@@ -4212,7 +4296,7 @@ temperature. This leads to the following set of equations:
   & \qquad
   & \textrm{in $\Omega$},
   \\
-  \rho_0 (1-\alpha (T-T_0)) C_p \left(\frac{\partial T}{\partial t} + \mathbf
+  \rho_0 C_p \left(\frac{\partial T}{\partial t} + \mathbf
   u\cdot\nabla T\right) - \nabla\cdot k\nabla T
   &=
   0
@@ -4229,24 +4313,18 @@ setting coefficients in the following way:
   \rho_0=C_p=\kappa=\alpha=\eta=h=\Delta T=1, \qquad T_0=0, \qquad g=Ra,
 \end{align*}
 where $\mathbf g=-g \mathbf e_z$ is the gravity vector in negative
-$z$-direction. While this would be a valid description of the problem, it is not
-what one typically finds in the literature because there the density in the
-temperature equation is chosen as reference density $\rho_0$ rather than the 
-full density $\rho(1-\alpha(T-T_0))$
-as used by \aspect{}. However, we can mimic this by choosing a very small value
-for $\alpha$ -- small enough to ensure that for all reasonable temperatures,
-the density used here is equal to $\rho_0$ for all practical purposes --, and
-instead making $g$ correspondingly larger.
-Consequently, in this cookbook we will use the following set of parameters:
-\begin{align*}
-  \rho_0=C_p=\kappa=\eta=h=\Delta T=1, \qquad T_0=0, \qquad \alpha=10^{-10}, \qquad
-  g=10^{10} Ra.
-\end{align*}
+$z$-direction. 
 We will see all of these values again in the input file discussed below.
+One point to note is that for the Boussinesq approximation, as described above, the density 
+in the temperature equation is chosen as the reference density $\rho_0$ rather than the 
+full density $\rho(1-\alpha(T-T_0))$ as we see it in the buoyancy term on the right hand 
+side of the momentum equation. As \aspect{} is able to handle different approximations 
+of the equations (see Section \ref{sec:approximate-equations}), we also have to 
+specify in the input file that we want to use the Boussinesq approximation.
 The problem is completed by stating the velocity boundary conditions: tangential
 flow along all four of the boundaries of the box.
 
-This situation describes a well-known benchmark problems for which a lot is
+This situation describes a well-known benchmark problem for which a lot is
 known and against which we can compare our results. For example, the following
 is well understood:
 \begin{itemize}
@@ -4294,35 +4372,37 @@ Number of degrees of freedom: 3,556 (2,178+289+1,089)
 *** Timestep 0:  t=0 seconds
    Solving temperature system... 0 iterations.
    Rebuilding Stokes preconditioner...
-   Solving Stokes system... 30+5 iterations.
+   Solving Stokes system... 31+0 iterations.
 
 [... ...]
 
-*** Timestep 1077:  t=0.499901 seconds
-   Solving temperature system... 9 iterations.
+*** Timestep 1085:  t=0.5 seconds
+   Solving temperature system... 0 iterations.
    Solving Stokes system... 5 iterations.
 
    Postprocessing:
-     RMS, max velocity:                  43.1 m/s, 69.8 m/s
+     RMS, max velocity:                  43.5 m/s, 70.3 m/s
      Temperature min/avg/max:            0 K, 0.5 K, 1 K
-     Heat fluxes through boundary parts: 0.02056 W, -0.02061 W, -4.931 W, 4.931 W
+     Heat fluxes through boundary parts: 0.01977 W, -0.01977 W, -4.787 W, 4.787 W
 
+Termination requested by criterion: end time
 
 
 +---------------------------------------------+------------+------------+
-| Total wallclock time elapsed since start    |       454s |            |
+| Total wallclock time elapsed since start    |      66.5s |            |
 |                                             |            |            |
 | Section                         | no. calls |  wall time | % of total |
 +---------------------------------+-----------+------------+------------+
-| Assemble Stokes system          |      1078 |      19.2s |       4.2% |
-| Assemble temperature system     |      1078 |       329s |        72% |
-| Build Stokes preconditioner     |         1 |    0.0995s |     0.022% |
-| Build temperature preconditioner|      1078 |      5.84s |       1.3% |
-| Solve Stokes system             |      1078 |      15.6s |       3.4% |
-| Solve temperature system        |      1078 |      3.72s |      0.82% |
-| Initialization                  |         2 |    0.0474s |      0.01% |
-| Postprocessing                  |      1078 |      61.9s |        14% |
-| Setup dof systems               |         1 |     0.221s |     0.049% |
+| Assemble Stokes system          |      1086 |      8.63s |        13% |
+| Assemble temperature system     |      1086 |        32s |        48% |
+| Build Stokes preconditioner     |         1 |    0.0225s |         0% |
+| Build temperature preconditioner|      1086 |      1.52s |       2.3% |
+| Solve Stokes system             |      1086 |       7.7s |        12% |
+| Solve temperature system        |      1086 |     0.729s |       1.1% |
+| Initialization                  |         1 |    0.0316s |         0% |
+| Postprocessing                  |      1086 |      7.76s |        12% |
+| Setup dof systems               |         1 |    0.0104s |         0% |
+| Setup initial conditions        |         1 |   0.00621s |         0% |
 +---------------------------------+-----------+------------+------------+
 \end{lstlisting}
 
@@ -4334,23 +4414,24 @@ time steps and at the end of the program:
 
 \begin{lstlisting}[frame=single,language=ksh]
 +---------------------------------------------+------------+------------+
-| Total wallclock time elapsed since start    |      48.3s |            |
+| Total wallclock time elapsed since start    |      25.8s |            |
 |                                             |            |            |
 | Section                         | no. calls |  wall time | % of total |
 +---------------------------------+-----------+------------+------------+
-| Assemble Stokes system          |      1078 |      1.68s |       3.5% |
-| Assemble temperature system     |      1078 |      26.3s |        54% |
-| Build Stokes preconditioner     |         1 |    0.0401s |     0.083% |
-| Build temperature preconditioner|      1078 |      4.87s |        10% |
-| Solve Stokes system             |      1078 |      6.76s |        14% |
-| Solve temperature system        |      1078 |      1.76s |       3.7% |
-| Initialization                  |         2 |    0.0241s |      0.05% |
-| Postprocessing                  |      1078 |      4.99s |        10% |
-| Setup dof systems               |         1 |    0.0394s |     0.082% |
+| Assemble Stokes system          |      1086 |      2.51s |       9.7% |
+| Assemble temperature system     |      1086 |      9.88s |        38% |
+| Build Stokes preconditioner     |         1 |    0.0271s |      0.11% |
+| Build temperature preconditioner|      1086 |      1.58s |       6.1% |
+| Solve Stokes system             |      1086 |      6.38s |        25% |
+| Solve temperature system        |      1086 |     0.542s |       2.1% |
+| Initialization                  |         1 |     0.219s |      0.85% |
+| Postprocessing                  |      1086 |      2.79s |        11% |
+| Setup dof systems               |         1 |      0.23s |      0.89% |
+| Setup initial conditions        |         1 |     0.107s |      0.41% |
 +---------------------------------+-----------+------------+------------+
 \end{lstlisting}
 
-In other words, the program ran about 10 times faster than before. Not all
+In other words, the program ran more than 2 times faster than before. Not all
 operations became faster to the same degree: assembly, for example, is an area
 that traverses a lot of code both in \aspect{} and in \dealii{} and so
 encounters a lot of verification code in debug mode. On the other hand, solving
@@ -4373,7 +4454,8 @@ discussion in Section~\ref{sec:viz} and use the default VTU output format to
 visualize using the Visit program.
 
 In the parameter file we have specified that graphical output should be
-generated every 0.01 time units. Looking through these output files, we find
+generated every 0.01 time units. Looking through these output files (which can
+be found in the folder \texttt{output-convection-box}, as specified in the input file), we find
 that the flow and temperature fields quickly converge to a stationary state.
 Fig.~\ref{fig:convection-box-fields} shows the initial and final states of this
 simulation.
@@ -4401,33 +4483,35 @@ looks like this for the current input file:
 \begin{lstlisting}[frame=single,language=prmfile]
 # 1: Time step number
 # 2: Time (seconds)
-# 3: Number of mesh cells
-# 4: Number of Stokes degrees of freedom
-# 5: Number of temperature degrees of freedom
-# 6: Iterations for temperature solver
-# 7: Iterations for Stokes solver
-# 8: Time step size (seconds)
-# 9: RMS velocity (m/s)
-# 10: Max. velocity (m/s)
-# 11: Minimal temperature (K)
-# 12: Average temperature (K)
-# 13: Maximal temperature (K)
-# 14: Average nondimensional temperature (K)
-# 15: Outward heat flux through boundary with indicator 0 (W)
-# 16: Outward heat flux through boundary with indicator 1 (W)
-# 17: Outward heat flux through boundary with indicator 2 (W)
-# 18: Outward heat flux through boundary with indicator 3 (W)
-# 19: Visualization file name
+# 3: Time step size (seconds)
+# 4: Number of mesh cells
+# 5: Number of Stokes degrees of freedom
+# 6: Number of temperature degrees of freedom
+# 7: Iterations for temperature solver
+# 8: Iterations for Stokes solver
+# 9: Velocity iterations in Stokes preconditioner
+# 10: Schur complement iterations in Stokes preconditioner
+# 11: RMS velocity (m/s)
+# 12: Max. velocity (m/s)
+# 13: Minimal temperature (K)
+# 14: Average temperature (K)
+# 15: Maximal temperature (K)
+# 16: Average nondimensional temperature (K)
+# 17: Outward heat flux through boundary with indicator 0 ("left") (W)
+# 18: Outward heat flux through boundary with indicator 1 ("right") (W)
+# 19: Outward heat flux through boundary with indicator 2 ("bottom") (W)
+# 20: Outward heat flux through boundary with indicator 3 ("top") (W)
+# 21: Visualization file name
 ... lots of numbers arranged in columns ...
 \end{lstlisting}
 
 Fig.~\ref{fig:convection-box-stats} shows the results of visualizing the data
-that can be found in columns 2 (the time) plotted against columns 9 and 10
+that can be found in columns 2 (the time) plotted against columns 11 and 12
 (root mean square and maximal velocities). Plots of this kind can be generated with
 \texttt{Gnuplot} by typing (see Section~\ref{sec:viz-stat} for a more thorough
 discussion):
 \begin{verbatim}
-  plot "output/statistics" using 2:9 with lines
+  plot "output-convection-box/statistics" using 2:11 with lines
 \end{verbatim}
 Fig.~\ref{fig:convection-box-stats} shows clearly that the simulation
 enters a steady state after about $t\approx 0.1$ and then changes very little. This can also be observed using the
@@ -4441,8 +4525,8 @@ $t\approx 0.2$, the fluxes differ by only $5\cdot 10^{-5}$, i.e., by less than
 0.001\% of their magnitude.%
 \footnote{This difference is far smaller than the numerical error in the heat
 flux on the mesh this data is computed on.}
-The flux we get at the last time step, 4.931, is less than 1\% away from the
-value reported in \cite{BBC89} although we compute on a $16\times 16$ mesh and
+The flux we get at the last time step, 4.787, is less than 2\% away from the
+value reported in \cite{BBC89} ($\approx$4.88) although we compute on a $16\times 16$ mesh and
 the values reported by Blankenbach are extrapolated from meshes of size up to
 $72\times 72$. This shows the accuracy that can be obtained using a higher order
 finite element. Secondly, the fluxes through the left and right boundary are not
@@ -4500,10 +4584,10 @@ pattern. On the other hand, for values $Ra<Ra_c\approx 780$, any movement of
 the fluid dies down exponentially and we end up with a situation where the fluid
 doesn't move and heat is transported from the bottom to the top only through
 heat conduction. This can be explained by considering that the Rayleigh number
-in a box of unit extent is defined as $Ra=\frac{g\alpha}{\eta k}$. A small
+in a box of unit extent is defined as $Ra=\frac{\rho_0 g\alpha\Delta T}{\eta k}$. A small
 Rayleigh number means that the viscosity is too large (i.e., the buoyancy given
-by the product of the magnitude of gravity times the thermal expansion
-coefficient is not strong enough to overcome friction forces within the fluid).
+by the product of the magnitude of gravity times the density anomalies caused by temperature
+-- $\rho_0 \alpha \Delta T$ -- is not strong enough to overcome friction forces within the fluid).
 
 On the other hand, if the Rayleigh number is large (i.e., the viscosity is
 small or the buoyancy large) then the fluid develops an unsteady convection
@@ -4550,8 +4634,8 @@ computation with $Ra=10^6$; it is obvious here that the flow no longer settles
 into a steady state but has a periodic behavior. This can also be seen by
 looking at movies of the solution.
 
-To generate these results, remember that we have chosen $\alpha=10^{-10}$ and
-$g=10^{10}Ra$ in our input file. In other words, changing the input file to
+To generate these results, remember that we have chosen 
+$g=Ra$ in our input file. In other words, changing the input file to
 contain the parameter setting
 %
 \lstinputlisting[language=prmfile]{cookbooks/convection-box/gravity.part.prm.out}
@@ -4562,7 +4646,7 @@ will achieve the desired effect of computing with $Ra=10^6$.
 \paragraph{Play time 2: Thinking about finer meshes.}
 In our computations for $Ra=10^4$ we used a $16\times 16$ mesh and obtained a
 value for the heat flux that differed from the generally accepted value from
-Blankenbach \textit{et al.} \cite{BBC89} by less than 1\%. However, it may be
+Blankenbach \textit{et al.} \cite{BBC89} by less than 2\%. However, it may be
 interesting to think about computing even more accurately. This is easily done
 by using a finer mesh, for example. In the parameter file above, we have chosen
 the mesh setting as follows:
@@ -4631,19 +4715,19 @@ indicating that the mesh before this refinement step may already have been fine
 enough to resolve the majority of the dynamics.
 
 In any case, we can compare the heat fluxes we obtain at the end of these
-computations: With a globally four times refined mesh, we get a value of 4.931
-(an error of approximately 1\% against the accepted value from Blankenbach,
-$4.884409\pm 0.00001$). With a globally five times refined mesh we get 4.914 (an
-error of 0.6\%) and with the mesh generated using the procedure above we get
-4.895 with the four digits printed on the screen%
+computations: With a globally four times refined mesh, we get a value of 4.787
+(an error of approximately 2\% against the accepted value from Blankenbach,
+$4.884409\pm 0.00001$). With a globally five times refined mesh we get 4.879, 
+and with a globally six times refined mesh we get 4.89 (an error of almost 0.1\%).
+With the mesh generated using the procedure above we also get
+4.89 with the digits printed on the screen%
 \footnote{The statistics file gives this
-value to more digits: 4.89488768. However, these are clearly more digits than
+value to more digits: 4.89008498. However, these are clearly more digits than
 the result is accurate.}
-(corresponding to an error of 0.2\%). In other words, our
-simple procedure of refining the mesh during the simulation run yields an
-accuracy of three times smaller than using the globally refined approach even
-though the compute time is not much larger than that necessary for the 5 times
-globally refined mesh.
+(also corresponding to an error of almost 0.1\%). In other words, our
+simple procedure of refining the mesh during the simulation run yields the same 
+accuracy as using the mesh that is globally refined in the beginning of the 
+simulation, while needing a much lower compute time.  
 
 
 \paragraph{Play time 3: Changing the finite element in use.}
@@ -4689,48 +4773,53 @@ Number of degrees of freedom: 4,868 (2,178+289+2,401)
 *** Timestep 0:  t=0 seconds
    Solving temperature system... 0 iterations.
    Rebuilding Stokes preconditioner...
-   Solving Stokes system... 30+5 iterations.
+   Solving Stokes system... 30+0 iterations.
 
 [... ...]
 
-*** Timestep 1619:  t=0.499807 seconds
-   Solving temperature system... 8 iterations.
-   Solving Stokes system... 5 iterations.
+*** Timestep 1621:  t=0.5 seconds
+   Solving temperature system... 0 iterations.
+   Solving Stokes system... 1+0 iterations.
 
    Postprocessing:
      RMS, max velocity:                  42.9 m/s, 69.5 m/s
      Temperature min/avg/max:            0 K, 0.5 K, 1 K
-     Heat fluxes through boundary parts: -0.004622 W, 0.004624 W, -4.878 W, 4.878 W
+     Heat fluxes through boundary parts: -0.004602 W, 0.004602 W, -4.849 W, 4.849 W
+
+Termination requested by criterion: end time
 
 
 +---------------------------------------------+------------+------------+
-| Total wallclock time elapsed since start    |       127s |            |
+| Total wallclock time elapsed since start    |      53.6s |            |
 |                                             |            |            |
 | Section                         | no. calls |  wall time | % of total |
 +---------------------------------+-----------+------------+------------+
-| Assemble Stokes system          |      1620 |      3.03s |       2.4% |
-| Assemble temperature system     |      1620 |      75.7s |        60% |
-| Build Stokes preconditioner     |         1 |    0.0422s |     0.033% |
-| Build temperature preconditioner|      1620 |      21.7s |        17% |
-| Solve Stokes system             |      1620 |      10.3s |       8.1% |
-| Solve temperature system        |      1620 |       4.9s |       3.8% |
-| Initialization                  |         2 |    0.0246s |     0.019% |
-| Postprocessing                  |      1620 |      8.05s |       6.3% |
-| Setup dof systems               |         1 |    0.0438s |     0.034% |
+| Assemble Stokes system          |      1622 |      4.04s |       7.5% |
+| Assemble temperature system     |      1622 |      24.4s |        46% |
+| Build Stokes preconditioner     |         1 |    0.0121s |         0% |
+| Build temperature preconditioner|      1622 |      8.05s |        15% |
+| Solve Stokes system             |      1622 |      8.92s |        17% |
+| Solve temperature system        |      1622 |      1.67s |       3.1% |
+| Initialization                  |         1 |    0.0327s |         0% |
+| Postprocessing                  |      1622 |      4.27s |         8% |
+| Setup dof systems               |         1 |   0.00418s |         0% |
+| Setup initial conditions        |         1 |   0.00236s |         0% |
 +---------------------------------+-----------+------------+------------+
+
 \end{lstlisting}
 
-Note here that the heat flux through the top and bottom boundaries is now
-computed as 4.878, an error of 0.13\%. This is 4 times more accurate than the
+The heat flux through the top and bottom boundaries is now computed as 4.878.
+Using the five times globally refined mesh, it is 4.8837 (an error of 0.015\%). 
+This is 6 times more accurate than the 
 once more globally refined mesh with the original quadratic elements, at a cost
 significantly smaller. Furthermore, we can of course combine this with the mesh
 that is gradually refined as simulation time progresses, and we then get a heat
-flux that is equal to 4.8843, only 0.002\% away from the accepted value!
+flux that is equal to 4.884446, also only 0.01\% away from the accepted value!
 
 As a final remark, to test our hypothesis that it was indeed the temperature
 polynomial degree that was the limiting factor, we can increase the Stokes
 polynomial degree to 3 while leaving the temperature polynomial degree at 2. A
-quick computation shows that in that case we get a heat flux of 4.931 -- exactly
+quick computation shows that in that case we get a heat flux of 4.747 -- almost 
 the same value as we got initially with the lower order Stokes element. In other
 words, at least for this testcase, it really was the temperature variable that
 limits the accuracy.
@@ -7566,7 +7655,8 @@ the surface; $\gamma$ is a coefficient of yield stress increase with depth; and 
 By limiting the strength of the lithosphere at low temperature, this rheology allows one to
 more realistically model processes like lithospheric delamination and foundering in the
 presence of weak crustal layers. A similar model setup to the one described in \cite{MD04}
-can be reproduced with the following parameters.
+can be reproduced with the files in the directory \url{cookbooks/morency_doin_2004}. 
+In particular, the following sections of the input file are important to reproduce the setup:
 
 \note{\cite{MD04} defines the second invariant of the strain rate in a nonstandard way.
     The formulation in the paper is given as $\epsilon_{II} = \sqrt{\frac{1}{2}
@@ -7580,7 +7670,7 @@ can be reproduced with the following parameters.
     get very close. See Figure~\ref{fig:md-1} for an approximate reproduction of the
     original figure.}
 
-\lstinputlisting[language=prmfile]{cookbooks/morency_doin/morency_doin.prm.out}
+\lstinputlisting[language=prmfile]{cookbooks/morency_doin/morency_doin.part.prm.out}
 
 \begin{figure}[h!]
   \includegraphics[width=\textwidth]{cookbooks/morency_doin/morency_doin_2004_fig1.pdf}
@@ -7790,21 +7880,19 @@ as temperature variations associated with lithospheric thinning exert a first-or
 \label{sec:cookbooks-inner-core-convection}
 
 \textit{This section was contributed by Juliane Dannberg, and the model setup was inspired 
-by discussions with John Rudge.}
+by discussions with John Rudge. Additional materials and comments by Mathilde Kervazo and Marine Lasbleis.}
 
-This is an example of convection in the inner core of the Earth. It uses a spherical geometry 
-and is characterized by a single material with temperature dependent density that makes it
-unstably stratified as temperature increases towards the center of the core. 
-The boundary conditions combine normal stress and normal velocity, and take into account the
-rate of phase change (melting/freezing) at the inner-outer core boundary. Gravity decreases 
-linearly from the boundary to zero at the center of the inner core. 
+This is an example of convection in the inner core of the Earth. The model is based on a spherical geometry, with a single material. Three main particularities are constitutive of this inner core dynamics modeling: it consists of a self-gravitating sphere where the gravity decreases linearly from the boundary to zero at the center of the inner core; the boundary conditions combine normal stress and normal velocity, and take into account the rate of phase change (melting/freezing) at the inner-outer core boundary; the material has a temperature dependent density that makes the density profile unstably stratified as temperature increases towards the center of the core.
+Note that we do not actually compute self-gravitation, but instead define a linear gravity profile. Since the density variations are very small, this is a good approximation.
+
 The setup is analogous to the models described in \cite{Deguen2013}, and all material properties 
 are chosen in a way so that the equations are non-dimensional.
 
 The required heating model and changes to the material model are implemented in a shared library
 (\url{cookbooks/inner_core_convection/inner_core_convection.cc}). 
 
-In their non-dimensional form, the equations are
+In the non-dimensional form of the equations derived by \cite{Deguen2013}, we solve for the potential temperature $T = \tilde{T}-T_\text{is}$ ($\tilde{T}$ is the temperature field, $T_\text{is}$ the isentropic -- also called adiabatic -- temperature). This allows to solve the temperature field with simple boundary conditions ($T=0$), even if the temperature of the inner core boundary evolves with time, defined as the intersection between the isentrope and the liquidus of the material in the outer core.  
+The equations for inner core convection in the approximation of no growth (equation 59 for the potential temperature) are
 
 \begin{align}
   \label{eq:inner-core-1}
@@ -7820,13 +7908,16 @@ In their non-dimensional form, the equations are
   &=
   H,
 \end{align}
+where $Ra$ is the Rayleigh number and $H$ is the 'source term', constructed when removing the adiabatic temperature from the temperature field to obtain the potential temperature $T$. $H$ describes the time-evolution of the adiabatic temperature over time, due to secular cooling of the outer core. 
+In spherical geometry, $H=6$. 
 
-where $Ra$ is the Rayleigh number. 
 
+\vspace{0.3cm}
+\textbf{Mechanical boundary.}
 The mechanical boundary conditions for the inner core are
 tangential stress-free and continuity of the normal stress at the
 inner-outer core boundary. For the non-dimensional equations, that
-means that we can define a ``phase change number'' $\mathcal{P}$ so that the
+means that we define a ``phase change number'' $\mathcal{P}$ (see \cite{Deguen2013}) so that the
 normal stress at the boundary is $-\mathcal{P} u_r$ with the radial velocity
 $u_r$. This number characterizes the resistance to phase change at
 the boundary, with $\mathcal{P}\rightarrow\infty$ corresponding to infinitely slow
@@ -7852,38 +7943,20 @@ to the matrix:
 \lstinputlisting[language=C++,,basicstyle=\footnotesize\ttfamily,]{../../cookbooks/inner_core_convection/inner_core_assembly.cc}
 Instructions for how to compile and run models with a shared library are given in Section~\ref{sec:benchmark-run}.
 
-Analyzing Equations~\eqref{eq:inner-core-1}--\eqref{eq:inner-core-3} reveals that two parameters determine 
+\vspace{0.3cm}
+\textbf{Governing parameters.}  Analyzing Equations~\eqref{eq:inner-core-1}--\eqref{eq:inner-core-3}, two parameters determine 
 the dynamics of convection in the inner core: the Rayleigh number $Ra$ and the phase change number $\mathcal{P}$. 
-For low Rayleigh numbers below a critical value $Ra_c$ that is approximately $1000$ for high $\mathcal{P}$ ($\gg 29$), and 
-that depends linearly on $\mathcal{P}$ for smaller $\mathcal{P}$ (see \cite{Deguen2013}), there is no convection 
-and thermal diffusion dominates the heat transport. 
-For higher values of $Ra > Ra_c$, the style of convection in the inner core depends on $\mathcal{P}$: 
-For high $\mathcal{P}$ ($\gg 29$, see \cite{Deguen2013}), convection is dominated by thermal plumes with the number 
-of plumes scaling with the Rayleigh number; whereas for low values of $\mathcal{P}$, the inner core is in a 
-translation regime, where material freezes at one side and melts at the other side, so that the velocity field 
-is uniform, pointing from the freezing to the melting side. 
+Three main areas can be distinguished: the stable area, the plume convection area and the translation mode of convection area (Figure~\ref{fig:diagramme-regime}). For low Rayleigh numbers (below the critical value $Ra_c$), there is no convection and thermal diffusion dominates the heat transport. However, if the inner core is convectively unstable ($Ra$>$Ra_c$), the convection regime depends mostly on $\mathcal{P}$. For low $\mathcal{P}$ (<29), the convective translation mode dominates, where material freezes at one side of the inner core and melts at the other side, so that the velocity field is uniform, pointing from the freezing to the melting side. Otherwise, at high $\mathcal{P}$ (>29), convection takes the usual form of thermal convection with shear free boundary and no phase change, that is the one-cell axisymmetric mode at the onset, and chaotic plume convection for larger Rayleigh number. In this case, melting and solidification at the ICB have only a small dynamic effect. At intermediate values of P, the first unstable mode is a linear combination of the high-P convection mode and of the small-P translation mode.
 
-\begin{figure}
-    \centering
-    \begin{tabular}{lcl}
-    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/convection.png}
-    & \hspace{1cm} &
-    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/convection_contours.png}
-    \\
-    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/translation.png}
-    & \hspace{1cm} &
-    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/translation_contours.png}
-    \\
-    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/no_convection.png}
-    & \hspace{1cm} &
-    \includegraphics[height=0.25\textwidth]{cookbooks/inner_core_convection/no_convection_contours.png}
-    \end{tabular}
-    \caption{Convection regimes in the inner core for different values of $Ra$ and $\mathcal{P}$.
-             From top to bottom: plume convection, translation, no convection; full 3d models
-             on the left and 2d slices on the right. Temperature is shown as contours, 
-             velocity is shown as arrows.}
-    \label{fig:inner-core-regimes}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[height=0.57\textwidth]{cookbooks/inner_core_convection/Diagstab.pdf}
+	\caption{Stability diagram for convection in a sphere with phase change at its outer boundary. The stability curves for the first unstable mode (l=1) and the translation are obtained from \cite{Deguen2013}. Each dot (no convection) and triangle (blue: translation, yellow: plume convection) is one model run done with ASPECT. The highest the Ra and P are, the more refinement is required (see text).}
+    \label{fig:diagramme-regime}
+\end{center}
 \end{figure}
+
 
 Changing the values of $Ra$ and $\mathcal{P}$ in the input file allows switching between the different regimes.
 The Rayleigh number can be changed by adjusting the magnitude of the gravity:
@@ -7895,9 +7968,35 @@ spatial coordinates and/or on time:
 Figure~\ref{fig:inner-core-regimes} shows examples of the three regimes with $Ra=3000, \mathcal{P}=1000$ (plume convection), 
 $Ra=10^5, \mathcal{P}=0.01$ (translation), $Ra=10, \mathcal{P}=30$ (no convection).
 
+\begin{figure}[h]
+    \begin{center}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/Ra1e0P0modif.png}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/Ra1e2P-1modif.png}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/Ra1e5P4modif.png}
+   \vspace{1cm}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/Ra1e0P0modif.png}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/Ra1e2P-1rescalemodif.png}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/Ra1e5P4rescalemodif.png}
+   \vspace{1cm}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/no_convection.png}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/translation.png}
+    \includegraphics[width=0.25\linewidth]{cookbooks/inner_core_convection/convection.png}
+    \caption{Convection regimes in the inner core for different values of $Ra$ and $\mathcal{P}$. From left to right: no convection, translation, plume convection; the 2D slices at the top are with the default temperature scale for all panels, while in the second row an adaptive scale is used. The bottom row features slightly different model parameters (that are still in the same regime as the models in the respective panels above) and also shows the velocity as arrows.}
+    \label{fig:inner-core-regimes}
+       \end{center}
+\end{figure}
 
+\vspace{0.3cm}
+\textbf{Mesh refinement.}
+The temperature is set to 0 at the outer boundary and a large temperature gradient can develop at the boundary layer, especially for the translation regime. The adaptive mesh refinement allows it to resolve this layer at the inner core boundary. Another solution is to apply a specific initial refinement, based on the boundary layer thickness scaling law $\delta \propto Ra^{-0.236}$, and to refine specifically the uppermost part of the inner core. 
+
+In order to have a mesh that is much finer at the outer boundary than in the center of the domain, this expression for the mesh refinement subsection can be used in the input file:
+\lstinputlisting[language=prmfile]{cookbooks/inner_core_convection/inner_core_traction.part.3.prm}
+
+\vspace{0.3cm}
+\textbf{Scaling laws.} 
 In addition, \cite{Deguen2013} give scaling laws for the velocities in each regime derived from linear stability 
-analysis, and show how numerical results compare to them. In the regimes of low $\mathcal{P}$, translation will start 
+analysis of perfect translation, and show how numerical results compare to them. In the regimes of low $\mathcal{P}$, translation will start 
 at a critical ratio of Rayleigh number and phase change number $\frac{Ra}{\mathcal{P}}=\frac{175}{2}$ with steady-state 
 translation velocities being zero below this threshold and tending to $v_0=\frac{175}{2}\sqrt{\frac{6}{5}\frac{Ra}{\mathcal{P}}}$ 
 going towards higher values of $\frac{Ra}{\mathcal{P}}$.
@@ -7922,6 +8021,7 @@ Both trends are shown in Figure~\ref{fig:inner-core-trends} and can be compared 
 \end{figure}
 
 \subsubsection{Melt migration in a 2D mantle convection model}
+\label{sec:cookbooks-melt-global}
 
 \textit{This section was contributed by Juliane Dannberg and is based on a section in \cite{dannberg_melt} by Juliane Dannberg and Timo Heister.}
 
@@ -7963,6 +8063,160 @@ In the first few tens of millions of years, this models evolves similarly to the
 Figure~\ref{fig:global-melt} shows the time evolution of both models. 
 A more complete comparison of the two models can be found in Section~4.7 ``Influence of melt migration on a global-scale 
 convection model'' in \cite{dannberg_melt}.
+
+\subsubsection{Melt migration in a 2D mid-ocean ridge model}
+\label{sec:cookbooks-mid-ocean-ridge}
+
+\textit{This section was contributed by Juliane Dannberg.}
+
+The following cookbook will explain how to set up a model of a mid-ocean ridge that uses \aspect{}'s 
+implementation of coupled magma/mantle dynamics (see Section~\ref{sec:melt_transport}) and melting 
+and freezing of mantle rock. 
+In particular, it will outline 
+\begin{enumerate}
+  \item how to use operator splitting to accurately compute melting and freezing of melt, 
+  \item how to use traction boundary conditions to set up the flow field of a mid-ocean ridge, 
+  \item useful strategies for how to refine the mesh in models with melt migration.
+\end{enumerate}
+How to set up a model with melt migration in general is explained in the previous cookbook \ref{sec:cookbooks-melt-global}. 
+
+As the flow at mid-ocean ridges can be assumed to be roughly symmetric with respect to the ridge axis 
+in the center, we only model one half of the ridge in a 2d Cartesian box with dimensions of $105 \times 70$\,km. Solid material is flowing in from the bottom with a prescribed temperature and melting due to decompression as is rises. The model is cooled from the top so that melt freezes again as it approaches this boundary. In addition, a fixed plate velocity away from the ridge axis is prescribed at the top boundary, inducing corner flow. Material can flow out freely at the right model boundary. The model shows both how melt is focused towards the ridge axis, and how melting and freezing induces chemical heterogeneity in the mantle, generating the crust and lithosphere. 
+A movie of the full model evolution can be found \href{https://www.youtube.com/watch?v=f4Bc4lzdNP0}{online}. 
+
+\paragraph{The input file.}
+One important problem in models with melting and freezing (and other reactions) is that these reactions 
+can be much faster than the time step of the model. For mid-ocean ridges, melt is generally assumed to 
+be in equilibrium with the solid, which means that the reaction is basically instantaneous. 
+To model these type of processes, \aspect{} uses operator splitting (see also Section \ref{sec:benchmark-operator_splitting}): Reactions are solved on a different time scale than advection. 
+For this model, this means that at the beginning of each time step, all melting reactions, 
+including their latent heat effects, are solved using several shorter sub-time steps. In the input file, 
+we have to choose both the size of these sub-time steps and the rate (or characteristic time scale) of melting, 
+and they have to be consistent in the sense that the operator splitting time step can not be larger than 
+the reaction time scale. 
+The melting model we use here is the anhydrous mantle melting model of \cite{KSL2003} for a peridotitic 
+rock composition, as implemented in the ``melt simple'' material model. 
+
+\lstinputlisting[language=prmfile]{cookbooks/mid_ocean_ridge/melting_and_freezing.part.prm}
+
+To make sure we reproduce the characteristic triangular melting region of a mid-ocean ridge, we have to  
+set up the boundary conditions in a way so that they will lead to corner flow. At the top boundary, we can 
+simply prescribe the half-spreading rate, and at the left boundary we can use a free-slip boundary, as 
+material should not cross this centerline. However, we do not know the inflow and outflow velocities at 
+the bottom and right side of the model. Instead, what we can do here is prescribing the lithostatic 
+pressure as a boundary condition for the stress. We accomplish this by using the 
+``initial lithostatic pressure'' model. This plugin will automatically compute a 1d lithostatic pressure 
+profile at a given point at the time of the model start and apply it as a boundary traction.
+
+\lstinputlisting[language=prmfile]{cookbooks/mid_ocean_ridge/boundary_conditions.part.prm}
+
+Finally, we have to make sure that the resolution is high enough to model melt migration. 
+This is particularly important in regions where the porosity is low, but still high enough that 
+the two-phase flow equations are solved (instead of the Stokes system, which is solved if there is  
+no melt present in a cell). At the boundary between these regions, material properties like the 
+compaction viscosity may jump, and there may be strong gradients or jumps in some solution variables such 
+as the melt velocity and the compaction pressure. In addition, the characteristic length scale for melt transport, 
+the compaction length $\delta$, depends on the porosity:
+\begin{equation}
+\delta = \sqrt{\frac{(\xi+4\eta/3)k}{\eta_f}}.
+\end{equation}
+While the melt viscosity $\eta_f$ is usually assumed to be constant, and the shear and compaction 
+viscosities $\eta$ and  $\xi$ increase with decreasing porosity $\phi$, the permeability 
+$k \propto \phi^2$ or $k \propto \phi^3$ dominates this relation, so that the compaction length becomes 
+smaller for lower porosities. 
+As the length scale of melt migration is usually smaller than for mantle convection, we want to make 
+sure that regions where melt is present have a high resolution, and that this high resolution extends 
+to all cells where the two-phase flow equations are solved. 
+
+\lstinputlisting[language=prmfile]{cookbooks/mid_ocean_ridge/mesh_refinement.part.prm}
+
+\aspect{} also supports an alternative method to make sure that regions with melt are sufficiently 
+well resolved, relying directly on the compaction length, and we will discuss this method as a possible 
+modification to this cookbook at the end of this section. 
+
+The complete input file is located at \url{cookbooks/mid_ocean_ridge.prm}. 
+
+\paragraph{Model evolution.}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{cookbooks/mid_ocean_ridge/mid_ocean_ridge.pdf}
+    \caption{Mid-ocean ridge model after 8 million years. The top panel shows the depletion 
+             and porosity fields (with the characteristic triangular melting region), 
+             the bottom panel shows the temperature distribution and the melt velocity, indicated 
+             by the arrows.}
+    \label{fig:mid-ocean-ridge}
+\end{figure}
+
+When we look at the visualization output of this model (see also Figure~\ref{fig:mid-ocean-ridge}), 
+we can see how the hot material flowing in 
+from the bottom starts to melt as it reaches lower and lower pressures and crosses the solidus.  Simultaneously, melting makes the residual solid rock more depleted (as indicated by the positive 
+values of the compositional field called `peridotite'). Once material approaches the surface, 
+it is cooled from the cold boundary layer above, and melt starts to crystallize again, generating 
+`enriched' basaltic crust where is freezes (as indicated by the negative values of the compositional 
+field called `peridotite'). As the temperature gradients are much sharper close to the surface, this 
+transition from melt to solid rock is much sharper than in the melting region. Once material 
+crystallizes, it is transported away from the ridge axis due to the flow field induced by the prescribed 
+plate velocity at the top boundary. This way, over time, the classical triangular melting region develops 
+at the ridge axis, and the material transported away from the ridge shows two distinct layers:
+The top $\approx 7$ km are enriched material, and form the basaltic crust (negative peridotite field), 
+and the $\approx 50$ km below are depleted material, and form the lithosphere (positive peridotite field). 
+A vertical profile at a distance of 80 km from the ridge axis showing this composition can be found in Figure~\ref{fig:mid-ocean-ridge-profile}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.35\textwidth]{cookbooks/mid_ocean_ridge/depletion_profile.pdf}
+    \caption{Vertical profile through the model domain at a distance of 80 km from the ridge axis
+             at the end of the model run, showing the distribution of depletion and enrichment as
+             indicated by the peridotite field.}
+    \label{fig:mid-ocean-ridge-profile}
+\end{figure}
+
+\paragraph{Mesh refinement.}
+Another option for making sure that melt migration is resolved properly in the model is using a 
+refinement criterion that directly relates to the compaction length. This can be done in the mesh 
+refinement section of the input file:
+
+\lstinputlisting[language=prmfile]{cookbooks/mid_ocean_ridge/compaction_length.part.prm}
+
+This will lead to a higher resolution particularly in regions with low (but not zero) porosity, 
+and can be useful to resolve the strong gradients in the melt velocity and compaction pressure that 
+are to be expected in these places (see Figure~\ref{fig:mid-ocean-ridge-mesh}). 
+Of course it is also possible to combine both methods for refining the mesh. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\textwidth]{cookbooks/mid_ocean_ridge/refinement.pdf}
+    \caption{Mesh after a time of 3.6 million years for a model using the composition threshold 
+             refinement strategy (left) and the compaction length refinement strategy (right)
+             Background colors indicate the melt velocity. Its sharp gradients at the interface 
+             between regions with and without melt can only be resolved using the compaction 
+             length refinement strategy.}
+    \label{fig:mid-ocean-ridge-mesh}
+\end{figure}
+
+\paragraph{Extending the model.}
+There are a number of parameters that influence the amount of melting, how fast the melt moves, and ultimately the distribution of crustal and lithospheric material. 
+Some ideas for adapting the model setup:
+\begin{itemize}
+  \item Changing the spreading rate: This can be done by choosing a different magnitude of the 
+        prescribed velocity at the top boundary, and influences the size and shape of the triangular
+        melting region. Faster spreading allows hot material to move further away from the ridge axis, 
+        and hence facilitates a melting region that extends further in horizontal direction. 
+  \item Changing the temperature profile: This can be done by choosing a different bottom boundary 
+        temperature and influences the amount of melting, and hence the thickness of the crust. 
+        Higher temperatures lead to more melt being generated. 
+  \item Changing the speed of melt migration: The velocity of the melt with respect to the solid velocity 
+        is determined by the permeability and the melt viscosity (and the pressure gradients in the melt). 
+        Increasing the permeability (by setting a different ``Reference permeability'' in the melt simple 
+        model) can lead to higher melt velocities, melt reaching the depth of freezing faster, and hence 
+        lower overall porosity values at steady state. 
+  \item Making the viscosity law more realistic: In this simple model, the viscosity only depends on the 
+        amount of melt that is present and is otherwise constant. This could be the reason why melt can 
+        not flow up all the way up at the ridge axis, but freezes before it reaches the surface. 
+        Introducing a temperature-dependent rheology could improve this behavior (and in reality, plastic
+        effects might also play a role).
+\end{itemize}
 
 \subsection{Benchmarks}
 \label{sec:cookbooks-benchmarks}
@@ -11413,6 +11667,30 @@ of the last two functions has been discussed in the general overview of
 plugins above.
 
 
+\subsection{Compatibility of plugins with newer \aspect{} versions}
+
+We strive to maintain compatibility for user written plugins with new versions
+of \aspect{} for as long as possible. However, occasionally we have to
+restructure interface classes to improve \aspect{} further. This is in
+particular true for new major versions. In order to allow running old plugins
+with newer \aspect{} versions we provide scripts that can automatically update
+existing plugins to the new syntax. Executing
+\texttt{doc/update\_source\_files.sh} with one or more plugin files as
+arguments will create a backup of the old file (named
+\texttt{old\_filename.bak}), and replace the existing file with a version that
+should work with the current \aspect{} version. Using this script would look
+like this:
+
+\begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
+bash doc/update_source_files.sh cookbooks/finite_strain/finite_strain.cc
+\end{lstlisting}
+
+\note{Not all text replacements are unique, and the structure of plugin files
+allows for constructs the script can not properly parse. Thus, it is important
+that you check your updated plugin file for errors. That being said, all plugin
+files in the main \aspect{} repository are updated successfully using this
+script.}
+
 
 \subsection{Extending \aspect{} through the signals mechanism}
 \label{sec:extending-signals}
@@ -11763,7 +12041,24 @@ requests by others, one of the trusted maintainers has to specifically request a
 test run, and this will usually happen
 as soon as the patch developer indicates the patch is ready for review.}
 Upon completion of the test suite, both the general summary (pass/fail) and a
-full verbose log will available from the GitHub page.
+full verbose log will available from the GitHub page. Because the official test
+setup is set up in a Docker container, it is simple to replicate the results on
+a local machine. To this end, follow the instructions in
+Section~\ref{subsec:docker_container} to set up Docker, and then run the
+following command in any terminal (replace \texttt{ASPECT\_SOURCE\_DIR} with
+the path to your \aspect{} directory):
+\begin{lstlisting}[frame=single,language=ksh] 
+    docker run -v ASPECT_SOURCE_DIR:/home/dealii/aspect \
+    --name=aspect-tester --rm -it \
+    dealii/dealii:v8.5.0-gcc-mpi-fulldepscandi-debugrelease \
+    bash /home/dealii/aspect/cmake/compile_and_update_tests.sh
+\end{lstlisting}
+
+This command executes the shell script 
+\texttt{cmake/compile\_and\_update\_tests.sh} \textit{inside} the docker
+container that contains the official \aspect{} test system. Note that by
+mounting your \aspect{} folder into the container you are actually updating the
+reference test results on the host system (i.e. your computer).
 
 
 \subsubsection{Writing tests}
@@ -11813,7 +12108,7 @@ as well. The process of contributing to a new project can be daunting, but we ap
 every contribution and are happy to work with you on improving \aspect{}. To get
 you started we have collected a set of guidelines and advice on how to get involved in the
 community. To avoid duplication we store these guidelines in a separate file \url{CONTRIBUTING.md}
-in the main folder of the repository. Even if something in that file is not clear, this
+in the main folder of the repository, and you can also access them online at \url{https://github.com/geodynamics/aspect/blob/master/CONTRIBUTING.md}. Even if something in that file is not clear, this
 is an opportunity for you to ask your question on the mailing list (see 
 Section~\ref{sec:questions-and-answers}, and let us know that file needs improvement.
 

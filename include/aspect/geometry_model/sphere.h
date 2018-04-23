@@ -20,6 +20,7 @@
 #ifndef _aspect_geometry_model_sphere_h
 #define _aspect_geometry_model_sphere_h
 
+#include <deal.II/grid/manifold_lib.h>
 #include <aspect/geometry_model/interface.h>
 #include <aspect/simulator_access.h>
 
@@ -65,6 +66,13 @@ namespace aspect
         virtual
         double depth(const Point<dim> &position) const;
 
+        /**
+         * Return the height of the given position relative to
+         * the radius of the sphere.
+         */
+        virtual
+        double height_above_reference_surface(const Point<dim> &position) const;
+
         virtual
         Point<dim> representative_point(const double depth) const;
 
@@ -100,6 +108,13 @@ namespace aspect
         bool
         has_curved_elements() const;
 
+        /*
+         * Returns what the natural coordinate system for this geometry model is,
+         * which for a sphere is Spherical.
+         */
+        virtual
+        aspect::Utilities::Coordinates::CoordinateSystem natural_coordinate_system() const;
+
         /**
          * Return whether the given point lies within the domain specified
          * by the geometry. This function does not take into account
@@ -129,6 +144,12 @@ namespace aspect
          */
         double R;
 
+#if DEAL_II_VERSION_GTE(9,0,0)
+        /**
+         * The manifold that describes the geometry.
+         */
+        const SphericalManifold<dim> spherical_manifold;
+#endif
     };
   }
 }

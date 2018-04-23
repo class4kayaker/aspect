@@ -265,6 +265,12 @@ namespace aspect
       return std::min (std::max (R1-position.norm(), 0.), maximal_depth());
     }
 
+    template <int dim>
+    double
+    SphericalShell<dim>::height_above_reference_surface(const Point<dim> &position) const
+    {
+      return position.norm()-outer_radius();
+    }
 
 
     template <int dim>
@@ -351,6 +357,15 @@ namespace aspect
       return true;
     }
 
+
+    template <int dim>
+    aspect::Utilities::Coordinates::CoordinateSystem
+    SphericalShell<dim>::natural_coordinate_system() const
+    {
+      return aspect::Utilities::Coordinates::CoordinateSystem::spherical;
+    }
+
+
     template <int dim>
     void
     SphericalShell<dim>::declare_parameters (ParameterHandler &prm)
@@ -361,10 +376,20 @@ namespace aspect
         {
           prm.declare_entry ("Inner radius", "3481000",  // 6371-2890 in km
                              Patterns::Double (0),
-                             "Inner radius of the spherical shell. Units: m.");
+                             "Inner radius of the spherical shell. Units: m. "
+                             "\n\n"
+                             "\\note{The default value of 3,481,000 m equals the "
+                             "radius of a sphere with equal volume as Earth (i.e., "
+                             "6371 km) minus the average depth of the core-mantle "
+                             "boundary (i.e., 2890 km).}");
           prm.declare_entry ("Outer radius", "6336000",  // 6371-35 in km
                              Patterns::Double (0),
-                             "Outer radius of the spherical shell. Units: m.");
+                             "Outer radius of the spherical shell. Units: m. "
+                             "\n\n"
+                             "\\note{The default value of 6,336,000 m equals the "
+                             "radius of a sphere with equal volume as Earth (i.e., "
+                             "6371 km) minus the average depth of the mantle-crust "
+                             "interface (i.e., 35 km).}");
           prm.declare_entry ("Opening angle", "360",
                              Patterns::Double (0, 360),
                              "Opening angle in degrees of the section of the shell "

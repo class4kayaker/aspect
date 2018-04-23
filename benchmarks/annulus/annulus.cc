@@ -493,12 +493,12 @@ namespace aspect
     double
     AnnulusPostprocessor<dim>::compute_dynamic_topography_error() const
     {
-      Postprocess::DynamicTopography<dim> *dynamic_topography =
-        this->template find_postprocessor<Postprocess::DynamicTopography<dim> >();
+      const Postprocess::DynamicTopography<dim> &dynamic_topography =
+        this->get_postprocess_manager().template get_matching_postprocessor<Postprocess::DynamicTopography<dim> >();
 
-      const AnnulusMaterial<dim> *material_model
-        = dynamic_cast<const AnnulusMaterial<dim> *>(&this->get_material_model());
-      const double beta = material_model->get_beta();
+      const AnnulusMaterial<dim> &material_model
+        = Plugins::get_plugin_as_type<const AnnulusMaterial<dim> >(this->get_material_model());
+      const double beta = material_model.get_beta();
 
       const QGauss<dim-1> quadrature_formula (this->introspection().polynomial_degree.velocities+2);
       FEFaceValues<dim> fe_face_values(this->get_mapping(),
@@ -506,7 +506,7 @@ namespace aspect
                                        quadrature_formula,
                                        update_values | update_gradients |
                                        update_q_points | update_JxW_values);
-      LinearAlgebra::BlockVector topo_vector = dynamic_topography->topography_vector();
+      LinearAlgebra::BlockVector topo_vector = dynamic_topography.topography_vector();
       std::vector<double> topo_values(quadrature_formula.size());
 
       double l2_error = 0.;
@@ -522,7 +522,7 @@ namespace aspect
               if (cell->face(f)->at_boundary())
                 {
                   fe_face_values.reinit(cell, f);
-                  MaterialModel::MaterialModelInputs<dim> in_face(fe_face_values, &cell, this->introspection(), this->get_solution());
+                  MaterialModel::MaterialModelInputs<dim> in_face(fe_face_values, cell, this->introspection(), this->get_solution());
                   MaterialModel::MaterialModelOutputs<dim> out_face(fe_face_values.n_quadrature_points, this->n_compositional_fields());
                   fe_face_values[this->introspection().extractors.temperature].get_function_values(topo_vector, topo_values);
                   this->get_material_model().evaluate(in_face, out_face);

@@ -36,12 +36,12 @@ namespace aspect
     {
       template <int dim>
       std::vector<std::vector<double> >
-      BilinearLeastSquares<dim>::properties_at_points(const std::multimap<types::LevelInd, Particle<dim> > &particles,
+      BilinearLeastSquares<dim>::properties_at_points(const ParticleHandler<dim> &particle_handler,
                                                       const std::vector<Point<dim> > &positions,
                                                       const ComponentMask &selected_properties,
                                                       const typename parallel::distributed::Triangulation<dim>::active_cell_iterator &cell) const
       {
-        const unsigned int n_particle_properties = particles.begin()->second.get_properties().size();
+        const unsigned int n_particle_properties = particle_handler.n_properties_per_particle();
 
         const unsigned int property_index = selected_properties.first_selected_component(selected_properties.size());
 
@@ -79,16 +79,15 @@ namespace aspect
         else
           found_cell = cell;
 
-        const types::LevelInd cell_index = std::make_pair<unsigned int, unsigned int> (found_cell->level(),found_cell->index());
-        const std::pair<typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator,
-              typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator> particle_range = particles.equal_range(cell_index);
+        const typename ParticleHandler<dim>::particle_iterator_range particle_range =
+          particle_handler.particles_in_cell(found_cell);
 
 
         std::vector<std::vector<double> > cell_properties(positions.size(),
                                                           std::vector<double>(n_particle_properties,
                                                                               numbers::signaling_nan<double>()));
 
-        const unsigned int n_particles = std::distance(particle_range.first,particle_range.second);
+        const unsigned int n_particles = std::distance(particle_range.begin(),particle_range.end());
 
         AssertThrow(n_particles != 0,
                     ExcMessage("At least one cell contained no particles. The `bilinear'"
@@ -105,13 +104,13 @@ namespace aspect
 
         unsigned int index = 0;
         const double cell_diameter = found_cell->diameter();
-        for (typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator particle = particle_range.first;
-             particle != particle_range.second; ++particle, ++index)
+        for (typename ParticleHandler<dim>::particle_iterator particle = particle_range.begin();
+             particle != particle_range.end(); ++particle, ++index)
           {
-            const double particle_property_value = particle->second.get_properties()[property_index];
+            const double particle_property_value = particle->get_properties()[property_index];
             r[index] = particle_property_value;
 
-            const Point<dim> position = particle->second.get_location();
+            const Point<dim> position = particle->get_location();
             A(index,0) = 1;
             A(index,1) = (position[0] - approximated_cell_midpoint[0])/cell_diameter;
             A(index,2) = (position[1] - approximated_cell_midpoint[1])/cell_diameter;
@@ -215,8 +214,9 @@ namespace aspect
                     global_maximum_particle_properties = Utilities::string_to_double(Utilities::split_string_list(prm.get("Global particle property maximum")));
                     global_minimum_particle_properties = Utilities::string_to_double(Utilities::split_string_list(prm.get("Global particle property minimum")));
 
-                    const Postprocess::Particles<dim> *particle_postprocessor = this->template find_postprocessor<Postprocess::Particles<dim> >();
-                    const unsigned int n_property_components = particle_postprocessor->get_particle_world().get_property_manager().get_n_property_components();
+                    const Postprocess::Particles<dim> &particle_postprocessor =
+                      this->get_postprocess_manager().template get_matching_postprocessor<const Postprocess::Particles<dim> >();
+                    const unsigned int n_property_components = particle_postprocessor.get_particle_world().get_property_manager().get_n_property_components();
 
                     AssertThrow(global_minimum_particle_properties.size() == n_property_components,
                                 ExcMessage("Make sure that the size of list 'Global minimum particle property' "

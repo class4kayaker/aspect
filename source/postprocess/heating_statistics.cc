@@ -53,6 +53,7 @@ namespace aspect
 
       MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, this->n_compositional_fields());
       MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, this->n_compositional_fields());
+      this->get_heating_model_manager().create_additional_material_model_outputs(out);
 
       std::vector<std::vector<double> > composition_values (this->n_compositional_fields(),std::vector<double> (quadrature_formula.size()));
 
@@ -80,14 +81,7 @@ namespace aspect
           {
 
             fe_values.reinit (cell);
-            in.reinit(fe_values, &cell, this->introspection(), this->get_solution());
-
-            for (typename std::list<std_cxx11::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
-                 heating_model = heating_model_objects.begin();
-                 heating_model != heating_model_objects.end(); ++heating_model)
-              {
-                (*heating_model)->create_additional_material_model_outputs(out);
-              }
+            in.reinit(fe_values, cell, this->introspection(), this->get_solution());
 
             this->get_material_model().evaluate(in, out);
 
@@ -138,14 +132,14 @@ namespace aspect
            heating_model != heating_model_objects.end(); ++heating_model, ++index)
         {
           // finally produce something for the statistics file
-          const std::string name1("Average " + heating_model_names[index] + " rate (W/kg) ");
+          const std::string name1("Average " + heating_model_names[index] + " rate (W/kg)");
           statistics.add_value (name1, global_heating_integrals[index]/global_mass);
           // also make sure that the other columns filled by the this object
           // all show up with sufficient accuracy and in scientific notation
           statistics.set_precision (name1, 8);
           statistics.set_scientific (name1, true);
 
-          const std::string name2("Total " + heating_model_names[index] + " rate (W) ");
+          const std::string name2("Total " + heating_model_names[index] + " rate (W)");
           statistics.add_value (name2, global_heating_integrals[index]);
           // also make sure that the other columns filled by the this object
           // all show up with sufficient accuracy and in scientific notation

@@ -85,6 +85,13 @@ namespace aspect
         virtual
         double depth(const Point<dim> &position) const;
 
+        /**
+         * Return the height of the given position relative to
+         * the outer radius of the shell.
+         */
+        virtual
+        double height_above_reference_surface(const Point<dim> &position) const;
+
         virtual
         Point<dim> representative_point(const double depth) const;
 
@@ -132,6 +139,13 @@ namespace aspect
         virtual
         bool
         point_is_in_domain(const Point<dim> &p) const;
+
+        /*
+         * Returns what the natural coordinate system for this geometry model is,
+         * which for a spherical shell is Spherical.
+         */
+        virtual
+        aspect::Utilities::Coordinates::CoordinateSystem natural_coordinate_system() const;
 
         /**
          * Declare the parameters this class takes through input files. The

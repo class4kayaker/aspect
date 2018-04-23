@@ -82,7 +82,7 @@ namespace aspect
           double phase_func;
           // use delta function for width = 0
           if (transition_widths[phase]==0)
-            (depth_deviation > 0) ? phase_func = 1 : phase_func = 0;
+            phase_func = (depth_deviation > 0) ? 1 : 0;
           else
             phase_func = 0.5*(1.0 + std::tanh(depth_deviation / transition_widths[phase]));
           return phase_func;
@@ -596,7 +596,7 @@ namespace aspect
                                    "of the phase transition being input parameters. "
                                    "The model employs an analytic phase function in the form "
                                    "$X=0.5 \\left( 1 + \\tanh \\left( \\frac{\\Delta p}{\\Delta p_0} \\right) \\right)$ "
-                                   "with $\\Delta p = p - p_{transition} - \\gamma \\left( T - T_{transition} \\right)$ "
+                                   "with $\\Delta p = p - p_\\text{transition} - \\gamma \\left( T - T_\\text{transition} \\right)$ "
                                    "and $\\Delta p_0$ being the pressure difference over the width "
                                    "of the phase transition (specified as input parameter).")
   }

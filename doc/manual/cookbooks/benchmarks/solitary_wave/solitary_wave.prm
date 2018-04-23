@@ -7,7 +7,7 @@
 set Additional shared libraries            = ./libsolitary_wave.so
 
 # A non-linear solver has to be used for models with melt migration
-set Nonlinear solver scheme                = iterated IMPES
+set Nonlinear solver scheme                = iterated Advection and Stokes
 set Max nonlinear iterations               = 10
 set Nonlinear solver tolerance             = 1e-5
 set Linear solver tolerance                = 1e-10
@@ -51,7 +51,7 @@ end
 # As material is flowing in, we prescribe the porosity at the
 # upper and lower boundary. 
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
 subsection Model settings

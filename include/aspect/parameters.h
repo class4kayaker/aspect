@@ -64,11 +64,12 @@ namespace aspect
     {
       enum Kind
       {
-        IMPES,
-        iterated_IMPES,
-        iterated_Stokes,
-        Stokes_only,
-        Advection_only
+        single_Advection_single_Stokes,
+        iterated_Advection_and_Stokes,
+        single_Advection_iterated_Stokes,
+        no_Advection_iterated_Stokes,
+        iterated_Advection_and_Newton_Stokes,
+        single_Advection_no_Stokes
       };
     };
 
@@ -103,7 +104,8 @@ namespace aspect
       enum Kind
       {
         fem_field,
-        particles
+        particles,
+        static_field
       };
     };
 
@@ -166,6 +168,7 @@ namespace aspect
         enum Kind
         {
           isothermal_compression,
+          hydrostatic_compression,
           reference_density_profile,
           implicit_reference_density_profile,
           incompressible,
@@ -181,6 +184,8 @@ namespace aspect
         {
           if (input == "isothermal compression")
             return Formulation::MassConservation::isothermal_compression;
+          else if (input == "hydrostatic compression")
+            return Formulation::MassConservation::hydrostatic_compression;
           else if (input == "reference density profile")
             return Formulation::MassConservation::reference_density_profile;
           else if (input == "implicit reference density profile")
@@ -307,6 +312,7 @@ namespace aspect
     double                         start_time;
     double                         CFL_number;
     double                         maximum_time_step;
+    double                         maximum_relative_increase_time_step;
     double                         reaction_time_step;
     unsigned int                   reaction_steps_per_advection_step;
     bool                           use_artificial_viscosity_smoothing;
@@ -331,14 +337,7 @@ namespace aspect
     double                         temperature_solver_tolerance;
     double                         composition_solver_tolerance;
     bool                           use_operator_splitting;
-    unsigned int                   max_pre_newton_nonlinear_iterations;
-    unsigned int                   max_newton_line_search_iterations;
-    double                         switch_initial_newton_residual;
-    double                         minimum_linear_stokes_solver_tolerance;
 
-    // possibly find a better place for these variables
-    double                         newton_theta;
-    double                         newton_residual;
     /**
      * @}
      */
@@ -386,16 +385,6 @@ namespace aspect
 
     std::set<types::boundary_id> fixed_temperature_boundary_indicators;
     std::set<types::boundary_id> fixed_composition_boundary_indicators;
-    std::set<types::boundary_id> zero_velocity_boundary_indicators;
-    std::set<types::boundary_id> tangential_velocity_boundary_indicators;
-
-    /**
-     * Map from boundary id to a pair "components", "velocity boundary type",
-     * where components is of the format "[x][y][z]" and the velocity type is
-     * mapped to one of the plugins of velocity boundary conditions (e.g.
-     * "function")
-     */
-    std::map<types::boundary_id, std::pair<std::string,std::string> > prescribed_velocity_boundary_indicators;
 
     /**
      * Map from boundary id to a pair "components", "traction boundary type",

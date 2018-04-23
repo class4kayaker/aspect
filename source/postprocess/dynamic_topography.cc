@@ -34,14 +34,13 @@ namespace aspect
     std::pair<std::string,std::string>
     DynamicTopography<dim>::execute (TableHandler &)
     {
-      Postprocess::BoundaryPressures<dim> *boundary_pressures =
-        this->template find_postprocessor<Postprocess::BoundaryPressures<dim> >();
-      AssertThrow(boundary_pressures != NULL,
-                  ExcMessage("Could not find the BoundaryPressures postprocessor") );
+      const Postprocess::BoundaryPressures<dim> &boundary_pressures =
+        this->get_postprocess_manager().template get_matching_postprocessor<Postprocess::BoundaryPressures<dim> >();
+
       // Get the average pressure at the top and bottom boundaries.
       // This will be used to compute the dynamic pressure at the boundaries.
-      const double surface_pressure = boundary_pressures->pressure_at_top();
-      const double bottom_pressure = boundary_pressures->pressure_at_bottom();
+      const double surface_pressure = boundary_pressures.pressure_at_top();
+      const double bottom_pressure = boundary_pressures.pressure_at_bottom();
 
       // If the gravity vector is pointed *up*, as determined by representative points
       // at the surface and at depth, then we are running backwards advection, and need
@@ -152,12 +151,12 @@ namespace aspect
               local_mass_matrix = 0.;
 
               // Evaluate the material model in the cell volume.
-              MaterialModel::MaterialModelInputs<dim> in_volume(fe_volume_values, &cell, this->introspection(), this->get_solution());
+              MaterialModel::MaterialModelInputs<dim> in_volume(fe_volume_values, cell, this->introspection(), this->get_solution());
               MaterialModel::MaterialModelOutputs<dim> out_volume(fe_volume_values.n_quadrature_points, this->n_compositional_fields());
               this->get_material_model().evaluate(in_volume, out_volume);
 
               // Evaluate the material model on the cell face.
-              MaterialModel::MaterialModelInputs<dim> in_face(fe_face_values, &cell, this->introspection(), this->get_solution());
+              MaterialModel::MaterialModelInputs<dim> in_face(fe_face_values, cell, this->introspection(), this->get_solution());
               MaterialModel::MaterialModelOutputs<dim> out_face(fe_face_values.n_quadrature_points, this->n_compositional_fields());
               this->get_material_model().evaluate(in_face, out_face);
 
@@ -290,7 +289,7 @@ namespace aspect
               fe_support_values.reinit (cell, face_idx);
 
               // Evaluate the material model on the cell face.
-              MaterialModel::MaterialModelInputs<dim> in_support(fe_support_values, &cell, this->introspection(), this->get_solution());
+              MaterialModel::MaterialModelInputs<dim> in_support(fe_support_values, cell, this->introspection(), this->get_solution());
               MaterialModel::MaterialModelOutputs<dim> out_support(fe_support_values.n_quadrature_points, this->n_compositional_fields());
               this->get_material_model().evaluate(in_support, out_support);
 
@@ -334,7 +333,7 @@ namespace aspect
               fe_output_values.reinit(cell, face_idx);
 
               // Evaluate the material model on the cell face.
-              MaterialModel::MaterialModelInputs<dim> in_output(fe_output_values, &cell, this->introspection(), this->get_solution());
+              MaterialModel::MaterialModelInputs<dim> in_output(fe_output_values, cell, this->introspection(), this->get_solution());
               MaterialModel::MaterialModelOutputs<dim> out_output(fe_output_values.n_quadrature_points, this->n_compositional_fields());
               this->get_material_model().evaluate(in_output, out_output);
 

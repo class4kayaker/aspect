@@ -22,6 +22,7 @@
 #include <aspect/simulator.h>
 #include <aspect/utilities.h>
 #include <aspect/free_surface.h>
+#include <aspect/melt.h>
 
 #include <deal.II/base/mpi.h>
 #include <deal.II/grid/grid_tools.h>
@@ -71,7 +72,7 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::create_snapshot()
   {
-    computing_timer.enter_section ("Create snapshot");
+    TimerOutput::Scope timer (computing_timer, "Create snapshot");
     unsigned int my_id = Utilities::MPI::this_mpi_process (mpi_communicator);
 
     if (my_id == 0)
@@ -166,6 +167,18 @@ namespace aspect
           std::ofstream f ((parameters.output_directory + "restart.resume.z").c_str());
           f.write((const char *)compression_header, 4 * sizeof(compression_header[0]));
           f.write((char *)&compressed_data[0], compressed_data_length);
+          f.close();
+
+          // We check the fail state of the stream _after_ closing the file to
+          // make sure the writes were completed correctly. This also catches
+          // the cases where the file could not be opened in the first place
+          // or one of the write() commands fails, as the fail state is
+          // "sticky".
+          if (!f)
+            AssertThrow(false, ExcMessage ("Writing of the checkpoint file '" + parameters.output_directory
+                                           + "restart.resume.z' with size "
+                                           + Utilities::to_string(4 * sizeof(compression_header[0])+compressed_data_length)
+                                           + " failed on processor 0."));
         }
 #else
       AssertThrow (false,
@@ -177,7 +190,6 @@ namespace aspect
     }
 
     pcout << "*** Snapshot created!" << std::endl << std::endl;
-    computing_timer.exit_section();
   }
 
 
@@ -316,6 +328,14 @@ namespace aspect
                                  e.what()
                                  +
                                  ">"));
+      }
+
+    // We have to compute the constraints here because the vector that tells
+    // us if a cell is a melt cell is not saved between restarts.
+    if (parameters.include_melt_transport)
+      {
+        compute_current_constraints ();
+        melt_handler->add_current_constraints (current_constraints);
       }
   }
 
