@@ -45,7 +45,7 @@ namespace aspect
     : sim (simulator),
       vof_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm)),
       assembler (),
-      vof_reconstruct_epsilon(1e-13);
+      vof_reconstruct_epsilon(1e-13)
   {
     this->initialize_simulator(sim);
     assembler.initialize_simulator(sim);
