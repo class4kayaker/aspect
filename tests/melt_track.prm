@@ -9,7 +9,7 @@ set Adiabatic surface temperature          = 1623               # default: 0
 set CFL number                             = 1.0
 set Composition solver tolerance           = 1e-14
 set Temperature solver tolerance           = 1e-14
-set Nonlinear solver scheme                = iterated IMPES
+set Nonlinear solver scheme                = iterated Advection and Stokes
 set Output directory                       = output_melt_track
 set Max nonlinear iterations               = 10
 set Nonlinear solver tolerance             = 1e-5
@@ -59,7 +59,7 @@ subsection Boundary temperature model
 end
 
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
 # we apply the phase speed of the wave here, so that it always stays in the same place in our model
@@ -145,10 +145,6 @@ subsection Model settings
   set Zero velocity boundary indicators       = 
 
   set Include melt transport                  = true
-end
-
-subsection Melt settings
-  set Melt transport threshold                = 5e-3
 end
 
 

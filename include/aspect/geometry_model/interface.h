@@ -26,6 +26,8 @@
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/distributed/tria.h>
 #include <deal.II/base/std_cxx11/array.h>
+#include <aspect/utilities.h>
+#include <aspect/coordinate_systems.h>
 
 #include <set>
 
@@ -129,6 +131,25 @@ namespace aspect
          */
         virtual
         double depth(const Point<dim> &position) const = 0;
+
+        /**
+          * Return the height of the given position relative to
+          * the reference surface of the model. Positive returned value
+        * means that the point is above (i.e., farther from the center
+        * of the model) the reference surface, negative value means that
+        * the point is below the the reference surface.
+          *
+          * Same limitations as for the depth function, apply here.
+        */
+        virtual
+        double height_above_reference_surface(const Point<dim> &position) const = 0;
+
+
+        /**
+         * Returns what the natural coordinate system for this geometry model is.
+         */
+        virtual
+        aspect::Utilities::Coordinates::CoordinateSystem natural_coordinate_system() const = 0;
 
         /**
          * Takes the Cartesian points (x,z or x,y,z) and returns standardized

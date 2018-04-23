@@ -38,14 +38,16 @@ namespace aspect
     void
     AsciiData<dim>::initialize ()
     {
-      const std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >
-      bvs = this->get_prescribed_boundary_velocity();
-      for (typename std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >::const_iterator
+      const std::map<types::boundary_id,std::vector<std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > > >
+      bvs = this->get_boundary_velocity_manager().get_active_boundary_velocity_conditions();
+      for (typename std::map<types::boundary_id,std::vector<std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > > >::const_iterator
            p = bvs.begin();
            p != bvs.end(); ++p)
         {
-          if (p->second.get() == this)
-            boundary_ids.insert(p->first);
+          for (typename std::vector<std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >::const_iterator
+               plugin = p->second.begin(); plugin != p->second.end(); ++plugin)
+            if (plugin->get() == this)
+              boundary_ids.insert(p->first);
         }
       AssertThrow(*(boundary_ids.begin()) != numbers::invalid_boundary_id,
                   ExcMessage("Did not find the boundary indicator for the prescribed data plugin."));
@@ -128,9 +130,9 @@ namespace aspect
                                             "contain the number of grid points in each dimension as "
                                             "for example '# POINTS: 3 3'. "
                                             "The order of the data columns "
-                                            "has to be `x', `velocity_x', `velocity_y' in a 2d model "
-                                            "or `x', `y', `velocity_x', `velocity_y', "
-                                            "`velocity_z' in a 3d model. "
+                                            "has to be `x', `velocity${}_x$', `velocity${}_y$' in a 2d model "
+                                            "or `x', `y', `velocity${}_x$', `velocity${}_y$', "
+                                            "`velocity${}_z$' in a 3d model. "
                                             "Note that the data in the input "
                                             "files need to be sorted in a specific order: "
                                             "the first coordinate needs to ascend first, "

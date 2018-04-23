@@ -8,7 +8,7 @@
 set Additional shared libraries            = ./libshear_bands.so
 
 set Adiabatic surface temperature          = 1623
-set Nonlinear solver scheme                = iterated IMPES
+set Nonlinear solver scheme                = iterated Advection and Stokes
 set Output directory                       = output
 set Max nonlinear iterations               = 50
 set Nonlinear solver tolerance             = 1e-5
@@ -59,7 +59,7 @@ subsection Boundary temperature model
 end
 
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
 # we apply simple shear here, so that the top and bottom boundaries 
@@ -135,10 +135,6 @@ subsection Model settings
   set Zero velocity boundary indicators       = 
 
   set Include melt transport                  = true
-end
-
-subsection Melt settings
-  set Melt transport threshold                = 1e-4
 end
 
 subsection Postprocess

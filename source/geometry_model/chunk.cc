@@ -42,6 +42,13 @@ namespace aspect
     {}
 
     template <int dim>
+    Chunk<dim>::ChunkGeometry::ChunkGeometry(const ChunkGeometry &other)
+      :
+      ChartManifold<dim,dim>(other),
+      point1_lon(other.point1_lon)
+    {}
+
+    template <int dim>
     DerivativeForm<1,dim,dim>
     Chunk<dim>::ChunkGeometry::
     push_forward_gradient(const Point<dim> &chart_point) const
@@ -166,6 +173,16 @@ namespace aspect
     {
       point1_lon = p1_lon;
     }
+
+#if DEAL_II_VERSION_GTE(9,0,0)
+    template <int dim>
+    std::unique_ptr<Manifold<dim,dim> >
+    Chunk<dim>::ChunkGeometry::
+    clone() const
+    {
+      return std_cxx14::make_unique<ChunkGeometry>(*this);
+    }
+#endif
 
 #if !DEAL_II_VERSION_GTE(9,0,0)
     template <int dim>
@@ -411,6 +428,13 @@ namespace aspect
       return std::min (std::max (point2[0]-position.norm(), 0.), maximal_depth());
     }
 
+    template <int dim>
+    double
+    Chunk<dim>::height_above_reference_surface(const Point<dim> &position) const
+    {
+      return position.norm()-point2[0];
+    }
+
 
     template <int dim>
     Point<dim>
@@ -532,6 +556,42 @@ namespace aspect
           return false;
 
       return true;
+    }
+
+    template <int dim>
+    std_cxx11::array<double,dim>
+    Chunk<dim>::cartesian_to_natural_coordinates(const Point<dim> &position_point) const
+    {
+      // the chunk manifold has a order of radius, longitude, latitude.
+      // This is exactly what we need.
+      const Point<dim> transformed_point = manifold.pull_back(position_point);
+      std::array<double,dim> position_array;
+      for (unsigned int i = 0; i < dim; i++)
+        position_array[i] = transformed_point(i);
+
+      return position_array;
+    }
+
+
+    template <int dim>
+    aspect::Utilities::Coordinates::CoordinateSystem
+    Chunk<dim>::natural_coordinate_system() const
+    {
+      return aspect::Utilities::Coordinates::CoordinateSystem::spherical;
+    }
+
+
+
+    template <int dim>
+    Point<dim>
+    Chunk<dim>::natural_to_cartesian_coordinates(const std_cxx11::array<double,dim> &position_tensor) const
+    {
+      Point<dim> position_point;
+      for (unsigned int i = 0; i < dim; i++)
+        position_point[i] = position_tensor[i];
+      const Point<dim> transformed_point = manifold.push_forward(position_point);
+
+      return transformed_point;
     }
 
 

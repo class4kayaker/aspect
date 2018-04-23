@@ -22,6 +22,7 @@
 #include <aspect/utilities.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/base/signaling_nan.h>
+#include <aspect/newton.h>
 
 namespace aspect
 {
@@ -201,9 +202,9 @@ namespace aspect
           // Note: values of A, d, m, E, V and n are distinct for diffusion & dislocation creep
 
           // Diffusion creep: viscosity is grain size dependent (m!=0) and strain-rate independent (n=1)
-          double viscosity_diffusion = 0.5 * std::pow(prefactors_diffusion[j],-1/stress_exponents_diffusion[j]) *
+          double viscosity_diffusion = 0.5 / prefactors_diffusion[j] *
                                        std::exp((activation_energies_diffusion[j] + pressure*activation_volumes_diffusion[j])/
-                                                (constants::gas_constant*temperature*stress_exponents_diffusion[j])) *
+                                                (constants::gas_constant*temperature)) *
                                        std::pow(grain_size, grain_size_exponents_diffusion[j]);
 
           // For dislocation creep, viscosity is grain size independent (m=0) and strain-rate dependent (n>1)
@@ -278,7 +279,7 @@ namespace aspect
           // Calculate Drucker Prager yield strength (i.e. yield stress)
           double yield_strength = ( (dim==3)
                                     ?
-                                    ( 6.0 * coh * std::cos(phi) + 2.0 * std::max(pressure,0.0) * std::sin(phi) )
+                                    ( 6.0 * coh * std::cos(phi) + 6.0 * std::max(pressure,0.0) * std::sin(phi) )
                                     / ( std::sqrt(3.0) * (3.0 + std::sin(phi) ) )
                                     :
                                     coh * std::cos(phi) + std::max(pressure,0.0) * std::sin(phi) );
@@ -306,8 +307,7 @@ namespace aspect
             {
               case stress_limiter:
               {
-                // viscosity_yield = std::min(viscosity_limiter, viscosity_pre_yield);
-                viscosity_yield = viscosity_limiter;
+                viscosity_yield = 1. / ( 1./viscosity_limiter + 1./viscosity_pre_yield);
                 break;
               }
               case drucker_prager:
@@ -354,6 +354,10 @@ namespace aspect
     evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
+      // set up additional output for the derivatives
+      MaterialModel::MaterialModelDerivatives<dim> *derivatives;
+      derivatives = out.template get_additional_output<MaterialModel::MaterialModelDerivatives<dim> >();
+
       // Loop through points
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
@@ -361,6 +365,7 @@ namespace aspect
           const double pressure = in.pressure[i];
           const std::vector<double> &composition = in.composition[i];
           const std::vector<double> volume_fractions = compute_volume_fractions(composition);
+          const SymmetricTensor<2,dim> strain_rate = in.strain_rate[i];
 
           // Averaging composition-field dependent properties
 
@@ -397,7 +402,13 @@ namespace aspect
               // TODO: This is only consistent with viscosity averaging if the arithmetic averaging
               // scheme is chosen. It would be useful to have a function to calculate isostress viscosities.
               const std::vector<double> composition_viscosities =
-                calculate_isostrain_viscosities(volume_fractions, pressure, temperature, composition, in.strain_rate[i],viscous_flow_law,yield_mechanism);
+                calculate_isostrain_viscosities(volume_fractions, pressure,
+                                                temperature, composition,
+                                                strain_rate, viscous_flow_law,
+                                                yield_mechanism);
+
+              std::vector<SymmetricTensor<2,dim> > composition_viscosities_derivatives(volume_fractions.size());
+              std::vector<double> composition_dviscosities_dpressure(volume_fractions.size());
 
               // The isostrain condition implies that the viscosity averaging should be arithmetic (see above).
               // We have given the user freedom to apply alternative bounds, because in diffusion-dominated
@@ -405,6 +416,92 @@ namespace aspect
               // of compositional field viscosities is consistent with any averaging scheme.
               out.viscosities[i] = average_value(composition, composition_viscosities, viscosity_averaging);
 
+              // compute derivatives if nessesary
+              if (derivatives != NULL)
+                {
+                  const double finite_difference_accuracy = 1e-7;
+
+                  // For each independent component, compute the derivative.
+                  for (unsigned int component = 0; component < SymmetricTensor<2,dim>::n_independent_components; ++component)
+                    {
+                      const TableIndices<2> strain_rate_indices = SymmetricTensor<2,dim>::unrolled_to_component_indices (component);
+
+                      const SymmetricTensor<2,dim> strain_rate_difference = strain_rate
+                                                                            + std::max(std::fabs(strain_rate[strain_rate_indices]), min_strain_rate)
+                                                                            * finite_difference_accuracy
+                                                                            * Utilities::nth_basis_for_symmetric_tensors<dim>(component);
+                      std::vector<double> eta_component =
+                        calculate_isostrain_viscosities(volume_fractions, pressure,
+                                                        temperature, composition,
+                                                        strain_rate_difference,
+                                                        viscous_flow_law,yield_mechanism);
+
+                      // For each composition of the independent component, compute the derivative.
+                      for (unsigned int composition_index = 0; composition_index < eta_component.size(); ++composition_index)
+                        {
+                          // compute the difference between the viscosity with and without the strain-rate difference.
+                          double viscosity_derivative = eta_component[composition_index] - composition_viscosities[composition_index];
+                          if (viscosity_derivative != 0)
+                            {
+                              // when the difference is non-zero, divide by the difference.
+                              viscosity_derivative /= std::max(std::fabs(strain_rate_difference[strain_rate_indices]), min_strain_rate)
+                                                      * finite_difference_accuracy;
+                            }
+                          composition_viscosities_derivatives[composition_index][strain_rate_indices] = viscosity_derivative;
+                        }
+                    }
+
+                  /**
+                   * Now compute the derivative of the viscosity to the pressure
+                   */
+                  const double pressure_difference = in.pressure[i] + (std::fabs(in.pressure[i]) * finite_difference_accuracy);
+
+                  const std::vector<double> viscosity_difference =
+                    calculate_isostrain_viscosities(volume_fractions, pressure_difference,
+                                                    temperature, composition, strain_rate,
+                                                    viscous_flow_law, yield_mechanism);
+
+
+                  for (unsigned int composition_index = 0; composition_index < viscosity_difference.size(); ++composition_index)
+                    {
+                      double viscosity_derivative = viscosity_difference[composition_index] - composition_viscosities[composition_index];
+                      if (viscosity_difference[composition_index] != 0)
+                        {
+                          if (in.pressure[i] != 0)
+                            {
+                              viscosity_derivative /= std::fabs(in.pressure[i]) * finite_difference_accuracy;
+                            }
+                          else
+                            {
+                              viscosity_derivative = 0;
+                            }
+                        }
+                      composition_dviscosities_dpressure[composition_index] = viscosity_derivative;
+                    }
+
+                  double viscosity_averaging_p = 0; // Geometric
+                  if (viscosity_averaging == harmonic)
+                    viscosity_averaging_p = -1;
+                  if (viscosity_averaging == arithmetic)
+                    viscosity_averaging_p = 1;
+                  if (viscosity_averaging == maximum_composition)
+                    viscosity_averaging_p = 1000;
+
+
+                  derivatives->viscosity_derivative_wrt_strain_rate[i] =
+                    Utilities::derivative_of_weighted_p_norm_average(out.viscosities[i],
+                                                                     volume_fractions,
+                                                                     composition_viscosities,
+                                                                     composition_viscosities_derivatives,
+                                                                     viscosity_averaging_p);
+                  derivatives->viscosity_derivative_wrt_pressure[i] =
+                    Utilities::derivative_of_weighted_p_norm_average(out.viscosities[i],
+                                                                     volume_fractions,
+                                                                     composition_viscosities,
+                                                                     composition_dviscosities_dpressure,
+                                                                     viscosity_averaging_p);
+
+                }
             }
 
           out.densities[i] = density;
@@ -432,7 +529,7 @@ namespace aspect
           double e_ii = 0.;
           if  (use_strain_weakening == true && use_finite_strain_tensor == false && this->get_timestep_number() > 0)
             {
-              edot_ii = std::max(sqrt(std::fabs(second_invariant(deviator(in.strain_rate[i])))),min_strain_rate);
+              edot_ii = std::max(sqrt(std::fabs(second_invariant(deviator(strain_rate)))),min_strain_rate);
               e_ii = edot_ii*this->get_timestep();
               // Update reaction term
               out.reaction_terms[i][0] = e_ii;
@@ -494,7 +591,7 @@ namespace aspect
 
           // Assign the strain components to the compositional fields reaction terms.
           // If there are too many fields, we simply fill only the first fields with the
-          // existing strain rate tensor components.
+          // existing strain tensor components.
           for (unsigned int q=0; q < in.position.size(); ++q)
             {
               // Convert the compositional fields into the tensor quantity they represent.
@@ -648,17 +745,17 @@ namespace aspect
                              "List of viscosity prefactors, $A$, for background material and compositional fields, "
                              "for a total of N+1 values, where N is the number of compositional fields. "
                              "If only one value is given, then all use the same value. "
-                             "Units: $Pa^{-n_{diffusion}} m^{n_{diffusion}/m_{diffusion}} s^{-1}$");
+                             "Units: $Pa^{-1} m^{m_\\text{diffusion}} s^{-1}$");
           prm.declare_entry ("Stress exponents for diffusion creep", "1",
                              Patterns::List(Patterns::Double(0)),
-                             "List of stress exponents, $n_diffusion$, for background material and compositional fields, "
+                             "List of stress exponents, $n_\\text{diffusion}$, for background material and compositional fields, "
                              "for a total of N+1 values, where N is the number of compositional fields. "
                              "If only one value is given, then all use the same value.  Units: None");
           prm.declare_entry ("Grain size exponents for diffusion creep", "3",
                              Patterns::List(Patterns::Double(0)),
-                             "List of grain size exponents, $m_diffusion$, for background material and compositional fields, "
+                             "List of grain size exponents, $m_\\text{diffusion}$, for background material and compositional fields, "
                              "for a total of N+1 values, where N is the number of compositional fields. "
-                             "If only one value is given, then all use the same value.  Units: None");
+                             "If only one value is given, then all use the same value. Units: None");
           prm.declare_entry ("Activation energies for diffusion creep", "375e3",
                              Patterns::List(Patterns::Double(0)),
                              "List of activation energies, $E_a$, for background material and compositional fields, "
@@ -676,10 +773,10 @@ namespace aspect
                              "List of viscosity prefactors, $A$, for background material and compositional fields, "
                              "for a total of N+1 values, where N is the number of compositional fields. "
                              "If only one value is given, then all use the same value. "
-                             "Units: $Pa^{-n_{dislocation}} m^{n_{dislocation}/m_{dislocation}} s^{-1}$");
+                             "Units: $Pa^{-n_\\text{dislocation}} s^{-1}$");
           prm.declare_entry ("Stress exponents for dislocation creep", "3.5",
                              Patterns::List(Patterns::Double(0)),
-                             "List of stress exponents, $n_dislocation$, for background material and compositional fields, "
+                             "List of stress exponents, $n_\\text{dislocation}$, for background material and compositional fields, "
                              "for a total of N+1 values, where N is the number of compositional fields. "
                              "If only one value is given, then all use the same value.  Units: None");
           prm.declare_entry ("Activation energies for dislocation creep", "530e3",
@@ -714,8 +811,7 @@ namespace aspect
                              "List of stress limiter exponents, $n_\\text{lim}$, "
                              "for background material and compositional fields, "
                              "for a total of N+1 values, where N is the number of compositional fields. "
-                             "The default value of 1 ensures the entire stress limiter term is set to 1 "
-                             "and does not affect the viscosity. Units: none.");
+                             "Units: none.");
 
         }
         prm.leave_subsection();
@@ -739,7 +835,6 @@ namespace aspect
       {
         prm.enter_subsection ("Visco Plastic");
         {
-
           // Reference and minimum/maximum values
           reference_T = prm.get_double("Reference temperature");
           min_strain_rate = prm.get_double("Minimum strain rate");
@@ -770,6 +865,7 @@ namespace aspect
           if (use_strain_weakening)
             AssertThrow(this->n_compositional_fields() >= 1,
                         ExcMessage("There must be at least one compositional field. "));
+
           use_finite_strain_tensor  = prm.get_bool ("Use finite strain tensor");
           if (use_finite_strain_tensor)
             AssertThrow(this->n_compositional_fields() >= s,
@@ -825,9 +921,6 @@ namespace aspect
           prefactors_diffusion = Utilities::possibly_extend_from_1_to_N (Utilities::string_to_double(Utilities::split_string_list(prm.get("Prefactors for diffusion creep"))),
                                                                          n_fields,
                                                                          "Prefactors for diffusion creep");
-          stress_exponents_diffusion = Utilities::possibly_extend_from_1_to_N (Utilities::string_to_double(Utilities::split_string_list(prm.get("Stress exponents for diffusion creep"))),
-                                                                               n_fields,
-                                                                               "Stress exponents for diffusion creep");
           grain_size_exponents_diffusion = Utilities::possibly_extend_from_1_to_N (Utilities::string_to_double(Utilities::split_string_list(prm.get("Grain size exponents for diffusion creep"))),
                                                                                    n_fields,
                                                                                    "Grain size exponents for diffusion creep");
@@ -909,8 +1002,8 @@ namespace aspect
                                    "(Anne Glerum) material models. "
                                    "\n\n "
                                    "The viscosity for dislocation or diffusion creep is defined as "
-                                   "\\[v = 0.5 * A^{-\\frac{1}{n}} * d^{\\frac{m}{n}} * "
-                                   "\\dot{\\varepsilon}_{ii}^{\\frac{1-n}{n}} * "
+                                   "\\[v = \\frac 12 A^{-\\frac{1}{n}} d^{\\frac{m}{n}} "
+                                   "\\dot{\\varepsilon}_{ii}^{\\frac{1-n}{n}} "
                                    "\\exp\\left(\\frac{E + PV}{nRT}\\right)\\] "
                                    "where $A$ is the prefactor, $n$ is the stress exponent, "
                                    "$\\dot{\\varepsilon}_{ii}$ is the square root of the deviatoric "
@@ -919,12 +1012,20 @@ namespace aspect
                                    "$V$ is activation volume, $P$ is pressure, $R$ is the gas "
                                    "exponent and $T$ is temperature. "
                                    "This form of the viscosity equation is commonly used in "
-                                   "geodynamic simulations.  See, for example, Billen and Hirth "
-                                   "(2007), G3, 8, Q08012."
+                                   "geodynamic simulations. See, for example, Billen and Hirth "
+                                   "(2007), G3, 8, Q08012. Significantly, other studies may use "
+                                   "slightly different forms of the viscosity equation leading to "
+                                   "variations in how specific terms are defined or combined. For "
+                                   "example, the grain size exponent should always be positive in "
+                                   "the diffusion viscosity equation used here, while other studies "
+                                   "place the grain size term in the denominator and invert the sign "
+                                   "of the grain size exponent. When examining previous work, one "
+                                   "should carefully check how the viscous prefactor and grain size "
+                                   "terms are defined. "
                                    "\n\n "
-                                   "One may select to use the diffusion ($v_{diff}$; $n=1$, $m!=0$), "
-                                   "dislocation ($v_{disl}$, $n>1$, $m=0$) or composite "
-                                   "$\\frac{v_{diff}*v_{disl}}{v_{diff}+v_{disl}}$ equation form. "
+                                   "One may select to use the diffusion ($v_\\text{diff}$; $n=1$, $m!=0$), "
+                                   "dislocation ($v_\\text{disl}$, $n>1$, $m=0$) or composite "
+                                   "$\\frac{v_\\text{diff}*v_\\text{disl}}{v_\\text{diff}+v_\\text{disl}}$ equation form. "
                                    "\n\n "
                                    "Viscosity is limited through one of two different `yielding' mechanisms. "
                                    "\n\n"
@@ -938,10 +1039,10 @@ namespace aspect
                                    "internal friction.  Note that the 2D form is equivalent to the "
                                    "Mohr Coulomb yield surface.  If $\\phi$ is 0, the yield stress "
                                    "is fixed and equal to the cohesion (Von Mises yield criterion). "
-                                   "When the viscous stress ($2v{\\varepsilon}_{ii}$) "
+                                   "When the viscous stress ($2v{\\varepsilon}_{ii}$) exceeds "
                                    "the yield stress, the viscosity is rescaled back to the yield "
                                    "surface: $v_{y}=\\sigma_{y}/(2{\\varepsilon}_{ii})$. "
-                                   "This form of plasticity is commonly used in geodynamic models "
+                                   "This form of plasticity is commonly used in geodynamic models. "
                                    "See, for example, Thieulot, C. (2011), PEPI 188, pp. 47-68. "
                                    "\n\n"
                                    "The user has the option to linearly reduce the cohesion and "
@@ -951,18 +1052,18 @@ namespace aspect
                                    "identical to the compositional field finite strain plugin and cookbook "
                                    "described in the manual (author: Gassmoeller, Dannberg). If the user selects to track "
                                    "the finite strain invariant ($e_{ii}$), a single compositional field tracks "
-                                   "the value derived from $e_{ii}^t = (e_{ii})^(t-1) + \\dot{e}_{ii}*dt$, where $t$ and $t-1$ "
+                                   "the value derived from $e_{ii}^t = (e_{ii})^{(t-1)} + \\dot{e}_{ii}\\; dt$, where $t$ and $t-1$ "
                                    "are the current and prior time steps, $\\dot{e}_{ii}$ is the second invariant of the "
                                    "strain rate tensor and $dt$ is the time step size. In the case of the "
                                    "full strain tensor $F$, the finite strain magnitude is derived from the "
                                    "second invariant of the symmetric stretching tensor $L$, where "
-                                   "$L = F * [F]^T$. The user must specify a single compositional "
+                                   "$L = F [F]^T$. The user must specify a single compositional "
                                    "field for the finite strain invariant or multiple fields (4 in 2D, 9 in 3D) "
-                                   "for the finite strain tensor. These field(s) must be the first lised "
+                                   "for the finite strain tensor. These field(s) must be the first listed "
                                    "compositional fields in the parameter file. Note that one or more of the finite strain "
-                                   "tensor components must be assigned a non-zero value intially. This value can be "
-                                   "be quite small (ex: 1.e-8), but still non-zero. While the option to track and use "
-                                   "the full finite strain tensor exists, tracking the associated compositional "
+                                   "tensor components must be assigned a non-zero value initially. This value can be "
+                                   "be quite small (e.g., 1.e-8), but still non-zero. While the option to track and use "
+                                   "the full finite strain tensor exists, tracking the associated compositional fields "
                                    "is computationally expensive in 3D. Similarly, the finite strain magnitudes "
                                    "may in fact decrease if the orientation of the deformation field switches "
                                    "through time. Consequently, the ideal solution is track the finite strain "
@@ -973,8 +1074,8 @@ namespace aspect
                                    "Viscous stress may also be limited by a non-linear stress limiter "
                                    "that has a form similar to the Peierls creep mechanism. "
                                    "This stress limiter assigns an effective viscosity "
-                                   "$\\sigma_eff = \\frac{\\tau_y}{2*\\varepsilon_y} "
-                                   "{\\frac{\\varepsilon_ii}{\\varepsilon_y}}^{\\frac{1}{n_y}-1}$ "
+                                   "$\\sigma_\\text{eff} = \\frac{\\tau_y}{2\\varepsilon_y} "
+                                   "{\\frac{\\varepsilon_{ii}}{\\varepsilon_y}}^{\\frac{1}{n_y}-1}$ "
                                    "Above $\\tau_y$ is a yield stress, $\\varepsilon_y$ is the "
                                    "reference strain rate, $\\varepsilon_{ii}$ is the strain rate "
                                    "and $n_y$ is the stress limiter exponent.  The yield stress, "

@@ -18,10 +18,10 @@
   <http://www.gnu.org/licenses/>.
 */
 
+#include <aspect/simulator/assemblers/advection.h>
+
 #include <aspect/simulator.h>
 #include <aspect/utilities.h>
-#include <aspect/assembly.h>
-#include <aspect/simulator_access.h>
 
 namespace aspect
 {
@@ -52,13 +52,16 @@ namespace aspect
 
     template <int dim>
     void
-    AdvectionAssembler<dim>::local_assemble_advection_system (const typename Simulator<dim>::AdvectionField &advection_field,
-                                                              const double artificial_viscosity,
-                                                              internal::Assembly::Scratch::AdvectionSystem<dim>  &scratch,
-                                                              internal::Assembly::CopyData::AdvectionSystem<dim> &data) const
+    AdvectionSystem<dim>::execute (internal::Assembly::Scratch::ScratchBase<dim>   &scratch_base,
+                                   internal::Assembly::CopyData::CopyDataBase<dim> &data_base) const
     {
+      internal::Assembly::Scratch::AdvectionSystem<dim> &scratch = dynamic_cast<internal::Assembly::Scratch::AdvectionSystem<dim>& > (scratch_base);
+      internal::Assembly::CopyData::AdvectionSystem<dim> &data = dynamic_cast<internal::Assembly::CopyData::AdvectionSystem<dim>& > (data_base);
+
       const Introspection<dim> &introspection = this->introspection();
       const FiniteElement<dim> &fe = this->get_fe();
+
+      const typename Simulator<dim>::AdvectionField advection_field = *scratch.advection_field;
       const unsigned int n_q_points = scratch.finite_element_values.n_quadrature_points;
       const unsigned int advection_dofs_per_cell = data.local_dof_indices.size();
 
@@ -171,7 +174,7 @@ namespace aspect
                 {
                   data.local_matrix(i,j)
                   += (
-                       (time_step * (conductivity + artificial_viscosity)
+                       (time_step * (conductivity + scratch.artificial_viscosity)
                         * (scratch.grad_phi_field[i] * scratch.grad_phi_field[j]))
                        + ((time_step * (scratch.phi_field[i] * (current_u * scratch.grad_phi_field[j])))
                           + (bdf2_factor * scratch.phi_field[i] * scratch.phi_field[j])) *
@@ -187,9 +190,11 @@ namespace aspect
 
     template <int dim>
     std::vector<double>
-    AdvectionAssembler<dim>::compute_advection_system_residual(const typename Simulator<dim>::AdvectionField     &advection_field,
-                                                               internal::Assembly::Scratch::AdvectionSystem<dim> &scratch) const
+    AdvectionSystem<dim>::compute_residual(internal::Assembly::Scratch::ScratchBase<dim> &scratch_base) const
     {
+      internal::Assembly::Scratch::AdvectionSystem<dim> &scratch = dynamic_cast<internal::Assembly::Scratch::AdvectionSystem<dim>& > (scratch_base);
+
+      const typename Simulator<dim>::AdvectionField advection_field = *scratch.advection_field;
       const unsigned int n_q_points = scratch.finite_element_values.n_quadrature_points;
       std::vector<double> residuals(n_q_points);
 
@@ -240,15 +245,20 @@ namespace aspect
 
     template <int dim>
     void
-    AdvectionAssembler<dim>::local_assemble_discontinuous_advection_boundary_face_terms(const typename DoFHandler<dim>::active_cell_iterator &cell,
-        const unsigned int face_no,
-        const typename Simulator<dim>::AdvectionField &advection_field,
-        internal::Assembly::Scratch::AdvectionSystem<dim> &scratch,
-        internal::Assembly::CopyData::AdvectionSystem<dim> &data) const
+    AdvectionSystemBoundaryFace<dim>::execute(internal::Assembly::Scratch::ScratchBase<dim>   &scratch_base,
+                                              internal::Assembly::CopyData::CopyDataBase<dim> &data_base) const
     {
+      internal::Assembly::Scratch::AdvectionSystem<dim> &scratch = dynamic_cast<internal::Assembly::Scratch::AdvectionSystem<dim>& > (scratch_base);
+      internal::Assembly::CopyData::AdvectionSystem<dim> &data = dynamic_cast<internal::Assembly::CopyData::AdvectionSystem<dim>& > (data_base);
+
       const Parameters<dim> &parameters = this->get_parameters();
       const Introspection<dim> &introspection = this->introspection();
       const FiniteElement<dim> &fe = this->get_fe();
+
+      const typename Simulator<dim>::AdvectionField advection_field = *scratch.advection_field;
+
+      const unsigned int face_no = scratch.face_number;
+      const typename DoFHandler<dim>::face_iterator face = scratch.cell->face(face_no);
 
       const unsigned int n_q_points    = scratch.face_finite_element_values->n_quadrature_points;
 
@@ -269,7 +279,6 @@ namespace aspect
 
       const FEValuesExtractors::Scalar solution_field = advection_field.scalar_extractor(introspection);
 
-      typename DoFHandler<dim>::face_iterator face = cell->face (face_no);
 
       if (((parameters.fixed_temperature_boundary_indicators.find(
               face->boundary_id()
@@ -351,11 +360,11 @@ namespace aspect
               const double dirichlet_value = (advection_field.is_temperature()
                                               ?
                                               this->get_boundary_temperature_manager().boundary_temperature(
-                                                cell->face(face_no)->boundary_id(),
+                                                face->boundary_id(),
                                                 scratch.face_finite_element_values->quadrature_point(q))
                                               :
-                                              this->get_boundary_composition().boundary_composition(
-                                                cell->face(face_no)->boundary_id(),
+                                              this->get_boundary_composition_manager().boundary_composition(
+                                                face->boundary_id(),
                                                 scratch.face_finite_element_values->quadrature_point(q),
                                                 advection_field.compositional_variable));
 
@@ -437,11 +446,6 @@ namespace aspect
                 }
             }
         }
-      else if (cell->has_periodic_neighbor (face_no))
-        {
-          // Periodic temperature/composition term: consider the corresponding periodic faces as the case of interior faces
-          this->local_assemble_discontinuous_advection_interior_face_terms(cell, face_no, advection_field, scratch, data);
-        }
       else
         {
           // Neumann temperature term - no non-zero contribution as only homogeneous Neumann boundary conditions are implemented elsewhere for temperature
@@ -452,15 +456,21 @@ namespace aspect
 
     template <int dim>
     void
-    AdvectionAssembler<dim>::local_assemble_discontinuous_advection_interior_face_terms(const typename DoFHandler<dim>::active_cell_iterator &cell,
-        const unsigned int face_no,
-        const typename Simulator<dim>::AdvectionField &advection_field,
-        internal::Assembly::Scratch::AdvectionSystem<dim> &scratch,
-        internal::Assembly::CopyData::AdvectionSystem<dim> &data) const
+    AdvectionSystemInteriorFace<dim>::execute(internal::Assembly::Scratch::ScratchBase<dim>   &scratch_base,
+                                              internal::Assembly::CopyData::CopyDataBase<dim> &data_base) const
     {
+      internal::Assembly::Scratch::AdvectionSystem<dim> &scratch = dynamic_cast<internal::Assembly::Scratch::AdvectionSystem<dim>& > (scratch_base);
+      internal::Assembly::CopyData::AdvectionSystem<dim> &data = dynamic_cast<internal::Assembly::CopyData::AdvectionSystem<dim>& > (data_base);
+
       const Parameters<dim> &parameters = this->get_parameters();
       const Introspection<dim> &introspection = this->introspection();
       const FiniteElement<dim> &fe = this->get_fe();
+
+      const typename DoFHandler<dim>::active_cell_iterator cell = scratch.cell;
+      const unsigned int face_no = scratch.face_number;
+      const typename DoFHandler<dim>::face_iterator face = cell->face(face_no);
+
+      const typename Simulator<dim>::AdvectionField advection_field = *scratch.advection_field;
 
       const unsigned int n_q_points    = scratch.face_finite_element_values->n_quadrature_points;
 
@@ -482,8 +492,6 @@ namespace aspect
 
       const FEValuesExtractors::Scalar solution_field = advection_field.scalar_extractor(introspection);
 
-      typename DoFHandler<dim>::face_iterator face = cell->face (face_no);
-
       // interior face or periodic face - no contribution on RHS
 
       const typename DoFHandler<dim>::cell_iterator
@@ -494,7 +502,7 @@ namespace aspect
               ExcInternalError());
       const bool cell_has_periodic_neighbor = cell->has_periodic_neighbor (face_no);
 
-      if (!(face->has_children()))
+      if (!neighbor->has_children())
         {
           if (neighbor->level () == cell->level () &&
               neighbor->active() &&
@@ -804,7 +812,8 @@ namespace aspect
               */
             }
         }
-      else // face->has_children(), so always assemble from here.
+      // neighbor has children, so always assemble from here.
+      else
         {
           const unsigned int neighbor2 =
             (cell_has_periodic_neighbor
@@ -813,8 +822,12 @@ namespace aspect
              :
              cell->neighbor_face_no(face_no));
 
-          // loop over subfaces
-          for (unsigned int subface_no=0; subface_no<face->number_of_children(); ++subface_no)
+          // Loop over subfaces. We know that the neighbor is finer, so we could loop over the subfaces of the current
+          // face. but if we are at a periodic boundary, then the face of the current cell has no children, so instead use
+          // the children of the periodic neighbor's corresponding face since we know that the letter does indeed have
+          // children (because we know that the neighbor is refined).
+          typename DoFHandler<dim>::face_iterator neighbor_face=neighbor->face(neighbor2);
+          for (unsigned int subface_no=0; subface_no<neighbor_face->number_of_children(); ++subface_no)
             {
               const typename DoFHandler<dim>::active_cell_iterator neighbor_child
                 = ( cell_has_periodic_neighbor
@@ -1143,9 +1156,10 @@ namespace aspect
   namespace Assemblers
   {
 #define INSTANTIATE(dim) \
-  template class \
-  AdvectionAssembler<dim>;
-
+  template class AdvectionSystem<dim>; \
+  template class AdvectionSystemBoundaryFace<dim>; \
+  template class AdvectionSystemInteriorFace<dim>; \
+   
     ASPECT_INSTANTIATE(INSTANTIATE)
   }
 }

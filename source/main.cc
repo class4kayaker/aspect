@@ -292,6 +292,83 @@ read_until_end (std::istream &input)
 }
 
 
+
+/**
+ * Takes the name of a parameter file and return all parameters in that file
+ * as a string. If @p parameter_file_name is "--" read the parameters from
+ * std::cin instead.
+ */
+std::string
+read_parameter_file(const std::string &parameter_file_name)
+{
+  using namespace dealii;
+
+  std::string input_as_string;
+  const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+
+  if (parameter_file_name != "--")
+    {
+      std::ifstream parameter_file(parameter_file_name.c_str());
+      if (!parameter_file)
+        {
+          if (i_am_proc_0)
+            AssertThrow(false, ExcMessage (std::string("Input parameter file <")
+                                           + parameter_file_name + "> not found."));
+          return "";
+        }
+
+      input_as_string = read_until_end (parameter_file);
+    }
+  else
+    {
+      // As stated in the help string, treat "--" as special: as is common
+      // on unix, treat it as a way to read input from stdin.
+      // Unfortunately, if you do
+      //    echo "abc" | mpirun -np 4 ./aspect
+      // then only MPI process 0 gets the data. so we have to
+      // read it there, then broadcast it to the other processors
+      if (i_am_proc_0)
+        {
+          input_as_string = read_until_end (std::cin);
+          int size = input_as_string.size()+1;
+          MPI_Bcast (&size,
+                     1,
+                     MPI_INT,
+                     /*root=*/0, MPI_COMM_WORLD);
+          MPI_Bcast (const_cast<char *>(input_as_string.c_str()),
+                     size,
+                     MPI_CHAR,
+                     /*root=*/0, MPI_COMM_WORLD);
+        }
+      else
+        {
+          // on this side, read what processor zero has broadcast about
+          // the size of the input file. then create a buffer to put the
+          // text in, get it from processor 0, and copy it to
+          // input_as_string
+          int size;
+          MPI_Bcast (&size, 1,
+                     MPI_INT,
+                     /*root=*/0, MPI_COMM_WORLD);
+
+          char *p = new char[size];
+          MPI_Bcast (p, size,
+                     MPI_CHAR,
+                     /*root=*/0, MPI_COMM_WORLD);
+          input_as_string = p;
+          delete[] p;
+        }
+    }
+
+  // Replace $ASPECT_SOURCE_DIR in the input so that include statements
+  // like "include $ASPECT_SOURCE_DIR/tests/bla.prm" work.
+  input_as_string = aspect::Utilities::expand_ASPECT_SOURCE_DIR(input_as_string);
+
+  return input_as_string;
+}
+
+
+
 /**
  * Let ParameterHandler parse the input file, here given as a string.
  * Since ParameterHandler unconditionally writes to the screen when it
@@ -368,9 +445,11 @@ void print_help()
             << std::endl;
   std::cout << "    optional arguments [args]:"
             << std::endl
-            << "       --version              (for information about library versions)"
+            << "       -h, --help             (for this usage help)"
             << std::endl
-            << "       --help                 (for this usage help)"
+            << "       -v, --version          (for information about library versions)"
+            << std::endl
+            << "       -j, --threads          (to use multi-threading)"
             << std::endl
             << "       --output-xml           (print parameters in xml format to standard output and exit)"
             << std::endl
@@ -379,35 +458,6 @@ void print_help()
             << std::endl;
 }
 
-
-/**
- * Print information about the versions of underlying libraries.
- */
-template <class Stream>
-void print_version_information(Stream &stream)
-{
-  stream << "Version information of underlying libraries:\n"
-         << "   . deal.II:    "
-         << DEAL_II_PACKAGE_VERSION           << '\t'
-         << "   (git revision "
-         << DEAL_II_GIT_SHORTREV              << ")\n"
-#ifndef ASPECT_USE_PETSC
-         << "   . Trilinos:   "
-         << DEAL_II_TRILINOS_VERSION_MAJOR    << '.'
-         << DEAL_II_TRILINOS_VERSION_MINOR    << '.'
-         << DEAL_II_TRILINOS_VERSION_SUBMINOR << '\n'
-#else
-         << "   . PETSc:      "
-         << PETSC_VERSION_MAJOR    << '.'
-         << PETSC_VERSION_MINOR    << '.'
-         << PETSC_VERSION_SUBMINOR << '\n'
-#endif
-         << "   . p4est:      "
-         << DEAL_II_P4EST_VERSION_MAJOR << '.'
-         << DEAL_II_P4EST_VERSION_MINOR << '.'
-         << DEAL_II_P4EST_VERSION_SUBMINOR << '\n'
-         << std::endl;
-}
 
 
 // hook into SIGABRT/SIGFPE and kill off the program
@@ -437,14 +487,44 @@ void signal_handler(int signal)
 #endif
 }
 
-int main (int argc, char *argv[])
+
+
+template<int dim>
+void
+run_simulator(const std::string &input_as_string,
+              const bool output_xml,
+              const bool output_plugin_graph)
 {
   using namespace dealii;
 
-  // disable the use of thread. if that is not what you want,
-  // use numbers::invalid_unsigned_int instead of 1 to use as many threads
-  // as deemed useful by TBB
-  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, /*n_threads =*/ 1);
+  ParameterHandler prm;
+  const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+  aspect::Simulator<dim>::declare_parameters(prm);
+  parse_parameters (input_as_string, prm);
+
+  if (output_xml)
+    {
+      if (i_am_proc_0)
+        prm.print_parameters(std::cout, ParameterHandler::XML);
+    }
+  else if (output_plugin_graph)
+    {
+      aspect::Simulator<dim> flow_problem(MPI_COMM_WORLD, prm);
+      if (i_am_proc_0)
+        flow_problem.write_plugin_graph (std::cout);
+    }
+  else
+    {
+      aspect::Simulator<dim> flow_problem(MPI_COMM_WORLD, prm);
+      flow_problem.run();
+    }
+}
+
+
+
+int main (int argc, char *argv[])
+{
+  using namespace dealii;
 
 #ifdef DEBUG
 #ifdef ASPECT_USE_FP_EXCEPTIONS
@@ -457,242 +537,140 @@ int main (int argc, char *argv[])
 #endif
 #endif
 
+  std::string prm_name = "";
+  bool output_xml          = false;
+  bool output_plugin_graph = false;
+  bool output_version      = false;
+  bool output_help         = false;
+  bool use_threads         = false;
+  int current_argument = 1;
+
+  // Loop over all command line arguments. Handle a number of special ones
+  // starting with a dash, and then take the first non-special one as the
+  // name of the input file. We will later check that there are no further
+  // arguments left after that (though there may be with PETSc, see
+  // below).
+  while (current_argument<argc)
+    {
+      const std::string arg = argv[current_argument];
+      ++current_argument;
+      if (arg == "--output-xml")
+        {
+          output_xml = true;
+        }
+      else if (arg == "--output-plugin-graph")
+        {
+          output_plugin_graph = true;
+        }
+      else if (arg=="-h" || arg =="--help")
+        {
+          output_help = true;
+        }
+      else if (arg=="-v" || arg =="--version")
+        {
+          output_version = true;
+        }
+      else if (arg=="-j" || arg =="--threads")
+        {
+          use_threads = true;
+        }
+      else
+        {
+          // Not a special argument, so we assume that this is the .prm
+          // filename (or "--"). We can now break out of this loop because
+          // we are not going to parse arguments passed after the filename.
+          prm_name = arg;
+          break;
+        }
+    }
+
   try
     {
+      // Note: we initialize this class inside the try/catch block and not
+      // before, so that the destructor of this instance can react if we are
+      // currently unwinding the stack if an unhandled exception is being
+      // thrown to avoid MPI deadlocks.
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, use_threads ? numbers::invalid_unsigned_int : 1);
+
       deallog.depth_console(0);
 
-      int current_idx = 1;
       const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
-      std::string prm_name = "";
-      bool output_xml          = false;
-      bool output_plugin_graph = false;
-
-      // We hook into the abort handler on ranks != 0 to avoid an MPI
-      // deadlock. The deal.II library will call std::abort() when an
-      // Assert is triggered, which can lead to a deadlock because it
-      // runs the things that are associated with atexit() which may
-      // itself trigger MPI communication. The same happens for other
-      // signals we may trigger, such as floating point exceptions
-      // (SIGFPE).
-      //
-      // We work around this by immediately calling _Exit in the
-      // signal handler and thus aborting the program without running
-      // cleanup functions set via atexit(). This is only necessary on
-      // rank != 0 for some reason.
-      if (!i_am_proc_0)
+      if (i_am_proc_0)
         {
+          // Output header, except for a clean output for xml or plugin graph
+          if (!output_xml && !output_plugin_graph)
+            print_aspect_header(std::cout);
+
+          if (output_help)
+            print_help();
+
+          // If only help or version is requested, we are done.
+          if (output_help || output_version)
+            return 0;
+        }
+      else
+        {
+          // We hook into the abort handler on ranks != 0 to avoid an MPI
+          // deadlock. The deal.II library will call std::abort() when an
+          // Assert is triggered, which can lead to a deadlock because it
+          // runs the things that are associated with atexit() which may
+          // itself trigger MPI communication. The same happens for other
+          // signals we may trigger, such as floating point exceptions
+          // (SIGFPE).
+          //
+          // We work around this by immediately calling _Exit in the
+          // signal handler and thus aborting the program without running
+          // cleanup functions set via atexit(). This is only necessary on
+          // rank != 0 for some reason.
           std::signal(SIGABRT, signal_handler);
           std::signal(SIGFPE, signal_handler);
         }
 
-      // Loop over all command line arguments. Handle a number of special ones
-      // starting with a dash, and then take the first non-special one as the
-      // name of the input file. We will later check that there are no further
-      // arguments left after that (though there may be with PETSc, see
-      // below).
-      while (current_idx<argc)
-        {
-          const std::string arg = argv[current_idx];
-          ++current_idx;
-          if (arg == "--output-xml")
-            {
-              output_xml = true;
-            }
-          else if (arg == "--output-plugin-graph")
-            {
-              output_plugin_graph = true;
-            }
-          else if (arg=="-h" || arg =="--help")
-            {
-              if (i_am_proc_0)
-                {
-                  print_aspect_header(std::cout);
-                  print_help();
-                }
-              return 0;
-            }
-          else if (arg=="-v" || arg =="--version")
-            {
-              if (i_am_proc_0)
-                {
-                  print_aspect_header(std::cout);
-                  print_version_information(std::cout);
-                }
-              return 0;
-            }
-          else
-            {
-              // Not a special argument, so we assume that this is the .prm
-              // filename (or "--"). We can now break out of this loop because
-              // we are not going to pass arguments passed after the filename
-              prm_name = arg;
-              break;
-            }
-        }
-
-
-      // if no parameter given or somebody gave additional parameters,
-      // show help and exit.
-      // However, this does not work with PETSc because for PETSc, one
-      // may pass any number of flags on the command line; unfortunately,
-      // the PETSc initialization code (run through the call to
-      // MPI_InitFinalize above) does not filter these out.
+      // If no parameter given or somebody gave additional parameters,
+      // show help and exit. However, this does not work with PETSc because for
+      // PETSc, one may pass any number of flags on the command line.
       if ((prm_name == "")
 #ifndef ASPECT_USE_PETSC
-          || (current_idx < argc)
+          || (current_argument < argc)
 #endif
          )
         {
           if (i_am_proc_0)
-            {
-              print_aspect_header(std::cout);
-              print_help();
-            }
+            print_help();
           return 2;
         }
 
-      // Print header
-      if (i_am_proc_0 && !output_xml && !output_plugin_graph)
-        {
-          print_aspect_header(std::cout);
-        }
-
-
       // See where to read input from, then do the reading and
       // put the contents of the input into a string.
-      //
-      // As stated above, treat "--" as special: as is common
-      // on unix, treat it as a way to read input from stdin.
-      std::string input_as_string;
+      const std::string input_as_string = read_parameter_file(prm_name);
 
-      if (prm_name != "--")
-        {
-          std::ifstream parameter_file(prm_name.c_str());
-          if (!parameter_file)
-            {
-              if (i_am_proc_0)
-                AssertThrow(false, ExcMessage (std::string("Input parameter file <")
-                                               + prm_name + "> not found."));
-              return 3;
-            }
-
-          input_as_string = read_until_end (parameter_file);
-        }
-      else
-        {
-          // read parameters from stdin. unfortunately, if you do
-          //    echo "abc" | mpirun -np 4 ./aspect
-          // then only MPI process 0 gets the data. so we have to
-          // read it there, then broadcast it to the other processors
-          if (i_am_proc_0)
-            {
-              input_as_string = read_until_end (std::cin);
-              int size = input_as_string.size()+1;
-              MPI_Bcast (&size,
-                         1,
-                         MPI_INT,
-                         /*root=*/0, MPI_COMM_WORLD);
-              MPI_Bcast (const_cast<char *>(input_as_string.c_str()),
-                         size,
-                         MPI_CHAR,
-                         /*root=*/0, MPI_COMM_WORLD);
-            }
-          else
-            {
-              // on this side, read what processor zero has broadcast about
-              // the size of the input file. then create a buffer to put the
-              // text in, get it from processor 0, and copy it to
-              // input_as_string
-              int size;
-              MPI_Bcast (&size, 1,
-                         MPI_INT,
-                         /*root=*/0, MPI_COMM_WORLD);
-
-              char *p = new char[size];
-              MPI_Bcast (p, size,
-                         MPI_CHAR,
-                         /*root=*/0, MPI_COMM_WORLD);
-              input_as_string = p;
-              delete[] p;
-            }
-        }
-
-      // Replace $ASPECT_SOURCE_DIR in the input so that include statements
-      // like "include $ASPECT_SOURCE_DIR/tests/bla.prm" work.
-      input_as_string = aspect::Utilities::expand_ASPECT_SOURCE_DIR(input_as_string);
-
-
-      // try to determine the dimension we want to work in. the default
+      // Determine the dimension we want to work in. the default
       // is 2, but if we find a line of the kind "set Dimension = ..."
-      // then the last such line wins
+      // then the last such line wins.
       const unsigned int dim = get_dimension(input_as_string);
 
-      // do the same with lines potentially indicating shared libs to
-      // be loaded. these shared libs could contain additional module
+      // Do the same with lines potentially indicating shared libs to
+      // be loaded. These shared libs could contain additional module
       // instantiations for geometries, etc, that would then be
       // available as part of the possible parameters of the input
       // file, so they need to be loaded before we even start processing
-      // the parameter file
+      // the parameter file.
       possibly_load_shared_libs (input_as_string);
 
-      // now switch between the templates that code for 2d or 3d. it
-      // would be nicer if we didn't have to duplicate code, but the
-      // following needs to be known at compile time whereas the dimensionality
-      // is only read at run-time
-      ParameterHandler prm;
-
+      // Now switch between the templates that start the model for 2d or 3d.
       switch (dim)
         {
           case 2:
           {
-            aspect::Simulator<2>::declare_parameters(prm);
-            parse_parameters (input_as_string, prm);
-
-            if (output_xml)
-              {
-                if (i_am_proc_0)
-                  prm.print_parameters(std::cout, ParameterHandler::XML);
-              }
-            else if (output_plugin_graph)
-              {
-                aspect::Simulator<2> flow_problem(MPI_COMM_WORLD, prm);
-                if (i_am_proc_0)
-                  flow_problem.write_plugin_graph (std::cout);
-              }
-            else
-              {
-                aspect::Simulator<2> flow_problem(MPI_COMM_WORLD, prm);
-                flow_problem.run();
-              }
+            run_simulator<2>(input_as_string,output_xml,output_plugin_graph);
             break;
           }
-
           case 3:
           {
-            aspect::Simulator<3>::declare_parameters(prm);
-            parse_parameters (input_as_string, prm);
-
-            if (output_xml)
-              {
-                if (i_am_proc_0)
-                  prm.print_parameters(std::cout, ParameterHandler::XML);
-              }
-            else if (output_plugin_graph)
-              {
-                aspect::Simulator<3> flow_problem(MPI_COMM_WORLD, prm);
-                if (i_am_proc_0)
-                  flow_problem.write_plugin_graph (std::cout);
-              }
-            else
-              {
-                aspect::Simulator<3> flow_problem(MPI_COMM_WORLD, prm);
-                flow_problem.run();
-              }
-
+            run_simulator<3>(input_as_string,output_xml,output_plugin_graph);
             break;
           }
-
           default:
             AssertThrow((dim >= 2) && (dim <= 3),
                         ExcMessage ("ASPECT can only be run in 2d and 3d but a "
@@ -712,7 +690,6 @@ int main (int argc, char *argv[])
                 << "Aborting!" << std::endl
                 << "----------------------------------------------------"
                 << std::endl;
-
       return 1;
     }
   catch (std::exception &exc)
@@ -727,7 +704,6 @@ int main (int argc, char *argv[])
                 << "Aborting!" << std::endl
                 << "----------------------------------------------------"
                 << std::endl;
-
       return 1;
     }
   catch (aspect::QuietException &)

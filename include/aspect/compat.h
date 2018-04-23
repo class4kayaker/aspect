@@ -61,6 +61,7 @@ namespace aspect
 
         if (step == 0)
           history_data.resize(history_data.size()+1);
+
         return return_value;
       }
 
@@ -144,6 +145,32 @@ namespace aspect
     return normal/normal.norm();
   }
 }
+#endif
+
+#if !DEAL_II_VERSION_GTE(9,0,0)
+namespace dealii
+{
+  namespace std_cxx14
+  {
+#ifdef DEAL_II_WITH_CXX14
+    using std::make_unique;
+#else
+    /* This is a simplified form of std::make_unique that only allows the default
+     * constructor (we would need C++11 for parameter forwarding), but this is
+     * sufficient for most cases.
+     */
+    template <typename T>
+    inline
+    std_cxx11::unique_ptr<T>
+    make_unique()
+    {
+      return std_cxx11::unique_ptr<T>(new T());
+    }
+#endif
+  }
+}
+#else
+#include <deal.II/base/std_cxx14/memory.h>
 #endif
 
 

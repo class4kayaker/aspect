@@ -1175,6 +1175,7 @@ namespace aspect
       :
       components(components),
       data(components),
+      maximum_component_value(components),
       scale_factor(scale_factor)
     {}
 
@@ -1183,6 +1184,7 @@ namespace aspect
       :
       components(numbers::invalid_unsigned_int),
       data(),
+      maximum_component_value(),
       scale_factor(scale_factor)
     {}
 
@@ -1218,6 +1220,13 @@ namespace aspect
                              + Utilities::to_string(data_component_names.size()) + " named columns."));
 
       return data_component_names[column_index];
+    }
+
+    template <int dim>
+    double
+    AsciiDataLookup<dim>::get_maximum_component_value(const unsigned int component) const
+    {
+      return maximum_component_value[component];
     }
 
     template <int dim>
@@ -1327,6 +1336,7 @@ namespace aspect
        * argument.
        */
       data.resize(components);
+      maximum_component_value.resize(components,-std::numeric_limits<double>::max());
       Table<dim,double> data_table;
       data_table.TableBase<dim,double>::reinit(table_points);
       std::vector<Table<dim,double> > data_tables(components+dim,data_table);
@@ -1338,7 +1348,10 @@ namespace aspect
           const unsigned int column_num = field_index%(components+dim);
 
           if (column_num >= dim)
-            temp_data *= scale_factor;
+            {
+              temp_data *= scale_factor;
+              maximum_component_value[column_num-dim] = std::max(maximum_component_value[column_num-dim], temp_data);
+            }
 
           data_tables[column_num](compute_table_indices(field_index)) = temp_data;
 
@@ -1408,6 +1421,7 @@ namespace aspect
 
               // Set the coordinate value
               coordinate_values[i].push_back(new_temp_coord);
+
               temp_coord = new_temp_coord;
             }
 
@@ -1573,10 +1587,11 @@ namespace aspect
             :
             current_file_number + 1;
 
-          this->get_pcout() << std::endl << "   Loading Ascii data boundary file "
-                            << create_filename (current_file_number,*boundary_id) << "." << std::endl << std::endl;
-
           const std::string filename (create_filename (current_file_number,*boundary_id));
+
+          this->get_pcout() << std::endl << "   Loading Ascii data boundary file "
+                            << filename << "." << std::endl << std::endl;
+
           if (Utilities::fexists(filename))
             lookups.find(*boundary_id)->second->load_file(filename,this->get_mpi_communicator());
           else
@@ -1591,7 +1606,7 @@ namespace aspect
           // immediately. If not, also load the second file for interpolation.
           // This catches the case that many files are present, but the
           // parameter file requests a single file.
-          if (create_filename (current_file_number,*boundary_id) == create_filename (current_file_number+1,*boundary_id))
+          if (filename == create_filename (current_file_number+1,*boundary_id))
             {
               end_time_dependence ();
             }
@@ -1730,10 +1745,10 @@ namespace aspect
 
       if (!fexists(result) && fexists(compatible_result))
         {
-          std::cout << "WARNING: Filename convention concerning geometry boundary "
-                    "names changed. Please rename '" << compatible_result << "'"
-                    << " to '" << result << "'"
-                    << std::endl;
+          this->get_pcout() << "WARNING: Filename convention concerning geometry boundary "
+                            "names changed. Please rename '" << compatible_result << "'"
+                            << " to '" << result << "'"
+                            << std::endl;
           return compatible_result;
         }
 
@@ -1892,6 +1907,14 @@ namespace aspect
         }
       else
         return 0.0;
+    }
+
+
+    template <int dim>
+    double
+    AsciiDataBoundary<dim>::get_maximum_component_value (const types::boundary_id boundary_indicator, const unsigned int component) const
+    {
+      return lookups.find(boundary_indicator)->second->get_maximum_component_value(component);
     }
 
 
@@ -2383,7 +2406,7 @@ namespace aspect
     double compute_spd_factor(const double eta,
                               const SymmetricTensor<2,dim> &strain_rate,
                               const SymmetricTensor<2,dim> &dviscosities_dstrain_rate,
-                              const double safety_factor)
+                              const double SPD_safety_factor)
     {
       // if the strain rate is zero, or the derivative is zero, then
       // the exact choice of alpha factor does not matter because the
@@ -2392,21 +2415,41 @@ namespace aspect
       if ((strain_rate.norm() == 0) || (dviscosities_dstrain_rate.norm() == 0))
         return 1;
 
-      const double norm_a_b = std::sqrt((strain_rate*strain_rate)*(dviscosities_dstrain_rate*dviscosities_dstrain_rate));
-      const double contract_a_b = (strain_rate*dviscosities_dstrain_rate);
-      const double one_minus_part = 1 - (contract_a_b / norm_a_b);
+      const double norm_a_b = std::sqrt((strain_rate*strain_rate)*(dviscosities_dstrain_rate*dviscosities_dstrain_rate));;//std::sqrt((deviator(strain_rate)*deviator(strain_rate))*(dviscosities_dstrain_rate*dviscosities_dstrain_rate));
+      const double contract_b_a = (dviscosities_dstrain_rate*strain_rate);
+      const double one_minus_part = 1 - (contract_b_a / norm_a_b);
       const double denom = one_minus_part * one_minus_part * norm_a_b;
 
-      if (denom == 0)
+      // the case denom == 0 (smallest eigenvalue is zero), should return one,
+      // and it does here, because C_safety * 2.0 * eta is always larger then zero.
+      if (denom <= SPD_safety_factor * 2.0 * eta)
         return 1.0;
       else
-        {
-          const double alpha = (2.0*eta)/denom;
-          if (alpha >= 1.0)
-            return 1.0;
-          else
-            return std::max(0.0,safety_factor*alpha);
-        }
+        return std::max(0.0, SPD_safety_factor * ((2.0 * eta) / denom));
+    }
+
+
+
+    template <int dim>
+    Point<dim> convert_array_to_point(const std_cxx11::array<double,dim> &array)
+    {
+      Point<dim> point;
+      for (unsigned int i = 0; i < dim; i++)
+        point[i] = array[i];
+
+      return point;
+    }
+
+
+
+    template <int dim>
+    std_cxx11::array<double,dim> convert_point_to_array(const Point<dim> &point)
+    {
+      std_cxx11::array<double,dim> array;
+      for (unsigned int i = 0; i < dim; i++)
+        array[i] = point[i];
+
+      return array;
     }
 
 
@@ -2490,6 +2533,113 @@ namespace aspect
 
 
 
+    template <int dim>
+    SymmetricTensor<2,dim>
+    nth_basis_for_symmetric_tensors (const unsigned int k)
+    {
+      Assert((k < SymmetricTensor<2,dim>::n_independent_components),
+             ExcMessage("The component is larger then the amount of independent components in the matrix.") );
+
+      const TableIndices<2> indices_ij = SymmetricTensor<2,dim>::unrolled_to_component_indices (k);
+
+      Tensor<2,dim> result;
+      result[indices_ij] = 1;
+
+      return symmetrize(result);
+    }
+
+    template <int dim>
+    NaturalCoordinate<dim>::NaturalCoordinate(Point<dim> &position,
+                                              const GeometryModel::Interface<dim> &geometry_model)
+    {
+      coordinate_system = geometry_model.natural_coordinate_system();
+      coordinates = geometry_model.cartesian_to_natural_coordinates(position);
+    }
+
+    template <int dim>
+    std_cxx11::array<double,dim> &NaturalCoordinate<dim>::get_coordinates()
+    {
+      return coordinates;
+    }
+
+    template <>
+    std_cxx11::array<double,1> NaturalCoordinate<2>::get_surface_coordinates() const
+    {
+      std_cxx11::array<double,1> coordinate;
+
+      switch (coordinate_system)
+        {
+          case Coordinates::CoordinateSystem::cartesian:
+            coordinate[0] = coordinates[0];
+            break;
+
+          case Coordinates::CoordinateSystem::spherical:
+            coordinate[0] = coordinates[1];
+            break;
+
+          case Coordinates::CoordinateSystem::ellipsoidal:
+            coordinate[0] = coordinates[1];
+            break;
+
+          default:
+            coordinate[0] = 0;
+            Assert (false, ExcNotImplemented());
+            break;
+        }
+
+      return coordinate;
+    }
+
+    template <>
+    std_cxx11::array<double,2> NaturalCoordinate<3>::get_surface_coordinates() const
+    {
+      std_cxx11::array<double,2> coordinate;
+
+      switch (coordinate_system)
+        {
+          case Coordinates::CoordinateSystem::cartesian:
+            coordinate[0] = coordinates[0];
+            coordinate[1] = coordinates[1];
+            break;
+
+          case Coordinates::CoordinateSystem::spherical:
+            coordinate[0] = coordinates[1];
+            coordinate[1] = coordinates[2];
+            break;
+
+          case Coordinates::CoordinateSystem::ellipsoidal:
+            coordinate[0] = coordinates[1];
+            coordinate[1] = coordinates[2];
+            break;
+
+          default:
+            Assert (false, ExcNotImplemented());
+        }
+
+      return coordinate;
+    }
+
+    template <int dim>
+    double NaturalCoordinate<dim>::get_depth_coordinate() const
+    {
+      switch (coordinate_system)
+        {
+          case Coordinates::CoordinateSystem::cartesian:
+            return coordinates[dim-1];
+
+          case Coordinates::CoordinateSystem::spherical:
+            return coordinates[0];
+
+          case Coordinates::CoordinateSystem::ellipsoidal:
+            return coordinates[0];
+
+          default:
+            Assert (false, ExcNotImplemented());
+        }
+
+      return 0;
+    }
+
 
 // Explicit instantiations
 
@@ -2569,5 +2719,16 @@ namespace aspect
                                        const SymmetricTensor<2,3> &dviscosities_dstrain_rate,
                                        const double safety_factor);
 
+    template Point<2> convert_array_to_point<2>(const std_cxx11::array<double,2> &array);
+    template Point<3> convert_array_to_point<3>(const std_cxx11::array<double,3> &array);
+
+    template std_cxx11::array<double,2> convert_point_to_array<2>(const Point<2> &point);
+    template std_cxx11::array<double,3> convert_point_to_array<3>(const Point<3> &point);
+
+    template SymmetricTensor<2,2> nth_basis_for_symmetric_tensors (const unsigned int k);
+    template SymmetricTensor<2,3> nth_basis_for_symmetric_tensors (const unsigned int k);
+
+    template class NaturalCoordinate<2>;
+    template class NaturalCoordinate<3>;
   }
 }

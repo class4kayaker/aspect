@@ -185,6 +185,7 @@ namespace aspect
         solution.block(blockidx) = initial_solution.block(blockidx);
         old_solution.block(blockidx) = initial_solution.block(blockidx);
         old_old_solution.block(blockidx) = initial_solution.block(blockidx);
+        current_linearization_point.block(blockidx) = initial_solution.block(blockidx);
       }
   }
 
@@ -192,7 +193,7 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::interpolate_particle_properties (const AdvectionField &advection_field)
   {
-    computing_timer.enter_section("Particles: Interpolate");
+    TimerOutput::Scope timer (computing_timer, "Particles: Interpolate");
 
     // below, we would want to call VectorTools::interpolate on the
     // entire FESystem. there currently is no way to restrict the
@@ -214,14 +215,11 @@ namespace aspect
     // need to write into it and we can not
     // write into vectors with ghost elements
 
-    const Postprocess::Particles<dim> *particle_postprocessor = postprocess_manager.template find_postprocessor<Postprocess::Particles<dim> >();
+    const Postprocess::Particles<dim> &particle_postprocessor =
+      postprocess_manager.template get_matching_postprocessor<Postprocess::Particles<dim> >();
 
-    AssertThrow(particle_postprocessor != 0,
-                ExcMessage("Did not find the <particles> postprocessor when trying to interpolate particle properties."));
-
-    const std::multimap<aspect::Particle::types::LevelInd, Particle::Particle<dim> > *particles = &particle_postprocessor->get_particle_world().get_particles();
-    const Particle::Interpolator::Interface<dim> *particle_interpolator = &particle_postprocessor->get_particle_world().get_interpolator();
-    const Particle::Property::Manager<dim> *particle_property_manager = &particle_postprocessor->get_particle_world().get_property_manager();
+    const Particle::Interpolator::Interface<dim> *particle_interpolator = &particle_postprocessor.get_particle_world().get_interpolator();
+    const Particle::Property::Manager<dim> *particle_property_manager = &particle_postprocessor.get_particle_world().get_property_manager();
 
     unsigned int particle_property;
 
@@ -272,7 +270,10 @@ namespace aspect
           property_mask.set(particle_property,true);
 
           const std::vector<std::vector<double> > particle_properties =
-            particle_interpolator->properties_at_points(*particles,quadrature_points,property_mask,cell);
+            particle_interpolator->properties_at_points(particle_postprocessor.get_particle_world().get_particle_handler(),
+                                                        quadrature_points,
+                                                        property_mask,
+                                                        cell);
 
           // go through the composition dofs and set their global values
           // to the particle field interpolated at these points
@@ -301,8 +302,6 @@ namespace aspect
     solution.block(blockidx) = particle_solution.block(blockidx);
     old_solution.block(blockidx) = particle_solution.block(blockidx);
     old_old_solution.block(blockidx) = particle_solution.block(blockidx);
-
-    computing_timer.exit_section("");
   }
 
 

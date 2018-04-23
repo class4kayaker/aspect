@@ -3,7 +3,7 @@ set Dimension                              = 2
 set Start time                             = 0
 set End time                               = 1e9
 set Use years in output instead of seconds = true
-set Nonlinear solver scheme                = IMPES
+set Nonlinear solver scheme                = single Advection, single Stokes
 set Number of cheap Stokes solver steps    = 200
 set Output directory                       = compositional_heating
 set Timing output frequency                = 1
@@ -110,7 +110,7 @@ end
 
 # Boundary composition specification
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
 # Material model (values for background material (mantle) and crust)

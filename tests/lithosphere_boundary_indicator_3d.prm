@@ -10,7 +10,7 @@ set Adiabatic surface temperature          = 0
 set Surface pressure                       = 0
 set Pressure normalization                 = surface
 set Use years in output instead of seconds = true
-set Nonlinear solver scheme                = IMPES
+set Nonlinear solver scheme                = single Advection, single Stokes
 
 
 # We use a boundary temperature model
@@ -26,7 +26,7 @@ end
 
 # We use the initial composition
 subsection Boundary composition model
-  set Model name = initial composition 
+  set List of model names = initial composition 
 end
 
 

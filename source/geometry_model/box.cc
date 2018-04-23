@@ -207,9 +207,24 @@ namespace aspect
     double
     Box<dim>::depth(const Point<dim> &position) const
     {
-      // this depth does not take topography into consideration
-      const double d = maximal_depth()-(position(dim-1)-box_origin[dim-1]);
+      // Get the surface x (,y) point
+      Point<dim-1> surface_point;
+      for (unsigned int d=0; d<dim-1; ++d)
+        surface_point[d] = position[d];
+
+      // Get the surface topography at this point
+      const double topo = topo_model->value(surface_point);
+
+      const double d = extents[dim-1] + topo - (position(dim-1)-box_origin[dim-1]);
       return std::min (std::max (d, 0.), maximal_depth());
+    }
+
+
+    template <int dim>
+    double
+    Box<dim>::height_above_reference_surface(const Point<dim> &position) const
+    {
+      return (position(dim-1)-box_origin[dim-1]) - extents[dim-1];
     }
 
 
@@ -234,7 +249,7 @@ namespace aspect
     double
     Box<dim>::maximal_depth() const
     {
-      return extents[dim-1];
+      return extents[dim-1] + topo_model->max_topography();
     }
 
     template <int dim>
@@ -261,6 +276,37 @@ namespace aspect
           return false;
 
       return true;
+    }
+
+    template <int dim>
+    std_cxx11::array<double,dim>
+    Box<dim>::cartesian_to_natural_coordinates(const Point<dim> &position_point) const
+    {
+      std::array<double,dim> position_array;
+      for (unsigned int i = 0; i < dim; i++)
+        position_array[i] = position_point(i);
+
+      return position_array;
+    }
+
+
+    template <int dim>
+    aspect::Utilities::Coordinates::CoordinateSystem
+    Box<dim>::natural_coordinate_system() const
+    {
+      return aspect::Utilities::Coordinates::CoordinateSystem::cartesian;
+    }
+
+
+    template <int dim>
+    Point<dim>
+    Box<dim>::natural_to_cartesian_coordinates(const std_cxx11::array<double,dim> &position_tensor) const
+    {
+      Point<dim> position_point;
+      for (unsigned int i = 0; i < dim; i++)
+        position_point[i] = position_tensor[i];
+
+      return position_point;
     }
 
     template <int dim>

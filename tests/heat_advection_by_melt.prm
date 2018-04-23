@@ -15,7 +15,7 @@
 # in equilibrium.
 #
 set Dimension                              = 2
-set Nonlinear solver scheme                = iterated IMPES
+set Nonlinear solver scheme                = iterated Advection and Stokes
 set Linear solver tolerance                = 1e-12
 
 # There are several global variables that have to do with what
@@ -67,7 +67,7 @@ subsection Boundary temperature model
 end
 
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
 subsection Boundary velocity model

@@ -211,7 +211,7 @@ namespace aspect
          * @param use_strain_rates Whether to compute the strain rates.
          */
         MaterialModelInputs(const FEValuesBase<dim,dim> &fe_values,
-                            const typename DoFHandler<dim>::active_cell_iterator *cell,
+                            const typename DoFHandler<dim>::active_cell_iterator &cell,
                             const Introspection<dim> &introspection,
                             const LinearAlgebra::BlockVector &solution_vector,
                             const bool use_strain_rates = true);
@@ -226,7 +226,7 @@ namespace aspect
          * created by the constructor MaterialModelInputs.
          */
         void reinit(const FEValuesBase<dim,dim> &fe_values,
-                    const typename DoFHandler<dim>::active_cell_iterator *cell,
+                    const typename DoFHandler<dim>::active_cell_iterator &cell,
                     const Introspection<dim> &introspection,
                     const LinearAlgebra::BlockVector &solution_vector,
                     const bool use_strain_rates = true);
@@ -353,26 +353,13 @@ namespace aspect
       std::vector<double> viscosities;
 
       /**
-       * Stress-strain "director" tensors at the given positions. This
-       * variable can be used to implement exotic rheologies such as
-       * anisotropic viscosity.
-       *
-       * @note The strain rate term in equation (1) of the manual will be
-       * multiplied by this tensor *and* the viscosity scalar ($\eta$), as
-       * described in the manual section titled "Constitutive laws". This
-       * variable is assigned the rank-four identity tensor by default.
-       * This leaves the isotropic constitutive law unchanged if the material
-       * model does not explicitly assign a value.
-       */
-      std::vector<SymmetricTensor<4,dim> > stress_strain_directors;
-
-      /**
        * Density values at the given positions.
        */
       std::vector<double> densities;
 
       /**
-       * Thermal expansion coefficients at the given positions.
+       * Thermal expansion coefficients at the given positions. It is defined
+       * as $\alpha = - \frac{1}{\rho} \frac{\partial\rho}{\partial T}$
        */
       std::vector<double> thermal_expansion_coefficients;
 
@@ -387,8 +374,8 @@ namespace aspect
       std::vector<double> thermal_conductivities;
 
       /**
-       * Compressibility at the given positions. The compressibility is given
-       * as $\frac 1\rho \frac{\partial\rho}{\partial p}$.
+       * Compressibility at the given positions. The compressibility is defined
+       * as $\kappa = \frac{1}{\rho} \frac{\partial\rho}{\partial p}$.
        */
       std::vector<double> compressibilities;
 

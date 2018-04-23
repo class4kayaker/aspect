@@ -38,6 +38,10 @@ namespace aspect
     AsciiData<dim>::initialize ()
     {
       Utilities::AsciiDataInitial<dim>::initialize(dim);
+
+      AssertThrow(!this->get_parameters().include_melt_transport,
+                  ExcMessage("Using the ascii data plugin for the prescribed Stokes solution "
+                             "is not supported in models with melt transport."));
     }
 
 
@@ -96,8 +100,8 @@ namespace aspect
                                                "contain the number of grid points in each dimension as "
                                                "for example '# POINTS: 3 3'. "
                                                "The order of the data columns "
-                                               "has to be `x', `y', `v$_x$' , `v$_y$' in a 2d model and "
-                                               " `x', `y', `z', `v$_x$' , `v$_y$' , `v$_z$' in a 3d model. "
+                                               "has to be `x', `y', `v${}_x$' , `v${}_y$' in a 2d model and "
+                                               " `x', `y', `z', `v${}_x$' , `v${}_y$' , `v${}_z$' in a 3d model. "
                                                "Note that the data in the input "
                                                "files need to be sorted in a specific order: "
                                                "the first coordinate needs to ascend first, "

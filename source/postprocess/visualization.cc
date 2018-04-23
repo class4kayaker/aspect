@@ -34,6 +34,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <boost/lexical_cast.hpp>
+
 namespace aspect
 {
   namespace Postprocess
@@ -78,7 +80,7 @@ namespace aspect
             if (this->include_melt_transport())
               {
                 solution_names.push_back ("p_f");
-                solution_names.push_back ("p_c");
+                solution_names.push_back ("p_c_bar");
                 for (unsigned int i=0; i<dim; ++i)
                   solution_names.push_back ("u_f");
               }
@@ -209,6 +211,8 @@ namespace aspect
       // initialize this to a nonsensical value; set it to the actual time
       // the first time around we get to check it
       last_output_time (std::numeric_limits<double>::quiet_NaN()),
+      maximum_timesteps_between_outputs (std::numeric_limits<int>::max()),
+      last_output_timestep (numbers::invalid_unsigned_int),
       output_file_number (numbers::invalid_unsigned_int),
       mesh_changed (true)
     {}
@@ -326,10 +330,20 @@ namespace aspect
       if (std::isnan(last_output_time))
         {
           last_output_time = this->get_time() - output_interval;
+          last_output_timestep = this->get_timestep_number();
         }
 
-      // return if graphical output is not requested at this time
+      // Return if graphical output is not requested at this time. Do not
+      // return in the first timestep, or if the last output was more than
+      // output_interval in time ago, or maximum_timesteps_between_outputs in
+      // number of timesteps ago.
+      // The comparison in number of timesteps is safe from integer overflow for
+      // at most 2 billion timesteps , which is not likely to
+      // be ever reached (both values are unsigned int,
+      // and the default value of maximum_timesteps_between_outputs is
+      // set to numeric_limits<int>::max())
       if ((this->get_time() < last_output_time + output_interval)
+          && (this->get_timestep_number() < last_output_timestep + maximum_timesteps_between_outputs)
           && (this->get_timestep_number() != 0))
         return std::pair<std::string,std::string>();
 
@@ -481,8 +495,8 @@ namespace aspect
           const std::string h5_solution_file_name = "solution/" + solution_file_prefix + ".h5";
           const std::string xdmf_filename = "solution.xdmf";
 
-          // Filter redundant values
-          DataOutBase::DataOutFilter data_filter(DataOutBase::DataOutFilterFlags(true, true));
+          // Filter redundant values if requested in the input file
+          DataOutBase::DataOutFilter data_filter(DataOutBase::DataOutFilterFlags(filter_output, true));
 
           // If the mesh changed since the last output, make a new mesh file
           const std::string mesh_file_prefix = "mesh-" + Utilities::int_to_string (output_file_number, 5);
@@ -623,6 +637,7 @@ namespace aspect
 
       // up the next time we need output
       set_last_output_time (this->get_time());
+      last_output_timestep = this->get_timestep_number();
 
       // return what should be printed to the screen.
       return std::make_pair (std::string ("Writing graphical output:"),
@@ -729,6 +744,11 @@ namespace aspect
                              "'Use years in output instead of seconds' parameter is set; "
                              "seconds otherwise.");
 
+          prm.declare_entry ("Time steps between graphical output", boost::lexical_cast<std::string>(std::numeric_limits<int>::max()),
+                             Patterns::Integer(0,std::numeric_limits<int>::max()),
+                             "The maximum number of time steps between each generation of "
+                             "graphical output files.");
+
           // now also see about the file format we're supposed to write in
           prm.declare_entry ("Output format", "vtu",
                              Patterns::Selection (DataOutBase::get_output_format_names ()),
@@ -797,6 +817,24 @@ namespace aspect
                              "and a factor of 8 in 3d, when using quadratic elements for the velocity, "
                              "and correspondingly more for even higher order elements.");
 
+          prm.declare_entry ("Filter output", "false",
+                             Patterns::Bool(),
+                             "deal.II offers the possibility to filter duplicate vertices for HDF5 "
+                             "output files. This merges the vertices of adjacent cells and "
+                             "therefore saves disk space, but misrepresents discontinuous "
+                             "output properties. Activating this function reduces the disk space "
+                             "by about a factor of $2^{dim}$ for HDF5 output, and currently has no "
+                             "effect on other output formats. "
+                             "\\note{\\textbf{Warning:} Setting this flag to true will result in "
+                             "visualization output that does not accurately represent discontinuous "
+                             "fields. This may be because you are using a discontinuous finite "
+                             "element for the pressure, temperature, or compositional variables, "
+                             "or because you use a visualization postprocessor that outputs "
+                             "quantities as discontinuous fields (e.g., the strain rate, viscosity, "
+                             "etc.). These will then all be visualized as \\textit{continuous} "
+                             "quantities even though, internally, \\aspect{} considers them as "
+                             "discontinuous fields.}");
+
           prm.declare_entry ("Output mesh velocity", "false",
                              Patterns::Bool(),
                              "For free surface computations Aspect uses an Arbitrary-Lagrangian-"
@@ -857,6 +895,8 @@ namespace aspect
           if (this->convert_output_to_years())
             output_interval *= year_in_seconds;
 
+          maximum_timesteps_between_outputs = prm.get_integer("Time steps between graphical output");
+
           if (output_interval > 0.0)
             {
               // since we increase the time indicating when to write the next graphical output
@@ -887,6 +927,7 @@ namespace aspect
             }
 
           interpolate_output = prm.get_bool("Interpolate output");
+          filter_output = prm.get_bool("Filter output");
           output_mesh_velocity = prm.get_bool("Output mesh velocity");
 
           // now also see which derived quantities we are to compute
@@ -957,6 +998,7 @@ namespace aspect
     void Visualization<dim>::serialize (Archive &ar, const unsigned int)
     {
       ar &last_output_time
+      & last_output_timestep
       & output_file_number
       & times_and_pvtu_names
       & output_file_names_by_timestep

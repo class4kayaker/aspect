@@ -133,6 +133,13 @@ namespace aspect
         virtual
         double depth(const Point<dim> &position) const;
 
+        /**
+             * Return the height of the given position relative to
+             * the outer radius.
+             */
+        virtual
+        double height_above_reference_surface(const Point<dim> &position) const;
+
         virtual
         Point<dim> representative_point(const double depth) const;
 
@@ -218,6 +225,29 @@ namespace aspect
         bool
         point_is_in_domain(const Point<dim> &p) const;
 
+        /*
+         * Returns what the natural coordinate system for this geometry model is,
+         * which for a chunk is Spherical.
+         */
+        virtual
+        aspect::Utilities::Coordinates::CoordinateSystem natural_coordinate_system() const;
+
+        /**
+         * Takes the Cartesian points (x,z or x,y,z) and returns standardized
+         * coordinates which are most 'natural' to the geometry model. For a chunk
+         * this is (radius, longitude) in 2d and (radius, longitude, latitude) in 3d.
+         */
+        virtual
+        std_cxx11::array<double,dim> cartesian_to_natural_coordinates(const Point<dim> &position) const;
+
+        /**
+         * Undoes the action of cartesian_to_natural_coordinates, and turns the
+         * coordinate system which is most 'natural' to the geometry model into
+         * Cartesian coordinates.
+         */
+        virtual
+        Point<dim> natural_to_cartesian_coordinates(const std_cxx11::array<double,dim> &position) const;
+
         /**
          * Declare the parameters this class takes through input files.
          */
@@ -267,7 +297,15 @@ namespace aspect
         class ChunkGeometry : public ChartManifold<dim,dim>
         {
           public:
+            /**
+             * Constructor
+             */
             ChunkGeometry();
+
+            /**
+             * Copy constructor
+             */
+            ChunkGeometry(const ChunkGeometry &other);
 
             virtual
             Point<dim>
@@ -284,6 +322,15 @@ namespace aspect
             virtual
             void
             set_min_longitude(const double p1_lon);
+
+#if DEAL_II_VERSION_GTE(9,0,0)
+            /**
+            * Return a copy of this manifold.
+            */
+            virtual
+            std::unique_ptr<Manifold<dim,dim> >
+            clone() const;
+#endif
 
           private:
             // The minimum longitude of the domain

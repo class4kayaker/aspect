@@ -24,7 +24,7 @@ set CFL number                             = 1.0
 # instead of seconds' parameter is set; seconds otherwise.
 set End time                               = 0.0001
 
-set Nonlinear solver scheme                = Stokes only
+set Nonlinear solver scheme                = no Advection, iterated Stokes
 set Use direct solver for Stokes system        = false
 
 # The name of the directory into which all output files should be placed. This
@@ -52,7 +52,6 @@ set Start time                             = 0
 set Adiabatic surface temperature          = 0
 
 subsection Adiabatic conditions model
-  #set Model name = initial profile
   set Model name = function
   subsection Function
     set Function constants  = Di=0.5, gamma=1.0
@@ -164,19 +163,6 @@ end
 
 
 subsection Gravity model
-  # Select one of the following models:
-  #
-  # `radial constant': A gravity model in which the gravity direction is
-  # radially inward and at constant magnitude. The magnitude is read from the
-  # parameter file in subsection 'Radial constant'.
-  #
-  # `radial earth-like': A gravity model in which the gravity direction is
-  # radially inward and with a magnitude that matches that of the earth at the
-  # core-mantle boundary as well as at the surface and in between is
-  # physically correct under the assumption of a constant density.
-  #
-  # `vertical': A gravity model in which the gravity direction is vertically
-  # downward and at constant magnitude.
   set Model name = vertical
 
 end

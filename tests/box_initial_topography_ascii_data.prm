@@ -9,7 +9,7 @@ set Start time                             = 0
 set Adiabatic surface temperature          = 1613.0
 set Surface pressure                       = 0
 set Use years in output instead of seconds = true
-set Nonlinear solver scheme                = IMPES
+set Nonlinear solver scheme                = single Advection, single Stokes
 
 
 subsection Gravity model
@@ -91,7 +91,7 @@ end
 subsection Postprocess
   set List of postprocessors = visualization, velocity statistics, topography
   subsection Visualization
-    set List of output variables = boundary indicators
+    set List of output variables = boundary indicators, depth
     set Output format            = gnuplot
   end
 end
