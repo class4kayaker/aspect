@@ -13,13 +13,18 @@ set End time                               = 0
 set Use years in output instead of seconds = true
 set Output directory                       = output-S20RTS
 
-# The following variables describe the tolerance of
-# the linear solver as well as how the pressure should
+# The following variables describe how the pressure should
 # be normalized. Here, we choose a zero average pressure
 # at the surface of the domain 
-set Linear solver tolerance                = 1e-4
 set Pressure normalization                 = surface
 set Surface pressure                       = 0
+
+# Here we specify the residual tolerance for the linear solver.
+subsection Solver parameters
+  subsection Stokes solver parameters
+    set Linear solver tolerance = 1e-4
+  end
+end
 
 # Here we specify the geometry of the domain, which is 
 # a spherical shell with inner radius of 3481km and 
@@ -37,6 +42,7 @@ end
 # but different from the reference temperature to approximate
 # boundary layers.
 subsection Boundary temperature model
+  set Fixed temperature boundary indicators = top, bottom
   set List of model names = spherical constant
   subsection Spherical constant
     set Inner temperature = 2000
@@ -104,9 +110,8 @@ subsection Mesh refinement
   set Initial adaptive refinement        = 0
 end
 
-# We assume fixed temperatures and free slip at the inner and outer boundary
-subsection Model settings
-  set Fixed temperature boundary indicators   = top, bottom
+# We assume free slip at the inner and outer boundary
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = top, bottom
 end
 

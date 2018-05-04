@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -28,10 +28,6 @@
 #include <deal.II/base/symmetric_tensor.h>
 
 DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
-
-#include <deal.II/lac/trilinos_parallel_block_vector.h>
-#include <deal.II/lac/trilinos_block_sparse_matrix.h>
-#include <deal.II/lac/trilinos_precondition.h>
 
 #include <deal.II/distributed/tria.h>
 

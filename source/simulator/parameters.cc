@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -270,89 +270,6 @@ namespace aspect
                        "The name of the directory into which all output files should be "
                        "placed. This may be an absolute or a relative path.");
 
-    prm.declare_entry ("Use direct solver for Stokes system", "false",
-                       Patterns::Bool(),
-                       "If set to true the linear system for the Stokes equation will "
-                       "be solved using Trilinos klu, otherwise an iterative Schur "
-                       "complement solver is used. The direct solver is only efficient "
-                       "for small problems.");
-
-    prm.declare_entry ("Linear solver tolerance", "1e-7",
-                       Patterns::Double(0,1),
-                       "A relative tolerance up to which the linear Stokes systems in each "
-                       "time or nonlinear step should be solved. The absolute tolerance will "
-                       "then be $\\| M x_0 - F \\| \\cdot \\text{tol}$, where $x_0 = (0,p_0)$ "
-                       "is the initial guess of the pressure, $M$ is the system matrix, "
-                       "F is the right-hand side, and tol is the parameter specified here. "
-                       "We include the initial guess of the pressure "
-                       "to remove the dependency of the tolerance on the static pressure. "
-                       "A given tolerance value of 1 would "
-                       "mean that a zero solution vector is an acceptable solution "
-                       "since in that case the norm of the residual of the linear "
-                       "system equals the norm of the right hand side. A given "
-                       "tolerance of 0 would mean that the linear system has to be "
-                       "solved exactly, since this is the only way to obtain "
-                       "a zero residual."
-                       "\n\n"
-                       "In practice, you should choose the value of this parameter "
-                       "to be so that if you make it smaller the results of your "
-                       "simulation do not change any more (qualitatively) whereas "
-                       "if you make it larger, they do. For most cases, the default "
-                       "value should be sufficient. In fact, a tolerance of 1e-4 "
-                       "might be accurate enough.");
-
-    prm.declare_entry ("Linear solver A block tolerance", "1e-2",
-                       Patterns::Double(0,1),
-                       "A relative tolerance up to which the approximate inverse of the $A$ block "
-                       "of the Stokes system is computed. This approximate $A$ is used in the "
-                       "preconditioning used in the GMRES solver. The exact definition of this "
-                       "block preconditioner for the Stokes equation can be found in "
-                       "\\cite{KHB12}.");
-
-    prm.declare_entry ("Linear solver S block tolerance", "1e-6",
-                       Patterns::Double(0,1),
-                       "A relative tolerance up to which the approximate inverse of the $S$ block "
-                       "(i.e., the Schur complement matrix $S = BA^{-1}B^{T}$) of the Stokes "
-                       "system is computed. This approximate inverse of the $S$ block is used "
-                       "in the preconditioning used in the GMRES solver. The exact definition of "
-                       "this block preconditioner for the Stokes equation can be found in "
-                       "\\cite{KHB12}.");
-
-    prm.declare_entry ("Number of cheap Stokes solver steps", "200",
-                       Patterns::Integer(0),
-                       "As explained in the paper that describes ASPECT (Kronbichler, Heister, and Bangerth, "
-                       "2012, see \\cite{KHB12}) we first try to solve the Stokes system in every "
-                       "time step using a GMRES iteration with a poor but cheap "
-                       "preconditioner. By default, we try whether we can converge the GMRES "
-                       "solver in 200 such iterations before deciding that we need a better "
-                       "preconditioner. This is sufficient for simple problems with variable "
-                       "viscosity and we never need the second phase with the more expensive "
-                       "preconditioner. On the other hand, for more complex problems, and in "
-                       "particular for problems with strongly nonlinear viscosity, the 200 "
-                       "cheap iterations don't actually do very much good and one might skip "
-                       "this part right away. In that case, this parameter can be set to "
-                       "zero, i.e., we immediately start with the better but more expensive "
-                       "preconditioner.");
-
-    prm.declare_entry ("Maximum number of expensive Stokes solver steps", "1000",
-                       Patterns::Integer(0),
-                       "This sets the maximum number of iterations used in the expensive Stokes solver. "
-                       "If this value is set too low for the size of the problem, the Stokes solver will "
-                       "not converge and return an error message pointing out that the user didn't allow "
-                       "a sufficiently large number of iterations for the iterative solver to converge.");
-
-    prm.declare_entry ("Temperature solver tolerance", "1e-12",
-                       Patterns::Double(0,1),
-                       "The relative tolerance up to which the linear system for "
-                       "the temperature system gets solved. See `linear solver "
-                       "tolerance' for more details.");
-
-    prm.declare_entry ("Composition solver tolerance", "1e-12",
-                       Patterns::Double(0,1),
-                       "The relative tolerance up to which the linear system for "
-                       "the composition system gets solved. See `linear solver "
-                       "tolerance' for more details.");
-
     prm.declare_entry ("Use operator splitting", "false",
                        Patterns::Bool(),
                        "If set to true, the advection and reactions of compositional fields and "
@@ -363,6 +280,92 @@ namespace aspect
 
     prm.enter_subsection ("Solver parameters");
     {
+      prm.declare_entry ("Temperature solver tolerance", "1e-12",
+                         Patterns::Double(0,1),
+                         "The relative tolerance up to which the linear system for "
+                         "the temperature system gets solved. See `Stokes solver "
+                         "parameters/Linear solver tolerance' for more details.");
+
+      prm.declare_entry ("Composition solver tolerance", "1e-12",
+                         Patterns::Double(0,1),
+                         "The relative tolerance up to which the linear system for "
+                         "the composition system gets solved. See `Stokes solver "
+                         "parameters/Linear solver tolerance' for more details.");
+
+      prm.enter_subsection ("Stokes solver parameters");
+      {
+        prm.declare_entry ("Use direct solver for Stokes system", "false",
+                           Patterns::Bool(),
+                           "If set to true the linear system for the Stokes equation will "
+                           "be solved using Trilinos klu, otherwise an iterative Schur "
+                           "complement solver is used. The direct solver is only efficient "
+                           "for small problems.");
+
+        prm.declare_entry ("Linear solver tolerance", "1e-7",
+                           Patterns::Double(0,1),
+                           "A relative tolerance up to which the linear Stokes systems in each "
+                           "time or nonlinear step should be solved. The absolute tolerance will "
+                           "then be $\\| M x_0 - F \\| \\cdot \\text{tol}$, where $x_0 = (0,p_0)$ "
+                           "is the initial guess of the pressure, $M$ is the system matrix, "
+                           "F is the right-hand side, and tol is the parameter specified here. "
+                           "We include the initial guess of the pressure "
+                           "to remove the dependency of the tolerance on the static pressure. "
+                           "A given tolerance value of 1 would "
+                           "mean that a zero solution vector is an acceptable solution "
+                           "since in that case the norm of the residual of the linear "
+                           "system equals the norm of the right hand side. A given "
+                           "tolerance of 0 would mean that the linear system has to be "
+                           "solved exactly, since this is the only way to obtain "
+                           "a zero residual."
+                           "\n\n"
+                           "In practice, you should choose the value of this parameter "
+                           "to be so that if you make it smaller the results of your "
+                           "simulation do not change any more (qualitatively) whereas "
+                           "if you make it larger, they do. For most cases, the default "
+                           "value should be sufficient. In fact, a tolerance of 1e-4 "
+                           "might be accurate enough.");
+
+        prm.declare_entry ("Number of cheap Stokes solver steps", "200",
+                           Patterns::Integer(0),
+                           "As explained in the paper that describes ASPECT (Kronbichler, Heister, and Bangerth, "
+                           "2012, see \\cite{KHB12}) we first try to solve the Stokes system in every "
+                           "time step using a GMRES iteration with a poor but cheap "
+                           "preconditioner. By default, we try whether we can converge the GMRES "
+                           "solver in 200 such iterations before deciding that we need a better "
+                           "preconditioner. This is sufficient for simple problems with variable "
+                           "viscosity and we never need the second phase with the more expensive "
+                           "preconditioner. On the other hand, for more complex problems, and in "
+                           "particular for problems with strongly nonlinear viscosity, the 200 "
+                           "cheap iterations don't actually do very much good and one might skip "
+                           "this part right away. In that case, this parameter can be set to "
+                           "zero, i.e., we immediately start with the better but more expensive "
+                           "preconditioner.");
+
+        prm.declare_entry ("Maximum number of expensive Stokes solver steps", "1000",
+                           Patterns::Integer(0),
+                           "This sets the maximum number of iterations used in the expensive Stokes solver. "
+                           "If this value is set too low for the size of the problem, the Stokes solver will "
+                           "not converge and return an error message pointing out that the user didn't allow "
+                           "a sufficiently large number of iterations for the iterative solver to converge.");
+
+        prm.declare_entry ("Linear solver A block tolerance", "1e-2",
+                           Patterns::Double(0,1),
+                           "A relative tolerance up to which the approximate inverse of the $A$ block "
+                           "of the Stokes system is computed. This approximate $A$ is used in the "
+                           "preconditioning used in the GMRES solver. The exact definition of this "
+                           "block preconditioner for the Stokes equation can be found in "
+                           "\\cite{KHB12}.");
+
+        prm.declare_entry ("Linear solver S block tolerance", "1e-6",
+                           Patterns::Double(0,1),
+                           "A relative tolerance up to which the approximate inverse of the $S$ block "
+                           "(i.e., the Schur complement matrix $S = BA^{-1}B^{T}$) of the Stokes "
+                           "system is computed. This approximate inverse of the $S$ block is used "
+                           "in the preconditioning used in the GMRES solver. The exact definition of "
+                           "this block preconditioner for the Stokes equation can be found in "
+                           "\\cite{KHB12}.");
+      }
+      prm.leave_subsection ();
       prm.enter_subsection ("AMG parameters");
       {
         prm.declare_entry ("AMG smoother type", "Chebyshev",
@@ -474,6 +477,12 @@ namespace aspect
                          "Note that this parameter is only evaluated "
                          "if `Formulation' is set to `custom'. Other formulations ignore "
                          "the value of this parameter.");
+      prm.declare_entry ("Enable additional Stokes RHS", "false",
+                         Patterns::Bool (),
+                         "Whether to ask the material model for additional terms for the right-hand side "
+                         "of the Stokes equation. This feature is likely only used when implementing force "
+                         "vectors for manufactured solution problems and requires filling additional outputs "
+                         "of type AdditionalMaterialOutputsStokesRHS.");
     }
     prm.leave_subsection();
 
@@ -483,7 +492,7 @@ namespace aspect
     // we do not know which symbolic names will be valid to address individual
     // parts of the boundary. we can only work around this by allowing any string
     // to indicate a boundary
-    prm.enter_subsection ("Model settings");
+    prm.enter_subsection ("Melt settings");
     {
       prm.declare_entry ("Include melt transport", "false",
                          Patterns::Bool (),
@@ -495,52 +504,11 @@ namespace aspect
                          "be used for computing the additional pressures and the melt velocity, "
                          "and has a different advection equation than other compositional fields, "
                          "as it is effectively advected with the melt velocity.");
-      prm.declare_entry ("Fixed temperature boundary indicators", "",
-                         Patterns::List (Patterns::Anything()),
-                         "A comma separated list of names denoting those boundaries "
-                         "on which the temperature is fixed and described by the "
-                         "boundary temperature object selected in its own section "
-                         "of this input file. All boundary indicators used by the geometry "
-                         "but not explicitly listed here will end up with no-flux "
-                         "(insulating) boundary conditions."
-                         "\n\n"
-                         "The names of the boundaries listed here can either by "
-                         "numbers (in which case they correspond to the numerical "
-                         "boundary indicators assigned by the geometry object), or they "
-                         "can correspond to any of the symbolic names the geometry object "
-                         "may have provided for each part of the boundary. You may want "
-                         "to compare this with the documentation of the geometry model you "
-                         "use in your model."
-                         "\n\n"
-                         "This parameter only describes which boundaries have a fixed "
-                         "temperature, but not what temperature should hold on these "
-                         "boundaries. The latter piece of information needs to be "
-                         "implemented in a plugin in the BoundaryTemperature "
-                         "group, unless an existing implementation in this group "
-                         "already provides what you want.");
-      prm.declare_entry ("Fixed composition boundary indicators", "",
-                         Patterns::List (Patterns::Anything()),
-                         "A comma separated list of names denoting those boundaries "
-                         "on which the composition is fixed and described by the "
-                         "boundary composition object selected in its own section "
-                         "of this input file. All boundary indicators used by the geometry "
-                         "but not explicitly listed here will end up with no-flux "
-                         "(insulating) boundary conditions."
-                         "\n\n"
-                         "The names of the boundaries listed here can either by "
-                         "numbers (in which case they correspond to the numerical "
-                         "boundary indicators assigned by the geometry object), or they "
-                         "can correspond to any of the symbolic names the geometry object "
-                         "may have provided for each part of the boundary. You may want "
-                         "to compare this with the documentation of the geometry model you "
-                         "use in your model."
-                         "\n\n"
-                         "This parameter only describes which boundaries have a fixed "
-                         "composition, but not what composition should hold on these "
-                         "boundaries. The latter piece of information needs to be "
-                         "implemented in a plugin in the BoundaryComposition "
-                         "group, unless an existing implementation in this group "
-                         "already provides what you want.");
+    }
+    prm.leave_subsection();
+
+    prm.enter_subsection ("Free surface");
+    {
       prm.declare_entry ("Free surface boundary indicators", "",
                          Patterns::List (Patterns::Anything()),
                          "A comma separated list of names denoting those boundaries "
@@ -554,6 +522,11 @@ namespace aspect
                          "may have provided for each part of the boundary. You may want "
                          "to compare this with the documentation of the geometry model you "
                          "use in your model.");
+    }
+    prm.leave_subsection();
+
+    prm.enter_subsection ("Boundary traction model");
+    {
       prm.declare_entry ("Prescribed traction boundary indicators", "",
                          Patterns::Map (Patterns::Anything(),
                                         Patterns::Selection(BoundaryTraction::get_names<dim>())),
@@ -575,6 +548,11 @@ namespace aspect
                          "only to the components listed. As an example, '1 y: function' applies "
                          "the type `function' to the y component on boundary 1. Without a selector "
                          "it will affect all components of the traction.");
+    }
+    prm.leave_subsection();
+
+    prm.enter_subsection ("Nullspace removal");
+    {
       prm.declare_entry ("Remove nullspace", "",
                          Patterns::MultipleSelection("net rotation|angular momentum|"
                                                      "net translation|linear momentum|"
@@ -605,15 +583,8 @@ namespace aspect
                          "\n\n"
                          "Note that while more than one operation can be selected it only makes sense to "
                          "pick one rotational and one translational operation.");
-      prm.declare_entry ("Enable additional Stokes RHS", "false",
-                         Patterns::Bool (),
-                         "Whether to ask the material model for additional terms for the right-hand side "
-                         "of the Stokes equation. This feature is likely only used when implementing force "
-                         "vectors for manufactured solution problems and requires filling additional outputs "
-                         "of type AdditionalMaterialOutputsStokesRHS.");
-
     }
-    prm.leave_subsection ();
+    prm.leave_subsection();
 
     prm.enter_subsection ("Mesh refinement");
     {
@@ -1054,6 +1025,19 @@ namespace aspect
 
     prm.enter_subsection ("Solver parameters");
     {
+      temperature_solver_tolerance    = prm.get_double ("Temperature solver tolerance");
+      composition_solver_tolerance    = prm.get_double ("Composition solver tolerance");
+
+      prm.enter_subsection ("Stokes solver parameters");
+      {
+        use_direct_stokes_solver        = prm.get_bool("Use direct solver for Stokes system");
+        linear_stokes_solver_tolerance  = prm.get_double ("Linear solver tolerance");
+        n_cheap_stokes_solver_steps     = prm.get_integer ("Number of cheap Stokes solver steps");
+        n_expensive_stokes_solver_steps = prm.get_integer ("Maximum number of expensive Stokes solver steps");
+        linear_solver_A_block_tolerance = prm.get_double ("Linear solver A block tolerance");
+        linear_solver_S_block_tolerance = prm.get_double ("Linear solver S block tolerance");
+      }
+      prm.leave_subsection ();
       prm.enter_subsection ("AMG parameters");
       {
         AMG_smoother_type                      = prm.get ("AMG smoother type");
@@ -1117,14 +1101,6 @@ namespace aspect
     adiabatic_surface_temperature   = prm.get_double ("Adiabatic surface temperature");
     pressure_normalization          = prm.get("Pressure normalization");
 
-    use_direct_stokes_solver        = prm.get_bool("Use direct solver for Stokes system");
-    linear_stokes_solver_tolerance  = prm.get_double ("Linear solver tolerance");
-    linear_solver_A_block_tolerance = prm.get_double ("Linear solver A block tolerance");
-    linear_solver_S_block_tolerance = prm.get_double ("Linear solver S block tolerance");
-    n_cheap_stokes_solver_steps     = prm.get_integer ("Number of cheap Stokes solver steps");
-    n_expensive_stokes_solver_steps = prm.get_integer ("Maximum number of expensive Stokes solver steps");
-    temperature_solver_tolerance    = prm.get_double ("Temperature solver tolerance");
-    composition_solver_tolerance    = prm.get_double ("Composition solver tolerance");
     use_operator_splitting          = prm.get_bool("Use operator splitting");
 
     prm.enter_subsection ("Mesh refinement");
@@ -1197,64 +1173,67 @@ namespace aspect
           formulation_temperature_equation = Formulation::TemperatureEquation::parse(prm.get("Temperature equation"));
         }
       else AssertThrow(false, ExcNotImplemented());
+
+      enable_additional_stokes_rhs = prm.get_bool ("Enable additional Stokes RHS");
     }
     prm.leave_subsection ();
 
 
-    prm.enter_subsection ("Model settings");
+    prm.enter_subsection ("Melt settings");
     {
       include_melt_transport = prm.get_bool ("Include melt transport");
-      enable_additional_stokes_rhs = prm.get_bool ("Enable additional Stokes RHS");
+    }
+    prm.leave_subsection();
 
-      {
-        nullspace_removal = NullspaceRemoval::none;
-        std::vector<std::string> nullspace_names =
-          Utilities::split_string_list(prm.get("Remove nullspace"));
-        AssertThrow(Utilities::has_unique_entries(nullspace_names),
-                    ExcMessage("The list of strings for the parameter "
-                               "'Model settings/Remove nullspace' contains entries more than once. "
-                               "This is not allowed. Please check your parameter file."));
+    prm.enter_subsection ("Nullspace removal");
+    {
+      nullspace_removal = NullspaceRemoval::none;
+      std::vector<std::string> nullspace_names =
+        Utilities::split_string_list(prm.get("Remove nullspace"));
+      AssertThrow(Utilities::has_unique_entries(nullspace_names),
+                  ExcMessage("The list of strings for the parameter "
+                             "'Model settings/Remove nullspace' contains entries more than once. "
+                             "This is not allowed. Please check your parameter file."));
 
-        for (unsigned int i=0; i<nullspace_names.size(); ++i)
-          {
-            if (nullspace_names[i]=="net rotation")
-              nullspace_removal = typename NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::net_rotation);
-            else if (nullspace_names[i]=="angular momentum")
-              nullspace_removal = typename NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::angular_momentum);
-            else if (nullspace_names[i]=="net translation")
-              nullspace_removal = typename NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::net_translation_x |
-                                    NullspaceRemoval::net_translation_y | ( dim == 3 ?
-                                                                            NullspaceRemoval::net_translation_z : 0) );
-            else if (nullspace_names[i]=="net x translation")
-              nullspace_removal = typename NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::net_translation_x);
-            else if (nullspace_names[i]=="net y translation")
-              nullspace_removal = typename NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::net_translation_y);
-            else if (nullspace_names[i]=="net z translation")
-              nullspace_removal = typename NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::net_translation_z);
-            else if (nullspace_names[i]=="linear x momentum")
-              nullspace_removal = typename       NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::linear_momentum_x);
-            else if (nullspace_names[i]=="linear y momentum")
-              nullspace_removal = typename       NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::linear_momentum_y);
-            else if (nullspace_names[i]=="linear z momentum")
-              nullspace_removal = typename       NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::linear_momentum_z);
-            else if (nullspace_names[i]=="linear momentum")
-              nullspace_removal = typename NullspaceRemoval::Kind(
-                                    nullspace_removal | NullspaceRemoval::linear_momentum_x |
-                                    NullspaceRemoval::linear_momentum_y | ( dim == 3 ?
-                                                                            NullspaceRemoval::linear_momentum_z : 0) );
-            else
-              AssertThrow(false, ExcInternalError());
-          }
-      }
+      for (unsigned int i=0; i<nullspace_names.size(); ++i)
+        {
+          if (nullspace_names[i]=="net rotation")
+            nullspace_removal = typename NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::net_rotation);
+          else if (nullspace_names[i]=="angular momentum")
+            nullspace_removal = typename NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::angular_momentum);
+          else if (nullspace_names[i]=="net translation")
+            nullspace_removal = typename NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::net_translation_x |
+                                  NullspaceRemoval::net_translation_y | ( dim == 3 ?
+                                                                          NullspaceRemoval::net_translation_z : 0) );
+          else if (nullspace_names[i]=="net x translation")
+            nullspace_removal = typename NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::net_translation_x);
+          else if (nullspace_names[i]=="net y translation")
+            nullspace_removal = typename NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::net_translation_y);
+          else if (nullspace_names[i]=="net z translation")
+            nullspace_removal = typename NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::net_translation_z);
+          else if (nullspace_names[i]=="linear x momentum")
+            nullspace_removal = typename       NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::linear_momentum_x);
+          else if (nullspace_names[i]=="linear y momentum")
+            nullspace_removal = typename       NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::linear_momentum_y);
+          else if (nullspace_names[i]=="linear z momentum")
+            nullspace_removal = typename       NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::linear_momentum_z);
+          else if (nullspace_names[i]=="linear momentum")
+            nullspace_removal = typename NullspaceRemoval::Kind(
+                                  nullspace_removal | NullspaceRemoval::linear_momentum_x |
+                                  NullspaceRemoval::linear_momentum_y | ( dim == 3 ?
+                                                                          NullspaceRemoval::linear_momentum_z : 0) );
+          else
+            AssertThrow(false, ExcInternalError());
+        }
     }
     prm.leave_subsection ();
 
@@ -1547,7 +1526,7 @@ namespace aspect
     AssertThrow((!use_direct_stokes_solver) || (nullspace_removal == NullspaceRemoval::none),
                 ExcMessage("Because of the difference in system partitioning, nullspace removal is "
                            "currently not compatible with the direct solver. "
-                           "Please turn off one or both of the options 'Model settings/Remove nullspace', "
+                           "Please turn off one or both of the options 'Nullspace removal/Remove nullspace', "
                            "or 'Use direct solver for Stokes system', or contribute code to enable "
                            "this feature combination."));
   }
@@ -1560,42 +1539,8 @@ namespace aspect
   parse_geometry_dependent_parameters(ParameterHandler &prm,
                                       const GeometryModel::Interface<dim> &geometry_model)
   {
-    prm.enter_subsection ("Model settings");
+    prm.enter_subsection ("Free surface");
     {
-      try
-        {
-          const std::vector<types::boundary_id> x_fixed_temperature_boundary_indicators
-            = geometry_model.translate_symbolic_boundary_names_to_ids(Utilities::split_string_list
-                                                                      (prm.get ("Fixed temperature boundary indicators")));
-          fixed_temperature_boundary_indicators
-            = std::set<types::boundary_id> (x_fixed_temperature_boundary_indicators.begin(),
-                                            x_fixed_temperature_boundary_indicators.end());
-        }
-      catch (const std::string &error)
-        {
-          AssertThrow (false, ExcMessage ("While parsing the entry <Model settings/Fixed temperature "
-                                          "boundary indicators>, there was an error. Specifically, "
-                                          "the conversion function complained as follows: "
-                                          + error));
-        }
-
-      try
-        {
-          const std::vector<types::boundary_id> x_fixed_composition_boundary_indicators
-            = geometry_model.translate_symbolic_boundary_names_to_ids (Utilities::split_string_list
-                                                                       (prm.get ("Fixed composition boundary indicators")));
-          fixed_composition_boundary_indicators
-            = std::set<types::boundary_id> (x_fixed_composition_boundary_indicators.begin(),
-                                            x_fixed_composition_boundary_indicators.end());
-        }
-      catch (const std::string &error)
-        {
-          AssertThrow (false, ExcMessage ("While parsing the entry <Model settings/Fixed composition "
-                                          "boundary indicators>, there was an error. Specifically, "
-                                          "the conversion function complained as follows: "
-                                          + error));
-        }
-
       try
         {
           const std::vector<types::boundary_id> x_free_surface_boundary_indicators
@@ -1614,7 +1559,11 @@ namespace aspect
                                           "the conversion function complained as follows: "
                                           + error));
         }
+    }
+    prm.leave_subsection();
 
+    prm.enter_subsection ("Boundary traction model");
+    {
       const std::vector<std::string> x_prescribed_traction_boundary_indicators
         = Utilities::split_string_list
           (prm.get ("Prescribed traction boundary indicators"));
@@ -1703,7 +1652,6 @@ namespace aspect
           prescribed_traction_boundary_indicators[boundary_id] =
             std::pair<std::string,std::string>(comp,value);
         }
-
     }
     prm.leave_subsection ();
   }

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -270,6 +270,12 @@ namespace aspect
     {
       return false;
     }
+
+
+
+    template <int dim>
+    FunctorBase<dim>::~FunctorBase()
+    {}
 
 
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2017 by the authors of the ASPECT code.
+  Copyright (C) 2017 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -483,6 +483,9 @@ namespace aspect
 
     bool use_picard = true;
 
+    const Newton::Parameters::Stabilization starting_preconditioner_stabilization = newton_handler->parameters.preconditioner_stabilization;
+    const Newton::Parameters::Stabilization starting_velocity_block_stabilization = newton_handler->parameters.velocity_block_stabilization;
+
     const unsigned int max_nonlinear_iterations =
       (pre_refinement_step < parameters.initial_adaptive_refinement)
       ?
@@ -806,6 +809,10 @@ namespace aspect
             break;
           }
       }
+
+    // Reset the Newton stabilization at the end of the timestep.
+    newton_handler->parameters.preconditioner_stabilization = starting_preconditioner_stabilization;
+    newton_handler->parameters.velocity_block_stabilization = starting_velocity_block_stabilization;
 
     // Reset the linear tolerance to what it was at the beginning of the time step.
     parameters.linear_stokes_solver_tolerance = begin_linear_tolerance;

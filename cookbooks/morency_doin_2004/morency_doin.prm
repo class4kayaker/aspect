@@ -2,6 +2,8 @@ set Dimension = 2
 set Maximum time step = 1e4
 set Nonlinear solver scheme = iterated Advection and Stokes
 
+set Additional shared libraries            = ./libmorency_doin.so
+
 subsection Geometry model
   set Model name = box
 
@@ -12,8 +14,7 @@ subsection Geometry model
   end
 end
 
-subsection Model settings
-  set Fixed temperature boundary indicators   = top, bottom
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = top, bottom, left, right
 end
 
@@ -68,6 +69,7 @@ subsection Material model
 end
 
 subsection Boundary temperature model
+  set Fixed temperature boundary indicators = top, bottom
   set List of model names = initial temperature
 end
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -763,8 +763,8 @@ namespace aspect
     SeismicAdditionalOutputs<dim>::SeismicAdditionalOutputs (const unsigned int n_points)
       :
       NamedAdditionalMaterialOutputs<dim>(make_seismic_additional_outputs_names()),
-      vs(n_points, -1.0),
-      vp(n_points, -1.0)
+      vs(n_points, numbers::signaling_nan<double>()),
+      vp(n_points, numbers::signaling_nan<double>())
     {}
 
 

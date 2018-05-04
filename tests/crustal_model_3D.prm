@@ -6,11 +6,9 @@ set Start time                             = 0
 set End time                               = 0
 set Use years in output instead of seconds = true
 set CFL number                             = .5
-set Linear solver tolerance                = 1e-9
 set Nonlinear solver scheme                = single Advection, iterated Stokes
 set Nonlinear solver tolerance             = 1e-9
 set Max nonlinear iterations               = 2
-set Number of cheap Stokes solver steps    = 0
 set Pressure normalization                 = no
 
 ############### Parameters describing the model
@@ -26,9 +24,19 @@ subsection Geometry model
   end
 end
 
-subsection Model settings
+# The parameters below this comment were created by the update script
+# as replacement for the old 'Model settings' subsection. They can be
+# safely merged with any existing subsections with the same name.
+
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = front, back 
+end
+
+subsection Boundary velocity model
   set Prescribed velocity boundary indicators = left: function, right:function, bottom:function
+end
+
+subsection Free surface
   set Free surface boundary indicators        = top
 end
 
@@ -124,3 +132,9 @@ end
 
 
 
+subsection Solver parameters
+  subsection Stokes solver parameters
+    set Linear solver tolerance = 1e-9
+    set Number of cheap Stokes solver steps = 0
+  end
+end

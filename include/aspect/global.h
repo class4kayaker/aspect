@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -244,6 +244,11 @@ namespace aspect
      * multiple blocks.
      */
     typedef dealii::PETScWrappers::MPI::BlockSparseMatrix BlockSparseMatrix;
+
+    /**
+     * Typedef for the base class for all preconditioners.
+     */
+    typedef dealii::PETScWrappers::PreconditionerBase PreconditionBase;
 
     /**
      * Typedef for the AMG preconditioner type used for the top left block of

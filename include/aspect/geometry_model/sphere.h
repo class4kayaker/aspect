@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2014 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2014 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -34,6 +34,11 @@ namespace aspect
     class Sphere : public Interface<dim>, public SimulatorAccess<dim>
     {
       public:
+        /**
+         * Constructor.
+         */
+        Sphere();
+
         /**
          * Generate a coarse mesh for the geometry described by this class.
          */

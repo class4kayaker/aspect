@@ -1,14 +1,4 @@
-#include <aspect/simulator.h>
-#include <deal.II/grid/tria.h>
-#include <aspect/material_model/interface.h>
-#include <aspect/simulator_access.h>
-#include <aspect/newton.h>
-
-#include <iostream>
-
-#include <aspect/utilities.h>
-
-#include "../benchmarks/spiegelman_et_al_2016_gcubed/spiegelman_material.cc"
+#include <../tests/spiegelman_fail_test.cc>
 
 int f(double parameter)
 {

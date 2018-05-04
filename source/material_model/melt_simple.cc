@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -419,11 +419,11 @@ namespace aspect
               else
                 {
                   const double delta_temp = in.temperature[i]-reference_T;
-                  const double T_dependence = (thermal_viscosity_exponent == 0.0
+                  const double T_dependence = (thermal_bulk_viscosity_exponent == 0.0
                                                ?
                                                0.0
                                                :
-                                               thermal_viscosity_exponent*delta_temp/reference_T);
+                                               thermal_bulk_viscosity_exponent*delta_temp/reference_T);
                   visc_temperature_dependence = std::max(std::min(std::exp(-T_dependence),1e4),1e-4);
                 }
               melt_out->compaction_viscosities[i] *= visc_temperature_dependence;

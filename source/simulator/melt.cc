@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016 by the authors of the ASPECT code.
+  Copyright (C) 2016 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -1696,7 +1696,7 @@ namespace aspect
       {
         prm.declare_entry ("Melt scaling factor threshold", "1e-3",
                            Patterns::Double (),
-                           "The factor by how much the Darcy coefficient K_D in a cell can be smaller than "
+                           "The factor by how much the Darcy coefficient K\\_D in a cell can be smaller than "
                            "the reference Darcy coefficient for this cell still to be considered a melt cell "
                            "(for which the melt transport equations are solved). For smaller Darcy coefficients, "
                            "the Stokes equations (without melt) are solved instead. Only used if "

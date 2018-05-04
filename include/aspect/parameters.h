@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -382,9 +382,6 @@ namespace aspect
      */
     bool                           include_melt_transport;
     bool                           enable_additional_stokes_rhs;
-
-    std::set<types::boundary_id> fixed_temperature_boundary_indicators;
-    std::set<types::boundary_id> fixed_composition_boundary_indicators;
 
     /**
      * Map from boundary id to a pair "components", "traction boundary type",

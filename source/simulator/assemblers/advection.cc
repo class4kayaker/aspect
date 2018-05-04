@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016 by the authors of the ASPECT code.
+  Copyright (C) 2016 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -280,16 +280,16 @@ namespace aspect
       const FEValuesExtractors::Scalar solution_field = advection_field.scalar_extractor(introspection);
 
 
-      if (((parameters.fixed_temperature_boundary_indicators.find(
+      if (((this->get_fixed_temperature_boundary_indicators().find(
               face->boundary_id()
             )
-            != parameters.fixed_temperature_boundary_indicators.end())
+            != this->get_fixed_temperature_boundary_indicators().end())
            && (advection_field.is_temperature()))
           ||
-          (( parameters.fixed_composition_boundary_indicators.find(
+          (( this->get_fixed_composition_boundary_indicators().find(
                face->boundary_id()
              )
-             != parameters.fixed_composition_boundary_indicators.end())
+             != this->get_fixed_composition_boundary_indicators().end())
            && (!advection_field.is_temperature())))
         {
           /*
@@ -842,11 +842,6 @@ namespace aspect
               // subface->face
               (*scratch.subface_finite_element_values)[introspection.extractors.velocities].get_function_values(this->get_current_linearization_point(),
                   scratch.face_current_velocity_values);
-
-              // get the mesh velocity, as we need to subtract it off of the advection systems
-              if (parameters.free_surface_enabled)
-                (*scratch.subface_finite_element_values)[introspection.extractors.velocities].get_function_values(this->get_mesh_velocity(),
-                    scratch.face_mesh_velocity_values);
 
               // get the mesh velocity, as we need to subtract it off of the advection systems
               if (parameters.free_surface_enabled)

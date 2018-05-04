@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -72,8 +72,14 @@ namespace aspect
 
           this->get_material_model().evaluate(in, out);
 
-          const double thermal_diffusivity = out.thermal_conductivities[0] /
-                                             (out.densities[0] * out.specific_heat[0]);
+          const double thermal_diffusivity = ( (this->get_parameters().formulation_temperature_equation ==
+                                                Parameters<dim>::Formulation::TemperatureEquation::reference_density_profile)
+                                               ?
+                                               out.thermal_conductivities[0] /
+                                               (this->get_adiabatic_conditions().density(in.position[0]) * out.specific_heat[0])
+                                               :
+                                               out.thermal_conductivities[0] / (out.densities[0] * out.specific_heat[0])
+                                             );
 
           // check whether diffusivity is set to 0 (in case of backward advection)
           const double Ra = (thermal_diffusivity != 0) ?
