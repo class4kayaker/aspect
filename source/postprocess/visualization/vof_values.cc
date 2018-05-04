@@ -122,7 +122,7 @@ namespace aspect
         {
           prm.enter_subsection("Visualization");
           {
-            prm.enter_subsection("VoF values");
+            prm.enter_subsection("Volume of Fluid");
             {
               prm.declare_entry("Include internal reconstruction LS", "false",
                                 Patterns::Bool (),
@@ -148,7 +148,7 @@ namespace aspect
         {
           prm.enter_subsection("Visualization");
           {
-            prm.enter_subsection("VoF values");
+            prm.enter_subsection("Volume of Fluid");
             {
               include_vofLS = prm.get_bool("Include internal reconstruction LS");
               include_vofN = prm.get_bool("Include normals");

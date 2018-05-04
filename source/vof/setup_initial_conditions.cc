@@ -85,7 +85,7 @@ namespace aspect
       = sim.finite_element.component_to_system_index(component_index, 0);
 
     // Initialize state based on provided function
-    for (auto cell : sim.dof_handler.active_cell_iterators ())
+    for (auto cell : this->get_dof_handler().active_cell_iterators ())
       {
         if (!cell->is_locally_owned ())
           continue;
@@ -145,7 +145,7 @@ namespace aspect
       = sim.finite_element.component_to_system_index(component_index, 0);
 
     // Initialize state based on provided function
-    for (auto cell : sim.dof_handler.active_cell_iterators ())
+    for (auto cell : this->get_dof_handler().active_cell_iterators ())
       {
         if (!cell->is_locally_owned ())
           continue;

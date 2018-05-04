@@ -57,7 +57,7 @@ namespace aspect
     void
     Function<dim>::declare_parameters (ParameterHandler &prm)
     {
-      prm.enter_subsection("VoF initial conditions");
+      prm.enter_subsection("Initial Volume of Fluid model");
       {
         prm.enter_subsection("Function");
         {
@@ -82,7 +82,7 @@ namespace aspect
     void
     Function<dim>::parse_parameters (ParameterHandler &prm)
     {
-      prm.enter_subsection("VoF initial conditions");
+      prm.enter_subsection("Initial Volume of Fluid model");
       {
         prm.enter_subsection("Function");
         bool is_dist_init = prm.get_bool("Signed distance init");

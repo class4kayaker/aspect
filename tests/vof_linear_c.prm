@@ -8,7 +8,16 @@ set Use years in output instead of seconds = false
 set CFL number                             = 0.5
 set Output directory                       = output
 
-set Use VoF tracking = true
+subsection Volume of Fluid
+    set Enable interface tracking = true
+    set VoF field names = F_1
+    set VoF composition mapping = C_1:F_1
+end
+
+subsection Compositional fields
+  set Number of fields = 1
+  set Names of fields  = C_1
+end
 
 subsection Mesh refinement
   set Initial adaptive refinement        = 0
@@ -49,21 +58,11 @@ end
 
 set Nonlinear solver scheme                   = Advection only
 
-subsection Compositional fields
-  set Number of fields = 1
-  set Names of fields  = C_1
-end
-
 subsection Discretization
   set Use discontinuous composition discretization = true
 end
 
-subsection VoF config
-    set VoF field names = F_1
-    set VoF composition mapping = C_1:F_1
-end
-
-subsection VoF initial conditions
+subsection Initial Volume of Fluid model
   set Model name = function
 
   subsection Function
@@ -94,7 +93,7 @@ subsection Postprocess
 
     set List of output variables = vof values
 
-    subsection VoF values
+    subsection Volume of Fluid
       set Include internal reconstruction LS = true
     end
   end

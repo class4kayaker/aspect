@@ -989,9 +989,13 @@ namespace aspect
     }
     prm.leave_subsection ();
 
-    prm.declare_entry ("Use VoF tracking", "false",
-                       Patterns::Bool (),
-                       "When set to true, VoF interface tracking will be used");
+    prm.enter_subsection ("Volume of Fluid");
+    {
+        prm.declare_entry ("Enable interface tracking", "false",
+                           Patterns::Bool (),
+                           "When set to true, Volume of Fluid interface tracking will be used");
+    }
+    prm.leave_subsection ();
 
     // declare the VoF parameters
     VoFHandler<dim>::declare_parameters(prm);
@@ -1529,9 +1533,11 @@ namespace aspect
     }
     prm.leave_subsection ();
 
-    vof_tracking_enabled = prm.get_bool("Use VoF tracking");
-    if (vof_tracking_enabled)
-      Assert(dim==2,ExcMessage("VoF interface tracking not implemented for dim>2."));
+    prm.enter_subsection ("Volume of Fluid");
+    {
+        vof_tracking_enabled = prm.get_bool("Enable interface tracking");
+    }
+    prm.leave_subsection ();
 
     // then, finally, let user additions that do not go through the usual
     // plugin mechanism, declare their parameters if they have subscribed

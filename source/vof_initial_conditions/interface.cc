@@ -89,14 +89,18 @@ namespace aspect
     create_initial_conditions (ParameterHandler &prm)
     {
       // See if VoF enabled
-      bool vof_enabled = prm.get_bool ("Use VoF tracking");
+      prm.enter_subsection ("Volume of Fluid config");
+      {
+        bool vof_enabled = prm.get_bool ("Enable interface tracking");
+      }
+
 
       if (!vof_enabled)
         return NULL;
       else
         {
           std::string model_name;
-          prm.enter_subsection ("VoF initial conditions");
+          prm.enter_subsection ("Initial Volume of Fluid model");
           {
             model_name = prm.get ("Model name");
           }
@@ -116,7 +120,7 @@ namespace aspect
     declare_parameters (ParameterHandler &prm)
     {
       // declare the entry in the parameter file
-      prm.enter_subsection ("VoF initial conditions");
+      prm.enter_subsection ("Initial Volume of Fluid model");
       {
         const std::string pattern_of_names
           = std_cxx11::get<dim>(registered_plugins).get_pattern_of_names ();

@@ -89,29 +89,29 @@ namespace aspect
   void
   VoFHandler<dim>::declare_parameters (ParameterHandler &prm)
   {
-    prm.enter_subsection ("VoF config");
+    prm.enter_subsection ("Volume of Fluid");
     {
       prm.declare_entry ("Number of fields", "1",
                          Patterns::Integer(0),
-                         "The number of fields to be handled usingg VoF interface tracking.");
+                         "The number of fields to be handled using Volume of Fluid interface tracking.");
 
-      prm.declare_entry ("Small volume", "1e-6",
+      prm.declare_entry ("Volume fraction threshold", "1e-6",
                          Patterns::Double (0, 1),
                          "Minimum significant volume. VOFs below this considered to be zero.");
 
-      prm.declare_entry ("VoF solver tolerance", "1e-12",
+      prm.declare_entry ("Volume of Fluid solver tolerance", "1e-12",
                          Patterns::Double(0,1),
                          "The relative tolerance up to which the linear system for "
-                         "the VoF system gets solved. See 'linear solver "
+                         "the Volume of Fluid system gets solved. See 'linear solver "
                          "tolerance' for more details.");
 
-      prm.declare_entry ("VoF field names", "",
+      prm.declare_entry ("Volume of Fluid field names", "",
                          Patterns::List(Patterns::Anything()),
-                         "User-defined names for VoF fields.");
+                         "User-defined names for Volume of Fluid fields.");
 
-      prm.declare_entry ("VoF composition mapping", "",
+      prm.declare_entry ("Volume of Fluid composition mapping", "",
                          Patterns::Map(Patterns::Anything(), Patterns::Anything()),
-                         "Links between composition and VoF fields in composition:VoF form");
+                         "Links between composition and Volume of Fluid fields in composition:VoF form");
     }
     prm.leave_subsection ();
   }
@@ -120,18 +120,18 @@ namespace aspect
   void
   VoFHandler<dim>::parse_parameters (ParameterHandler &prm)
   {
-    prm.enter_subsection ("VoF config");
+    prm.enter_subsection ("Volume of Fluid config");
     {
       vof_epsilon = prm.get_double("Small volume");
 
-      vof_solver_tolerance = prm.get_double("VoF solver tolerance");
+      vof_solver_tolerance = prm.get_double("Volume of Fluid solver tolerance");
 
       n_vof_fields = prm.get_integer("Number of fields");
 
-      vof_field_names = Utilities::split_string_list (prm.get("VoF field names"));
+      vof_field_names = Utilities::split_string_list (prm.get("Volume of Fluid field names"));
       AssertThrow((vof_field_names.size() == 0) ||
                   (vof_field_names.size() == n_vof_fields),
-                  ExcMessage("The length of the list of names for the VoF fields "
+                  ExcMessage("The length of the list of names for the Volume of Fluid fields "
                              "needs to either be empty or have length equal to the "
                              "number of compositional fields."));
 
@@ -142,14 +142,14 @@ namespace aspect
                                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                                        "0123456789_") == std::string::npos,
                   ExcMessage("Invalid character in field " + vof_field_names[i] + ". "
-                             "Names of VoF fields should consist of a "
+                             "Names of Volume of Fluid fields should consist of a "
                              "combination of letters, numbers and underscores."));
           Assert (vof_field_names[i].size() > 0,
                   ExcMessage("Invalid name of field " + vof_field_names[i] + ". "
-                             "Names of VoF fields need to be non-empty."));
+                             "Names of Volume of Fluid fields need to be non-empty."));
           for (unsigned int j=0; j<i; ++j)
             Assert (vof_field_names[i] != vof_field_names[j],
-                    ExcMessage("Names of VoF fields have to be unique! " + vof_field_names[i] +
+                    ExcMessage("Names of Volume of Fluid fields have to be unique! " + vof_field_names[i] +
                                " is used more than once."));
         }
 
@@ -162,11 +162,11 @@ namespace aspect
 
       const std::vector<std::string> x_vof_composition_vars =
         Utilities::split_string_list
-        (prm.get ("VoF composition mapping"));
+        (prm.get ("Volume of Fluid composition mapping"));
 
       if (x_vof_composition_vars.size()>0 && !sim.parameters.use_discontinuous_composition_discretization)
         {
-          AssertThrow(false, ExcMessage("VoF composition field not implemented for continuous composition."));
+          AssertThrow(false, ExcMessage("Volume of Fluid composition field not implemented for continuous composition."));
         }
 
       for (std::vector<std::string>::const_iterator p = x_vof_composition_vars.begin();
@@ -174,7 +174,7 @@ namespace aspect
         {
           const std::vector<std::string> split_parts = Utilities::split_string_list(*p, ':');
           AssertThrow (split_parts.size() == 2,
-                       ExcMessage("The format for VoF composition mappings requires that each entry has the form"
+                       ExcMessage("The format for Volume of Fluid composition mappings requires that each entry has the form"
                                   "`composition:Vof field', but there does not appear to be a colon in the entry <" + *p + ">."));
 
           const std::string composition_field = split_parts[0];
@@ -207,13 +207,13 @@ namespace aspect
                 }
             }
 
-          Assert(field_exists, ExcMessage("VoF field variable " +
+          Assert(field_exists, ExcMessage("Volume of Fluid field variable " +
                                           vof_field +
                                           " does not exist."));
 
           // Ensure no duplicate mapping to a composition field
           Assert (vof_composition_map_index.count(composition_field) == 0,
-                  ExcMessage("VoF composition field mappings have to be unique! " + composition_field +
+                  ExcMessage("Volume of Fluid composition field mappings have to be unique! " + composition_field +
                              " is used more than once."));
 
 

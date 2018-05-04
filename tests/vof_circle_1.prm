@@ -7,7 +7,9 @@ set Use years in output instead of seconds = false
 set CFL number                             = 0.5
 set Output directory                       = output
 
-set Use VoF tracking = true
+subsection Volume of Fluid
+    set Enable interface tracking = true
+end
 
 subsection Mesh refinement
   set Initial global refinement          = 4
@@ -50,7 +52,7 @@ end
 
 set Nonlinear solver scheme                   = Advection only
 
-subsection VoF initial conditions
+subsection Initial Volume of Fluid model
   set Model name = function
 
   subsection Function
@@ -81,7 +83,7 @@ subsection Postprocess
 
     set List of output variables = vof values
 
-    subsection VoF values
+    subsection Volume of Fluid
       set Include internal reconstruction LS = true
     end
   end

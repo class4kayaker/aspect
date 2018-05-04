@@ -200,9 +200,9 @@ namespace aspect
 
     WorkStream::
     run (CellFilter (IteratorFilters::LocallyOwnedCell(),
-                     sim.dof_handler.begin_active()),
+                     this->get_dof_handler().begin_active()),
          CellFilter (IteratorFilters::LocallyOwnedCell(),
-                     sim.dof_handler.end()),
+                     this->get_dof_handler().end()),
          std_cxx11::bind (&Assemblers::VoFAssembler<dim>::
                           local_assemble_vof_system,
                           assembler,

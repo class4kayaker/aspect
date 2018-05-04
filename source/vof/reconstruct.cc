@@ -42,7 +42,7 @@ namespace aspect
 
     // Boundary reference
     typename DoFHandler<dim>::active_cell_iterator endc =
-      sim.dof_handler.end ();
+      this->get_dof_handler().end ();
 
     // Interface Reconstruction vars
     const unsigned int n_local = 9;
@@ -95,7 +95,7 @@ namespace aspect
     const unsigned int vofLS_blockidx = vofLS_var.block_index;
 
     //Iterate over cells
-    for (auto cell : sim.dof_handler.active_cell_iterators ())
+    for (auto cell : this->get_dof_handler().active_cell_iterators ())
       {
         if (!cell->is_locally_owned ())
           continue;
@@ -427,7 +427,7 @@ namespace aspect
     const unsigned int base_element = composition_field.base_element(sim.introspection);
     const std::vector<Point<dim> > support_points = sim.finite_element.base_element(base_element).get_unit_support_points();
 
-    for (auto cell : sim.dof_handler.active_cell_iterators ())
+    for (auto cell : this->get_dof_handler().active_cell_iterators ())
       {
         if (!cell->is_locally_owned())
           continue;
