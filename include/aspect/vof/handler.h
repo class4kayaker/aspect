@@ -120,7 +120,6 @@ namespace aspect
       bool vof_dir_order_dsc;
 
       friend class Simulator<dim>;
-      friend class SimulatorAccess<dim>;
   };
 
 }

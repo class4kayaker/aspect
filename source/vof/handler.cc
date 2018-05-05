@@ -120,9 +120,9 @@ namespace aspect
   void
   VoFHandler<dim>::parse_parameters (ParameterHandler &prm)
   {
-    prm.enter_subsection ("Volume of Fluid config");
+    prm.enter_subsection ("Volume of Fluid");
     {
-      vof_epsilon = prm.get_double("Small volume");
+      vof_epsilon = prm.get_double("Volume fraction threshold");
 
       vof_solver_tolerance = prm.get_double("Volume of Fluid solver tolerance");
 

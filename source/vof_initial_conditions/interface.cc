@@ -88,29 +88,29 @@ namespace aspect
     Interface<dim> *
     create_initial_conditions (ParameterHandler &prm)
     {
-      // See if VoF enabled
-      prm.enter_subsection ("Volume of Fluid config");
+      // See if Volume of Fluid is enabled
+      prm.enter_subsection ("Volume of Fluid");
       {
         bool vof_enabled = prm.get_bool ("Enable interface tracking");
+        if (!vof_enabled)
+          return NULL;
       }
+      prm.leave_subsection ();
 
 
-      if (!vof_enabled)
-        return NULL;
-      else
-        {
-          std::string model_name;
-          prm.enter_subsection ("Initial Volume of Fluid model");
-          {
-            model_name = prm.get ("Model name");
-          }
-          prm.leave_subsection ();
+      // If this block has been reached Volume of Fluid is enabled
+     
+      std::string model_name;
+      prm.enter_subsection ("Initial Volume of Fluid model");
+      {
+        model_name = prm.get ("Model name");
+      }
+      prm.leave_subsection ();
 
-          Interface<dim> *plugin = std_cxx11::get<dim>(registered_plugins)
-                                   .create_plugin (model_name,
-                                                   "VoF initial conditions::Model name");
-          return plugin;
-        }
+      Interface<dim> *plugin = std_cxx11::get<dim>(registered_plugins)
+                               .create_plugin (model_name,
+                                               "VoF initial conditions::Model name");
+      return plugin;
     }
 
 
