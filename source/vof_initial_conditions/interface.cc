@@ -99,7 +99,7 @@ namespace aspect
 
 
       // If this block has been reached Volume of Fluid is enabled
-     
+
       std::string model_name;
       prm.enter_subsection ("Initial Volume of Fluid model");
       {

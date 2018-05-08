@@ -164,7 +164,7 @@ namespace aspect
                                                                       std::vector<double> *initial_residual)
   {
     if (parameters.vof_tracking_enabled)
-        vof_handler->do_vof_update ();
+      vof_handler->do_vof_update ();
 
     std::vector<double> current_residual(introspection.n_compositional_fields,0.0);
 

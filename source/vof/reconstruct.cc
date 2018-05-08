@@ -326,7 +326,7 @@ namespace aspect
                         for (unsigned int di = 0; di < dim; ++di)
                           dot += normals[nind][di] * resc_cell_centers[i][di];
                         const double n_vof = VolumeOfFluid::vol_from_d<dim> (max_degree, normals[nind], d_vals[nind]-dot,
-                                                                       quadrature.get_points(), weights)/cell_vol;
+                                                                             quadrature.get_points(), weights)/cell_vol;
                         const double cell_err = local_vofs (i) - n_vof;
                         errs[nind] += cell_err * cell_err;
                       }

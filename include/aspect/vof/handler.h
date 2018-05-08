@@ -88,7 +88,7 @@ namespace aspect
     private:
       // Parent simulator
       Simulator<dim> &sim;
-      
+
       /**
        * Function to copy assembled data to final system. Requires access to
        * the full matrix, so must be in this class.

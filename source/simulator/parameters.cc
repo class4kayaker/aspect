@@ -962,9 +962,9 @@ namespace aspect
 
     prm.enter_subsection ("Volume of Fluid");
     {
-        prm.declare_entry ("Enable interface tracking", "false",
-                           Patterns::Bool (),
-                           "When set to true, Volume of Fluid interface tracking will be used");
+      prm.declare_entry ("Enable interface tracking", "false",
+                         Patterns::Bool (),
+                         "When set to true, Volume of Fluid interface tracking will be used");
     }
     prm.leave_subsection ();
 
@@ -1514,7 +1514,7 @@ namespace aspect
 
     prm.enter_subsection ("Volume of Fluid");
     {
-        vof_tracking_enabled = prm.get_bool("Enable interface tracking");
+      vof_tracking_enabled = prm.get_bool("Enable interface tracking");
     }
     prm.leave_subsection ();
 

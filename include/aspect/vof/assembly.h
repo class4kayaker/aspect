@@ -158,7 +158,7 @@ namespace aspect
   {
 
     /**
-     * Class to hold VoF assembly logic, as analogous to 
+     * Class to hold VoF assembly logic, as analogous to
      */
     template <int dim>
     class VoFAssembler : public SimulatorAccess<dim>
