@@ -81,11 +81,6 @@ namespace aspect
       void assemble_vof_system (const VoFField<dim> field,
                                 unsigned int dir,
                                 bool update_from_old);
-      /**
-       * Function to copy assembled data to final system. Requires access to
-       * the full matrix, so must be in this class.
-       */
-      void copy_local_to_global_vof_system (const internal::Assembly::CopyData::VoFSystem<dim> &data);
       // Solver
       void solve_vof_system (const VoFField<dim> field);
 
@@ -93,6 +88,12 @@ namespace aspect
     private:
       // Parent simulator
       Simulator<dim> &sim;
+      
+      /**
+       * Function to copy assembled data to final system. Requires access to
+       * the full matrix, so must be in this class.
+       */
+      void copy_local_to_global_vof_system (const internal::Assembly::CopyData::VoFSystem<dim> &data);
 
       // Initial conditions
       const std_cxx11::unique_ptr<VoFInitialConditions::Interface<dim> >      vof_initial_conditions;
