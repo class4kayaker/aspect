@@ -27,17 +27,36 @@ using namespace dealii;
 
 namespace aspect
 {
+  /**
+   * Structure to package the relevant data (both state and cached) in a single
+   * location for access.
+   */
   template<int dim>
   struct VoFField
   {
     /**
-     * Initialize th
+     * Initialize the structure with FEVariables to hold the required
+     * information that must be available on all cells.
      */
     VoFField(const FEVariable<dim> &fraction,
              const FEVariable<dim> &reconstruction,
              const FEVariable<dim> &level_set);
 
-    const FEVariable<dim> &fraction, &reconstruction, &level_set;
+    /**
+     * Field to hold the current volume fraction.
+     */
+    const FEVariable<dim> &fraction;
+
+    /**
+     * Field to hold the cached interface reconstruction.
+     */
+    const FEVariable<dim> &reconstruction;
+
+    /**
+     * Field to expose reconstructed interface as a zero-contour to output in
+     * visualization plugin.
+     */
+    const FEVariable<dim> &level_set;
 
   };
 }

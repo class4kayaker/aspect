@@ -64,8 +64,8 @@ namespace aspect
            * Variables describing the values of the shape functions at the
            * quadrature points, as they are used in the advection assembly
            * function. note that the sizes of these arrays are equal to the
-           * number of shape functions corresponding to the advected field (and
-           * not of the overall field!), and that they are also correspondingly
+           * number of shape functions corresponding to a single VoF field (and
+           * not of all VoF fields field!), and that they are also correspondingly
            * indexed.
            */
           std::vector<double>         phi_field;
@@ -138,6 +138,7 @@ namespace aspect
            * considering)
            */
           std::vector<types::global_dof_index>   local_dof_indices;
+
           /**
            * Indices of the degrees of freedom corresponding to the vof field
            * on all possible neighboring cells. This is used in the
@@ -155,6 +156,10 @@ namespace aspect
 
   namespace Assemblers
   {
+
+    /**
+     * Class to hold VoF assembly logic, as analogous to 
+     */
     template <int dim>
     class VoFAssembler : public SimulatorAccess<dim>
     {

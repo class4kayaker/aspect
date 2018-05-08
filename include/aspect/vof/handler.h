@@ -33,7 +33,7 @@ namespace aspect
 {
   /**
    * A member class that isolates the functions and variables that deal
-   * with the volume of fluid implementation. If Volume of Fluid interface
+   * with the Volume of Fluid implementation. If Volume of Fluid interface
    * tracking is not active, there is no instantiation of this class at
    * all.
    */
@@ -94,7 +94,7 @@ namespace aspect
       // Parent simulator
       Simulator<dim> &sim;
 
-      //Initial conditions
+      // Initial conditions
       const std_cxx11::unique_ptr<VoFInitialConditions::Interface<dim> >      vof_initial_conditions;
 
       // Update assembler
