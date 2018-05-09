@@ -24,6 +24,7 @@
 #include <aspect/vof/assembly.h>
 
 #include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/mapping_cartesian.h>
 
 using namespace dealii;
 
@@ -53,10 +54,10 @@ namespace aspect
     assembler.set_vof_epsilon(vof_epsilon);
 
     this->get_signals().edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::edit_finite_element_variables,
-                                                                      std_cxx11::ref(*this),
-                                                                      std_cxx11::_1));
+                                                                              std_cxx11::ref(*this),
+                                                                              std_cxx11::_1));
     this->get_signals().post_set_initial_state.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::set_initial_vofs,
-                                                               std_cxx11::ref(*this)));
+                                                                       std_cxx11::ref(*this)));
   }
 
   template <int dim>
@@ -229,10 +230,17 @@ namespace aspect
   VoFHandler<dim>::initialize (ParameterHandler &prm)
   {
     // Do checks on required assumptions
-    AssertThrow(dim==2,ExcMessage("Volume of Fluid Interface Tracking is currently only functional for dim=2."));
-    AssertThrow(this->get_parameters().CFL_number < 1.0, ExcMessage("Volume of Fluid Interface Tracking requires CFL < 1."));
+    AssertThrow(dim==2,
+                ExcMessage("Volume of Fluid Interface Tracking is currently only functional for dim=2."));
 
-    AssertThrow(!this->get_material_model().is_compressible(), ExcMessage("Volume of Fluid Interface Tracking currently assumes incompressiblity."));
+    AssertThrow(this->get_parameters().CFL_number < 1.0,
+                ExcMessage("Volume of Fluid Interface Tracking requires CFL < 1."));
+
+    AssertThrow(!this->get_material_model().is_compressible(),
+                ExcMessage("Volume of Fluid Interface Tracking currently assumes incompressiblity."));
+
+    AssertThrow(dynamic_cast<const MappingCartesian<dim> *>(&(this->get_mapping())),
+                ExcMessage("Volume of Fluid Interface Tracking currently requires Cartesian Mappings"));
 
     AssertThrow(!this->get_parameters().free_surface_enabled,
                 ExcMessage("Volume of Fluid Interface Tracking is currently incompatible with the Free Surface implementation."));
