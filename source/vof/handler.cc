@@ -52,10 +52,10 @@ namespace aspect
     parse_parameters (prm);
     assembler.set_vof_epsilon(vof_epsilon);
 
-    sim.signals.edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::edit_finite_element_variables,
+    this->get_signals().edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::edit_finite_element_variables,
                                                                       std_cxx11::ref(*this),
                                                                       std_cxx11::_1));
-    sim.signals.post_set_initial_state.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::set_initial_vofs,
+    this->get_signals().post_set_initial_state.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::set_initial_vofs,
                                                                std_cxx11::ref(*this)));
   }
 
@@ -164,7 +164,7 @@ namespace aspect
         Utilities::split_string_list
         (prm.get ("Volume of Fluid composition mapping"));
 
-      if (x_vof_composition_vars.size()>0 && !sim.parameters.use_discontinuous_composition_discretization)
+      if (x_vof_composition_vars.size()>0 && !this->get_parameters().use_discontinuous_composition_discretization)
         {
           AssertThrow(false, ExcMessage("Volume of Fluid composition field not implemented for continuous composition."));
         }
@@ -183,10 +183,10 @@ namespace aspect
           // Check composition_field exists
           bool field_exists=false;
 
-          for (unsigned int i=0; i<sim.parameters.n_compositional_fields; ++i)
+          for (unsigned int i=0; i<this->get_parameters().n_compositional_fields; ++i)
             {
               field_exists = field_exists ||
-                             (composition_field==sim.parameters.names_of_compositional_fields[i]);
+                             (composition_field==this->get_parameters().names_of_compositional_fields[i]);
             }
 
           Assert(field_exists, ExcMessage("Composition field variable " +
@@ -232,7 +232,7 @@ namespace aspect
     AssertThrow(dim==2,ExcMessage("Volume of Fluid Interface Tracking is currently only functional for dim=2."));
     AssertThrow(this->get_parameters().CFL_number < 1.0, ExcMessage("Volume of Fluid Interface Tracking requires CFL < 1."));
 
-    AssertThrow(!sim.material_model->is_compressible(), ExcMessage("Volume of Fluid Interface Tracking currently assumes incompressiblity."));
+    AssertThrow(!this->get_material_model().is_compressible(), ExcMessage("Volume of Fluid Interface Tracking currently assumes incompressiblity."));
 
     AssertThrow(!this->get_parameters().free_surface_enabled,
                 ExcMessage("Volume of Fluid Interface Tracking is currently incompatible with the Free Surface implementation."));
@@ -249,9 +249,9 @@ namespace aspect
 
     for (unsigned int f=0; f<n_vof_fields; ++f)
       {
-        data.push_back(VoFField<dim>(sim.introspection.variable("vof_"+vof_field_names[f]),
-                                     sim.introspection.variable("vofN_"+vof_field_names[f]),
-                                     sim.introspection.variable("vofLS_"+vof_field_names[f])));
+        data.push_back(VoFField<dim>(this->introspection().variable("vof_"+vof_field_names[f]),
+                                     this->introspection().variable("vofN_"+vof_field_names[f]),
+                                     this->introspection().variable("vofLS_"+vof_field_names[f])));
       }
 
     // Do initial conditions setup
@@ -339,7 +339,7 @@ namespace aspect
     for (std::map<std::string, unsigned int>::const_iterator iter=vof_composition_map_index.begin();
          iter!=vof_composition_map_index.end(); ++iter)
       {
-        const unsigned int c_var_index = sim.introspection.compositional_index_for_name(iter->first);
+        const unsigned int c_var_index = this->introspection().compositional_index_for_name(iter->first);
         const typename Simulator<dim>::AdvectionField adv_f = Simulator<dim>::AdvectionField::composition(c_var_index);
         const VoFField<dim> vof_f= get_field(iter->second);
         update_vof_composition(adv_f, vof_f, sim.solution);

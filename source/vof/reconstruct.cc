@@ -65,7 +65,9 @@ namespace aspect
 
     std::vector<double> xFEM_values(quadrature.size());
 
-    FEValues<dim> fevalues(this->get_mapping(), this->get_fe(), quadrature,
+    const FiniteElement<dim> &system_fe = this->get_fe();
+
+    FEValues<dim> fevalues(this->get_mapping(), system_fe, quadrature,
                            update_JxW_values);
 
     // Normal holding vars
@@ -76,13 +78,13 @@ namespace aspect
     for (unsigned int i=0; i<dim; ++i)
       uReCen[i] = 0.5;
 
-    std::vector<types::global_dof_index> cell_dof_indicies (sim.finite_element.dofs_per_cell);
-    std::vector<types::global_dof_index> local_dof_indicies (sim.finite_element.dofs_per_cell);
+    std::vector<types::global_dof_index> cell_dof_indicies (system_fe.dofs_per_cell);
+    std::vector<types::global_dof_index> local_dof_indicies (system_fe.dofs_per_cell);
 
     const FEVariable<dim> &vof_var = field.fraction;
     const unsigned int vof_c_index = vof_var.first_component_index;
     const unsigned int vof_ind
-      = sim.finite_element.component_to_system_index(vof_c_index, 0);
+      = this->get_fe().component_to_system_index(vof_c_index, 0);
     const unsigned int vof_blockidx = vof_var.block_index;
 
     const FEVariable<dim> &vofN_var = field.reconstruction;
@@ -261,7 +263,7 @@ namespace aspect
             // render linear translation problems less dependent on the
             // interface reconstruction, so other tests will also be necessary.
             for (unsigned int i=0; i<dim; ++i)
-              normals[6][i] = solution(local_dof_indicies[sim.finite_element
+              normals[6][i] = solution(local_dof_indicies[system_fe
                                                           .component_to_system_index(vofN_c_index+i, 0)]);
 
             // If candidate normal too small, remove from consideration
@@ -359,17 +361,17 @@ namespace aspect
         //   }
 
         for (unsigned int i=0; i<dim; ++i)
-          initial_solution (local_dof_indicies[sim.finite_element
+          initial_solution (local_dof_indicies[system_fe
                                                .component_to_system_index(vofN_c_index+i, 0)]) = normal[i];
 
-        initial_solution (local_dof_indicies[sim.finite_element
+        initial_solution (local_dof_indicies[system_fe
                                              .component_to_system_index(vofN_c_index+dim, 0)]) = d;
 
         for (unsigned int i=0; i<n_vofLS_dofs; ++i)
           {
             // Recenter unit cell on origin
             Tensor<1, dim, double> uSupp = vofLS_var.fe->unit_support_point(i)-uReCen;
-            initial_solution (local_dof_indicies[sim.finite_element
+            initial_solution (local_dof_indicies[system_fe
                                                  .component_to_system_index(vofLS_c_index, i)])
               = d-uSupp*normal;
           }
@@ -414,18 +416,20 @@ namespace aspect
     for (unsigned int i=0; i<dim; ++i)
       uReCen[i] = 0.5;
 
-    std::vector<types::global_dof_index> local_dof_indicies (sim.finite_element.dofs_per_cell);
+    const FiniteElement<dim> &system_fe = this->get_fe();
+
+    std::vector<types::global_dof_index> local_dof_indicies (system_fe.dofs_per_cell);
 
     const FEVariable<dim> &vof_var = vof_field.fraction;
     const unsigned int vof_c_index = vof_var.first_component_index;
     const unsigned int vof_ind
-      = sim.finite_element.component_to_system_index(vof_c_index, 0);
+      = system_fe.component_to_system_index(vof_c_index, 0);
 
     const FEVariable<dim> &vofN_var = vof_field.reconstruction;
     const unsigned int vofN_c_index = vofN_var.first_component_index;
 
-    const unsigned int base_element = composition_field.base_element(sim.introspection);
-    const std::vector<Point<dim> > support_points = sim.finite_element.base_element(base_element).get_unit_support_points();
+    const unsigned int base_element = composition_field.base_element(this->introspection());
+    const std::vector<Point<dim> > support_points = system_fe.base_element(base_element).get_unit_support_points();
 
     for (auto cell : this->get_dof_handler().active_cell_iterators ())
       {
@@ -438,10 +442,10 @@ namespace aspect
         Tensor<1, dim, double> normal;
 
         for (unsigned int i=0; i<dim; ++i)
-          normal[i] = solution(local_dof_indicies[sim.finite_element
+          normal[i] = solution(local_dof_indicies[system_fe
                                                   .component_to_system_index(vofN_c_index+i, 0)]);
 
-        const double d = solution(local_dof_indicies[sim.finite_element
+        const double d = solution(local_dof_indicies[system_fe
                                                      .component_to_system_index(vofN_c_index+dim, 0)]);
         Tensor<1, dim, double> nnormal;
         double normall1n = 0.0;
@@ -456,10 +460,10 @@ namespace aspect
           }
         //Calculate correct factor to retain vol frac and [0,1] bound
         double fact = 2.0*(0.5-abs(cell_vof-0.5));
-        for (unsigned int i=0; i<sim.finite_element.base_element(base_element).dofs_per_cell; ++i)
+        for (unsigned int i=0; i<system_fe.base_element(base_element).dofs_per_cell; ++i)
           {
             const unsigned int system_local_dof
-              = sim.finite_element.component_to_system_index(composition_field.component_index(sim.introspection),
+              = system_fe.component_to_system_index(composition_field.component_index(sim.introspection),
                                                              /*dof index within component*/i);
 
             Tensor<1, dim, double> uSupp = support_points[i]-uReCen;
@@ -472,7 +476,7 @@ namespace aspect
       }
 
 
-    const unsigned int blockidx = composition_field.block_index(sim.introspection);
+    const unsigned int blockidx = composition_field.block_index(this->introspection());
     solution.block(blockidx) = initial_solution.block(blockidx);
     sim.computing_timer.exit_section();
   }

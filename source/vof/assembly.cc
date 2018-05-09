@@ -233,11 +233,11 @@ namespace aspect
          // instead of subscripting with the correct compositional
          // field index.)
          internal::Assembly::Scratch::
-         VoFSystem<dim> (sim.finite_element,
+         VoFSystem<dim> (this->get_fe(),
                          vof_fe,
-                         *sim.mapping,
-                         QGauss<dim>((sim.parameters.stokes_velocity_degree+1)/2),
-                         QGauss<dim-1>((sim.parameters.stokes_velocity_degree+1)/2)),
+                         this->get_mapping(),
+                         QGauss<dim>((this->get_parameters().stokes_velocity_degree+1)/2),
+                         QGauss<dim-1>((this->get_parameters().stokes_velocity_degree+1)/2)),
          internal::Assembly::CopyData::
          VoFSystem<dim> (vof_fe));
 

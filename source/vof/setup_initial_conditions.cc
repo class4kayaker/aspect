@@ -72,17 +72,17 @@ namespace aspect
     initial_solution.reinit(sim.system_rhs, false);
 
     const QIterated<dim> quadrature (QMidpoint<1>(), n_samples);
-    FEValues<dim, dim> fe_init (*sim.mapping, sim.finite_element, quadrature,
+    FEValues<dim, dim> fe_init (this->get_mapping(), this->get_fe(), quadrature,
                                 update_JxW_values | update_quadrature_points);
 
     std::vector<types::global_dof_index>
-    local_dof_indicies (sim.finite_element.dofs_per_cell);
+    local_dof_indicies (this->get_fe().dofs_per_cell);
 
     const FEVariable<dim> &vof_var = field.fraction;
     const unsigned int component_index = vof_var.first_component_index;
     const unsigned int blockidx = vof_var.block_index;
     const unsigned int vof_ind
-      = sim.finite_element.component_to_system_index(component_index, 0);
+      = this->get_fe().component_to_system_index(component_index, 0);
 
     // Initialize state based on provided function
     for (auto cell : this->get_dof_handler().active_cell_iterators ())
@@ -128,21 +128,21 @@ namespace aspect
     initial_solution.reinit(sim.system_rhs, false);
 
     const QIterated<dim> quadrature (QMidpoint<1>(), n_samples);
-    FEValues<dim, dim> fe_init (*sim.mapping,
-                                sim.finite_element,
+    FEValues<dim, dim> fe_init (this->get_mapping(),
+                                this->get_fe(),
                                 quadrature,
                                 update_JxW_values | update_quadrature_points);
 
     double h = 1.0/n_samples;
 
     std::vector<types::global_dof_index>
-    local_dof_indicies (sim.finite_element.dofs_per_cell);
+    local_dof_indicies (this->get_fe().dofs_per_cell);
 
     const FEVariable<dim> &vof_var = field.fraction;
     const unsigned int component_index = vof_var.first_component_index;
     const unsigned int blockidx = vof_var.block_index;
     const unsigned int vof_ind
-      = sim.finite_element.component_to_system_index(component_index, 0);
+      = this->get_fe().component_to_system_index(component_index, 0);
 
     // Initialize state based on provided function
     for (auto cell : this->get_dof_handler().active_cell_iterators ())
