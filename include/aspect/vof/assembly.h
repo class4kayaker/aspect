@@ -126,7 +126,9 @@ namespace aspect
            * to non-existent subfaces; or faces being assembled by the
            * neighboring cell) are set to false.
            **/
-          bool  face_contributions_mask [GeometryInfo<dim>::max_children_per_face *GeometryInfo<dim>::faces_per_cell];
+          std_cxx11::array<bool,
+                    GeometryInfo<dim>::max_children_per_face *GeometryInfo<dim>::faces_per_cell>
+                    face_contributions_mask;
 
           /**
            * Indices of those degrees of freedom that actually correspond to
