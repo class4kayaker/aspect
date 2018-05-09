@@ -245,12 +245,16 @@ namespace aspect
     AssertThrow(!this->get_parameters().free_surface_enabled,
                 ExcMessage("Volume of Fluid Interface Tracking is currently incompatible with the Free Surface implementation."));
 
+    AssertThrow(!this->get_parameters().include_melt_transport,
+                ExcMessage("Volume of Fluid Interface Tracking has not been tested with melt transport yet, so inclusion of both is currently disabled."))
+
     // Check for correct mapping
 
     if ( this->get_parameters().initial_adaptive_refinement > 0 ||
          this->get_parameters().adaptive_refinement_interval > 0 )
       {
         // AMR active so check refinement strategy includes 'vof boundary'
+        // Need to identify method of accessing list of refinement strategies
       }
 
     // Gather data
