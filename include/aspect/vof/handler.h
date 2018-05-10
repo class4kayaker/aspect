@@ -44,22 +44,54 @@ namespace aspect
       // Construtor
       VoFHandler(Simulator<dim> &sim, ParameterHandler &prm);
 
+      /**
+       * Add the Volume of Fluid field declaration to the list to be included
+       * in the solution vector.
+       */
       void edit_finite_element_variables (std::vector<VariableDeclaration<dim> > &vars);
 
-      // Parameter handling
+      /**
+       * Declare the parameters this class takes through input files.
+       */
       static
       void declare_parameters (ParameterHandler &prm);
 
+      /**
+       * Read the parameters this class declares from the parameter file.
+       */
       void parse_parameters (ParameterHandler &prm);
 
       // Get VoF data
+      /**
+       * Get number of Volume of Fluid fields in current model
+       */
       unsigned int get_n_fields() const;
+
+      /**
+       * Get the name of Volume of Fluid field i
+       */
       const std::string get_field_name(unsigned int i) const;
+
+      /**
+       * Get the structure containing the variable locations for Volume of
+       * Fluid field i.
+       */
       const VoFField<dim> &get_field(unsigned int i) const;
+
+      /**
+       * Get threshold for volume fraction
+       */
       double get_vof_epsilon() const;
-      unsigned int get_vof_field(std::string composition_fieldname) const;
+
+      /**
+       * Get the index for the named volume of fluid field
+       */
+      unsigned int get_vof_field(std::string volume_of_fluid_fieldname) const;
 
       // initialiation
+      /**
+       * Do necessary internal initialization that is dependent 
+       */
       void initialize (ParameterHandler &prm);
 
       // Functions for initialization of state

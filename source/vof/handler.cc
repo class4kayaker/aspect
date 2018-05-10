@@ -253,8 +253,23 @@ namespace aspect
     if ( this->get_parameters().initial_adaptive_refinement > 0 ||
          this->get_parameters().adaptive_refinement_interval > 0 )
       {
-        // AMR active so check refinement strategy includes 'vof boundary'
-        // Need to identify method of accessing list of refinement strategies
+        prm.enter_subsection("Mesh refinement");
+        {
+          std::vector<std::string> plugin_names
+            = Utilities::split_string_list(prm.get("Strategy"));
+
+          bool has_vof_strategy = false;
+          for (unsigned int name=0; name<plugin_names.size(); ++name)
+            {
+              has_vof_strategy = (plugin_names[name] == "vof interface") || has_vof_strategy;
+            }
+          AssertThrow(has_vof_strategy,
+                      ExcMessage("Volume of Fluid Interface Tracking requires that the 'vof interface' strategy be used for AMR"));
+        }
+        prm.leave_subsection();
+
+        AssertThrow(this->get_parameters().adaptive_refinement_interval <(1/this->get_parameters().CFL_number),
+                    ExcMessage("Volume of Fluid Interface Tracking requires that the AMR interval be less than 1/CFL_number"));
       }
 
     // Gather data
