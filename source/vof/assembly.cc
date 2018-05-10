@@ -184,8 +184,8 @@ namespace aspect
 
   template <int dim>
   void VoFHandler<dim>::assemble_vof_system (const VoFField<dim> field,
-                                             unsigned int dir,
-                                             bool update_from_old)
+                                             const unsigned int dir,
+                                             const bool update_from_old)
   {
     sim.computing_timer.enter_section ("   Assemble VoF system");
     const unsigned int block_idx = field.fraction.block_index;
