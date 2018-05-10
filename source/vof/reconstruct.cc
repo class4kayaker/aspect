@@ -81,7 +81,7 @@ namespace aspect
     std::vector<types::global_dof_index> cell_dof_indicies (system_fe.dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indicies (system_fe.dofs_per_cell);
 
-    const FEVariable<dim> &vof_var = field.fraction;
+    const FEVariable<dim> &vof_var = field.volume_fraction;
     const unsigned int vof_c_index = vof_var.first_component_index;
     const unsigned int vof_ind
       = this->get_fe().component_to_system_index(vof_c_index, 0);
@@ -420,7 +420,7 @@ namespace aspect
 
     std::vector<types::global_dof_index> local_dof_indicies (system_fe.dofs_per_cell);
 
-    const FEVariable<dim> &vof_var = vof_field.fraction;
+    const FEVariable<dim> &vof_var = vof_field.volume_fraction;
     const unsigned int vof_c_index = vof_var.first_component_index;
     const unsigned int vof_ind
       = system_fe.component_to_system_index(vof_c_index, 0);

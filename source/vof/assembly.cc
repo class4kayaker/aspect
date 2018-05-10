@@ -188,7 +188,7 @@ namespace aspect
                                              const bool update_from_old)
   {
     sim.computing_timer.enter_section ("   Assemble VoF system");
-    const unsigned int block_idx = field.fraction.block_index;
+    const unsigned int block_idx = field.volume_fraction.block_index;
     sim.system_matrix.block(block_idx, block_idx) = 0;
     sim.system_rhs = 0;
 
@@ -196,7 +196,7 @@ namespace aspect
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>
     CellFilter;
 
-    const FiniteElement<dim> &vof_fe = (*field.fraction.fe);
+    const FiniteElement<dim> &vof_fe = (*field.volume_fraction.fe);
 
     WorkStream::
     run (CellFilter (IteratorFilters::LocallyOwnedCell(),

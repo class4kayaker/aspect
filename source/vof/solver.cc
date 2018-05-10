@@ -38,7 +38,7 @@ namespace aspect
   template <int dim>
   void VoFHandler<dim>::solve_vof_system (const VoFField<dim> field)
   {
-    unsigned int block_idx = field.fraction.block_index;
+    unsigned int block_idx = field.volume_fraction.block_index;
 
     sim.computing_timer.enter_section ("   Solve VoF system");
     this->get_pcout() << "   Solving VoF system... " << std::flush;

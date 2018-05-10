@@ -68,8 +68,8 @@ namespace aspect
       const FEValuesExtractors::Vector vofN_n = FEValuesExtractors::Vector(vofN_component);
       const FEValuesExtractors::Scalar vofN_d = FEValuesExtractors::Scalar(vofN_component+dim);
 
-      const unsigned int solution_component = field.fraction.first_component_index;
-      const FEValuesExtractors::Scalar solution_field = field.fraction.extractor_scalar();
+      const unsigned int solution_component = field.volume_fraction.first_component_index;
+      const FEValuesExtractors::Scalar solution_field = field.volume_fraction.extractor_scalar();
 
       scratch.finite_element_values.reinit (cell);
 
@@ -166,7 +166,7 @@ namespace aspect
 
       const unsigned int n_f_q_points    = scratch.face_finite_element_values.n_quadrature_points;
 
-      // vol fraction and interface values are constants, so can set from first value
+      // volume fraction and interface values are constants, so can set from first value
       const double cell_vol = cell->measure();
       const double cell_vof = scratch.old_field_values[0];
       const Tensor<1, dim, double> cell_i_normal = scratch.cell_i_n_values[0];
@@ -174,10 +174,6 @@ namespace aspect
 
       // also have the number of dofs that correspond just to the element for
       // the system we are currently trying to assemble
-      // const unsigned int vof_dofs_per_cell = data.local_dof_indices.size();
-
-      // const unsigned int solution_component = field.fraction.first_component_index;
-      // const FEValuesExtractors::Scalar solution_field = field.fraction.extractor_scalar();
 
       scratch.face_finite_element_values.reinit (cell, face_no);
 
@@ -295,8 +291,8 @@ namespace aspect
       // the system we are currently trying to assemble
       const unsigned int vof_dofs_per_cell = data.local_dof_indices.size();
 
-      const unsigned int solution_component = field.fraction.first_component_index;
-      const FEValuesExtractors::Scalar solution_field = field.fraction.extractor_scalar();
+      const unsigned int solution_component = field.volume_fraction.first_component_index;
+      const FEValuesExtractors::Scalar solution_field = field.volume_fraction.extractor_scalar();
 
       const unsigned int vofN_component = field.reconstruction.first_component_index;
       const FEValuesExtractors::Vector vofN_n = FEValuesExtractors::Vector(vofN_component);

@@ -38,14 +38,14 @@ namespace aspect
      * Initialize the structure with FEVariables to hold the required
      * information that must be available on all cells.
      */
-    VoFField(const FEVariable<dim> &fraction,
+    VoFField(const FEVariable<dim> &volume_fraction,
              const FEVariable<dim> &reconstruction,
              const FEVariable<dim> &level_set);
 
     /**
      * Field to hold the current volume fraction.
      */
-    const FEVariable<dim> &fraction;
+    const FEVariable<dim> &volume_fraction;
 
     /**
      * Field to hold the cached interface reconstruction.

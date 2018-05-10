@@ -32,10 +32,10 @@ namespace aspect
 {
 
   template <int dim>
-  VoFField<dim>::VoFField(const FEVariable<dim> &fraction,
+  VoFField<dim>::VoFField(const FEVariable<dim> &volume_fraction,
                           const FEVariable<dim> &reconstruction,
                           const FEVariable<dim> &level_set)
-    : fraction (fraction),
+    : volume_fraction (volume_fraction),
       reconstruction (reconstruction),
       level_set (level_set)
   {}
@@ -333,7 +333,7 @@ namespace aspect
   {
     for (unsigned int f=0; f<n_vof_fields; ++f)
       {
-        const unsigned int vof_block_idx = data[f].fraction.block_index;
+        const unsigned int vof_block_idx = data[f].volume_fraction.block_index;
         const unsigned int vofN_block_idx = data[f].reconstruction.block_index;
 
         // Reset current base to values at beginning of timestep
