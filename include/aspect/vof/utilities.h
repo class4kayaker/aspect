@@ -54,8 +54,17 @@ namespace aspect
                        const double vol);
 
     /**
-     * Function to calculate xFEM-like function values on the unit cell.
-     * Currently exact for basises up to degree 1.
+     * Obtain values at points for a polynomial function that is equivalent to
+     * the Heaviside function $H(d-normal*xhat)$ on the unit cell when
+     * integrated against polynomials of up to the specified degree.
+     *
+     * Currently works for degree <=1
+     *
+     * @param degree Maximum degree for exact integration
+     * @param normal Interface normal vector, pointed away from the included region
+     * @param d Interface parameter specifying location of interface in unit cell
+     * @param points Locations to evaluate the constructed polynomial
+     * @param values Values of the constructed polynomial at the specified points
      */
     template<int dim>
     void xFEM_Heaviside(const int degree,
@@ -64,8 +73,17 @@ namespace aspect
                         const std::vector<Point<dim>> &points,
                         std::vector<double> &values);
     /**
-     * Function to calculate xFEM-like function values on the unit cell.
-     * Currently exact for basises up to degree 1.
+     * Obtain values at points for a polynomial function that is equivalent to
+     * the function $\frac{d}{dd}H(d-normal*xhat)$ on the unit cell when
+     * integrated against polynomials of up to the specified degree.
+     *
+     * Currently works for degree <=1
+     *
+     * @param degree Maximum degree for exact integration
+     * @param normal Interface normal vector, pointed away from the included region
+     * @param d Interface parameter specifying location of interface in unit cell
+     * @param points Locations to evaluate the constructed polynomial
+     * @param values Values of the constructed polynomial at the specified points
      */
     template<int dim>
     void xFEM_Heaviside_d_d(const int degree,
@@ -79,6 +97,14 @@ namespace aspect
      * Function to do newton iteration calculation of correct d for a given
      * normal to get vol_frac from xFEM_Heaviside integrated against the given
      * weights.
+     *
+     * @param degree Maximum degree for exact integration
+     * @param normal Interface normal vector, pointed away from the included region
+     * @param vol_frac Cell volume fraction in physical space - used for target value for integration
+     * @param vol Cell volume in physical space - used for target value for integration
+     * @param epsilon Tolerance for Newton iteration
+     * @param points Quadrature points to use for update
+     * @param weights JxW values to use for quadrature
      */
     template<int dim>
     double d_from_vof_newton(const int degree,
@@ -93,6 +119,12 @@ namespace aspect
      * Function to calculate volume fraction contained by indicator function
      * H(d-normal*(x'-x_{cen}')) on the [0, 1]^dim unit cell where x_{cen} is
      * the unit cell center, using a polynomial mapping of degree up to "degree".
+     *
+     * @param degree Maximum degree for exact integration
+     * @param normal Interface normal vector, pointed away from the included region
+     * @param d Interface parameter specifying location of interface in unit cell
+     * @param points Quadrature points to use for update
+     * @param weights JxW values to use for quadrature
      */
     template<int dim>
     double vol_from_d(const int degree,

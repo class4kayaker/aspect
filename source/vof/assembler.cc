@@ -47,7 +47,7 @@ namespace aspect
     template <int dim>
     void VoFAssembler<dim>::local_assemble_vof_system (const VoFField<dim> field,
                                                        const unsigned int calc_dir,
-                                                       bool update_from_old,
+                                                       const bool update_from_old,
                                                        const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                        internal::Assembly::Scratch::VoFSystem<dim> &scratch,
                                                        internal::Assembly::CopyData::VoFSystem<dim> &data) const
@@ -153,7 +153,7 @@ namespace aspect
     template <int dim>
     void VoFAssembler<dim>::local_assemble_boundary_face_vof_system (const VoFField<dim> field,
                                                                      const unsigned int calc_dir,
-                                                                     bool update_from_old,
+                                                                     const bool update_from_old,
                                                                      const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                                      const unsigned int face_no,
                                                                      internal::Assembly::Scratch::VoFSystem<dim> &scratch,

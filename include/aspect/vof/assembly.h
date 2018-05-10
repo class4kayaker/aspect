@@ -42,6 +42,9 @@ namespace aspect
     {
       namespace Scratch
       {
+        /**
+         * Standard scratch data structure for matrix assembly
+         */
         template <int dim>
         struct VoFSystem
         {
@@ -88,6 +91,9 @@ namespace aspect
 
       namespace CopyData
       {
+        /**
+         * Standard copy data structure for matrix assembly
+         */
         template <int dim>
         struct VoFSystem
         {
@@ -160,22 +166,29 @@ namespace aspect
   {
 
     /**
-     * Class to hold VoF assembly logic, as analogous to
+     * Class to hold VoF assembly logic, as analogous to that used in the main simulator.
      */
     template <int dim>
     class VoFAssembler : public SimulatorAccess<dim>
     {
       public:
+        /**
+         * Do setup and assembly on internal quadrature points and dispatch to
+         * other functions for face assembly
+         */
         void local_assemble_vof_system (const VoFField<dim> field,
                                         const unsigned int calc_dir,
-                                        bool update_from_old,
+                                        const bool update_from_old,
                                         const typename DoFHandler<dim>::active_cell_iterator &cell,
                                         internal::Assembly::Scratch::VoFSystem<dim> &scratch,
                                         internal::Assembly::CopyData::VoFSystem<dim> &data) const;
 
+        /**
+         * Do assembly for cell faces on the boundary
+         */
         void local_assemble_boundary_face_vof_system (const VoFField<dim> field,
                                                       const unsigned int calc_dir,
-                                                      bool update_from_old,
+                                                      const bool update_from_old,
                                                       const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                       const unsigned int face_no,
                                                       internal::Assembly::Scratch::VoFSystem<dim> &scratch,
@@ -192,6 +205,9 @@ namespace aspect
                                                       internal::Assembly::Scratch::VoFSystem<dim> &scratch,
                                                       internal::Assembly::CopyData::VoFSystem<dim> &data) const;
 
+        /**
+         * Set volume fraction threshold for use in assembly
+         */
         void set_vof_epsilon(const double value);
 
       private:
