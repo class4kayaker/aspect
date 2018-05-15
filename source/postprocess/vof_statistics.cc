@@ -55,7 +55,7 @@ namespace aspect
 
       for (unsigned int f=0; f<n_vof_fields; ++f)
         {
-          FEValuesExtractors::Scalar vof = this->get_vof_handler().get_field(f).fraction.extractor_scalar();
+          FEValuesExtractors::Scalar vof = this->get_vof_handler().get_field(f).volume_fraction.extractor_scalar();
           double vof_vol_sum=0.0, vof_vol_corr=0.0;
 
           typename DoFHandler<dim>::active_cell_iterator

@@ -255,7 +255,7 @@ namespace aspect
                             update_JxW_values |
                             update_quadrature_points);
 
-      const unsigned int vof_index = this->get_vof_handler().get_field(f_ind).fraction.first_component_index;
+      const unsigned int vof_index = this->get_vof_handler().get_field(f_ind).volume_fraction.first_component_index;
       const unsigned int vofN_c_index = this->get_vof_handler().get_field(f_ind).reconstruction.first_component_index;
 
       // Initialize state based on provided function

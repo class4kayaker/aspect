@@ -63,7 +63,7 @@ namespace aspect
       for (unsigned int f=0; f<this->get_vof_handler().get_n_fields(); ++f)
         {
 
-          const FEValuesExtractors::Scalar vof_field = this->get_vof_handler().get_field(f).fraction.extractor_scalar();
+          const FEValuesExtractors::Scalar vof_field = this->get_vof_handler().get_field(f).volume_fraction.extractor_scalar();
           std::vector<double> vof_q_values(qMidC.size());
 
           // Should be vof_epsilon, look into how to access that

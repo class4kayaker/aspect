@@ -84,7 +84,7 @@ namespace aspect
           {
             VoFField<dim> field = this->get_vof_handler().get_field(f);
 
-            const FEVariable<dim> &vof_var = field.fraction;
+            const FEVariable<dim> &vof_var = field.volume_fraction;
             const unsigned int vof_ind = vof_var.first_component_index;
             const FEVariable<dim> &vofLS_var = field.level_set;
             const unsigned int vofLS_ind = vofLS_var.first_component_index;

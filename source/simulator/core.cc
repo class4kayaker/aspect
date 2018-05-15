@@ -870,7 +870,7 @@ namespace aspect
         {
           for (unsigned int f=0; f<vof_handler->get_n_fields(); ++f)
             {
-              const unsigned int vof_c_index = vof_handler->get_field(f).fraction.first_component_index;
+              const unsigned int vof_c_index = vof_handler->get_field(f).volume_fraction.first_component_index;
               coupling[vof_c_index][vof_c_index] = DoFTools::always;
             }
         }
@@ -907,7 +907,7 @@ namespace aspect
           {
             for (unsigned int f=0; f<vof_handler->get_n_fields(); ++f)
               {
-                const unsigned int vof_c_index = vof_handler->get_field(f).fraction.first_component_index;
+                const unsigned int vof_c_index = vof_handler->get_field(f).volume_fraction.first_component_index;
                 face_coupling[vof_c_index][vof_c_index] = DoFTools::always;
               }
           }
