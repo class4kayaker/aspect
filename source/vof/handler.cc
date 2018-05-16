@@ -361,10 +361,10 @@ namespace aspect
     for (std::map<std::string, unsigned int>::const_iterator iter=vof_composition_map_index.begin();
          iter!=vof_composition_map_index.end(); ++iter)
       {
-        const unsigned int c_var_index = this->introspection().compositional_index_for_name(iter->first);
-        const typename Simulator<dim>::AdvectionField adv_f = Simulator<dim>::AdvectionField::composition(c_var_index);
+        const unsigned int comosition_index = this->introspection().compositional_index_for_name(iter->first);
+        const typename Simulator<dim>::AdvectionField advection_field = Simulator<dim>::AdvectionField::composition(composition_index);
         const VoFField<dim> vof_f= field_struct_for_field_index(iter->second);
-        update_vof_composition(adv_f, vof_f, sim.solution);
+        update_vof_composition(advection_field, vof_f, sim.solution);
       }
     // change dimension iteration order
     direction_order_descending = !direction_order_descending;
