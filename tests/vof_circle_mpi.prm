@@ -86,7 +86,7 @@ subsection Postprocess
     set List of output variables = vof values
 
     subsection Volume of Fluid
-      set Include internal reconstruction LS = false
+      set Include internal reconstruction contour = false
     end
   end
 end

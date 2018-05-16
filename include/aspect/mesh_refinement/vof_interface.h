@@ -49,17 +49,24 @@ namespace aspect
         void
         tag_additional_cells() const;
 
-
+        /**
+         * Declare the parameters this class takes through input files.
+         */
         static
         void
         declare_parameters (ParameterHandler &prm);
 
+        /**
+         * Read the parameters this class declares from the parameter file.
+         */
         virtual
         void
         parse_parameters (ParameterHandler &prm);
 
       private:
-        int min_interface_level;
+        /**
+         * If true, flag cells for coarsening if they are not flagged for refinement
+         */
         bool strict_refinement;
     };
   }

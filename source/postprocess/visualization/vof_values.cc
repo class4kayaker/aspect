@@ -75,9 +75,9 @@ namespace aspect
         Assert (input_data.solution_values[0].size() == this->introspection().n_components, ExcInternalError ());
 
         unsigned int out_per_field=1;
-        if (include_vofLS)
+        if (include_contour)
           out_per_field += 1;
-        if (include_vofN)
+        if (include_normal)
           out_per_field += dim;
 
         for (unsigned int f=0; f<this->get_vof_handler().get_n_fields(); ++f)
@@ -94,13 +94,13 @@ namespace aspect
                 unsigned int out_ind = f*out_per_field;
                 computed_quantities[q][out_ind] = input_data.solution_values[q][vof_ind];
                 ++out_ind;
-                if (include_vofLS)
+                if (include_contour)
                   {
                     computed_quantities[q][out_ind] = input_data.solution_values[q][vofLS_ind];
                     ++out_ind;
                   }
 
-                if (include_vofN)
+                if (include_normal)
                   {
                     Tensor<1, dim, double> normal = -input_data.solution_gradients[q][vofLS_ind];
                     for (unsigned int i = 0; i<dim; ++i)
@@ -124,7 +124,7 @@ namespace aspect
           {
             prm.enter_subsection("Volume of Fluid");
             {
-              prm.declare_entry("Include internal reconstruction LS", "false",
+              prm.declare_entry("Include internal reconstruction contour", "false",
                                 Patterns::Bool (),
                                 "Include the internal level set data use to save reconstructed interfaces");
 
@@ -150,26 +150,26 @@ namespace aspect
           {
             prm.enter_subsection("Volume of Fluid");
             {
-              include_vofLS = prm.get_bool("Include internal reconstruction LS");
-              include_vofN = prm.get_bool("Include normals");
+              include_contour = prm.get_bool("Include internal reconstruction contour");
+              include_normal = prm.get_bool("Include normals");
 
               for (unsigned int f=0; f<this->get_vof_handler().get_n_fields(); ++f)
                 {
                   std::string field_name = this->get_vof_handler().get_field_name(f);
-                  vof_names.push_back("vof_"+field_name);
+                  vof_names.push_back("volume_fraction_"+field_name);
                   interp.push_back(DataComponentInterpretation::component_is_scalar);
 
-                  if (include_vofLS)
+                  if (include_contour)
                     {
-                      vof_names.push_back("vofLS_"+field_name);
+                      vof_names.push_back("volume_of_fluid_contour_"+field_name);
                       interp.push_back(DataComponentInterpretation::component_is_scalar);
                     }
 
-                  if (include_vofN)
+                  if (include_normal)
                     {
                       for (unsigned int i=0; i<dim; ++i)
                         {
-                          vof_names.push_back("vofINormal_"+field_name);
+                          vof_names.push_back("volume_of_fluid_interface_normal_"+field_name);
                           interp.push_back(DataComponentInterpretation::component_is_part_of_vector);
                         }
                     }

@@ -139,10 +139,10 @@ namespace aspect
      * the timestep.
      */
     template<int dim>
-    double calc_vof_flux_edge (const unsigned int dir,
-                               const double timeGrad,
-                               const Tensor<1, dim, double> cell_normal,
-                               const double d_face);
+    double calc_vof_flux_edge (const unsigned int compute_direction,
+                               const double time_direction_derivative,
+                               const Tensor<1, dim, double> inteface_normal_in_cell,
+                               const double d_at_face_center);
   }
 }
 

@@ -42,38 +42,77 @@ namespace aspect
           public Interface<dim>
       {
         public:
+          /**
+           * Standard constructor
+           */
           VoFValues ();
 
+          /**
+           * Get the list of names for the components that will be produced by
+           * this postprocessor
+           */
           virtual
           std::vector<std::string>
           get_names () const;
 
+          /**
+           * Get the list of component interpretations for the components that
+           * will be produced by this postprocessor
+           */
           virtual
           std::vector<DataComponentInterpretation::DataComponentInterpretation>
           get_data_component_interpretation () const;
 
+          /**
+           * Get required update flags
+           */
           virtual
           UpdateFlags
           get_needed_update_flags () const;
 
+          /**
+           * Produce that data based on provided solution data
+           */
           virtual
           void
           evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
                                 std::vector<Vector<double>> &computed_quantities) const;
 
+          /**
+           * Declare the parameters this class takes through input files.
+           */
           static
           void
           declare_parameters (ParameterHandler &prm);
 
+          /**
+           * Read the parameters this class declares from the parameter file.
+           */
           virtual
           void
           parse_parameters (ParameterHandler &prm);
 
         private:
+          /**
+           * Stored list of names for the produced components
+           */
           std::vector<std::string> vof_names;
+
+          /**
+           * Stored list of interpretations for produced components
+           */
           std::vector<DataComponentInterpretation::DataComponentInterpretation> interp;
-          bool include_vofLS;
-          bool include_vofN;
+
+          /**
+           * If true, the data output will include a field that has the
+           * reconstructed fluid interface as the zero contour
+           */
+          bool include_contour;
+
+          /**
+           * If true, the data output will include the normal vector for the reconstructed interface
+           */
+          bool include_normal;
       };
     }
   }

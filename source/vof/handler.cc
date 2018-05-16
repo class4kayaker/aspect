@@ -45,8 +45,7 @@ namespace aspect
                                ParameterHandler &prm)
     : sim (simulator),
       vof_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm)),
-      assembler (),
-      vof_reconstruct_epsilon(1e-13)
+      assembler ()
   {
     this->initialize_simulator(sim);
     assembler.initialize_simulator(sim);
@@ -66,19 +65,21 @@ namespace aspect
   {
     for (unsigned int f=0; f<n_vof_fields; ++f)
       {
+        // Add declaration for volume fraction field
         vars.push_back(VariableDeclaration<dim>("vof_"+vof_field_names[f],
                                                 std_cxx11::shared_ptr<FiniteElement<dim>>(
                                                   new FE_DGQ<dim>(0)),
                                                 1,
                                                 1));
 
-        vars.push_back(VariableDeclaration<dim>("vofN_"+vof_field_names[f],
+        // Add declaration for reconstructed interface cache
+        vars.push_back(VariableDeclaration<dim>("volume_of_fluid_interface_reconstruction_"+vof_field_names[f],
                                                 std_cxx11::shared_ptr<FiniteElement<dim>>(
                                                   new FE_DGQ<dim>(0)),
                                                 dim+1,
                                                 1));
 
-        vars.push_back(VariableDeclaration<dim>("vofLS_"+vof_field_names[f],
+        vars.push_back(VariableDeclaration<dim>("volume_of_fluid_contour_"+vof_field_names[f],
                                                 std_cxx11::shared_ptr<FiniteElement<dim>>(
                                                   new FE_DGQ<dim>(1)),
                                                 1,
@@ -277,8 +278,8 @@ namespace aspect
     for (unsigned int f=0; f<n_vof_fields; ++f)
       {
         data.push_back(VoFField<dim>(this->introspection().variable("vof_"+vof_field_names[f]),
-                                     this->introspection().variable("vofN_"+vof_field_names[f]),
-                                     this->introspection().variable("vofLS_"+vof_field_names[f])));
+                                     this->introspection().variable("volume_of_fluid_interface_reconstruction_"+vof_field_names[f]),
+                                     this->introspection().variable("volume_of_fluid_contour_"+vof_field_names[f])));
       }
 
     // Do initial conditions setup

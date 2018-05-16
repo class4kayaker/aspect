@@ -41,7 +41,9 @@ namespace aspect
   class VoFHandler : public SimulatorAccess<dim>
   {
     public:
-      // Construtor
+      /**
+       * Standard initial constructor
+       */
       VoFHandler(Simulator<dim> &sim, ParameterHandler &prm);
 
       /**
@@ -185,7 +187,7 @@ namespace aspect
       /**
        * Tolerance to use for the Newton iteration in the reconstruction step
        */
-      double vof_reconstruct_epsilon;
+      static constexpr double vof_reconstruct_epsilon = 1e-13;
 
       /**
        * Tolerance to use for the matrix solve in the timestep update

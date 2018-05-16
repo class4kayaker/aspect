@@ -89,7 +89,7 @@ subsection Postprocess
     set List of output variables = vof values
 
     subsection VoF values
-      set Include internal reconstruction LS = false
+      set Include internal reconstruction contour = false
     end
   end
 end
