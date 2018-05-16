@@ -27,8 +27,8 @@ namespace aspect
     using namespace dealii;
 
     template<>
-    double vof_from_d<2> (Tensor<1, 2, double> normal,
-                          double d)
+    double compute_fluid_fraction<2> (Tensor<1, 2, double> normal,
+                                      double d)
     {
       const int dim = 2;
       double norm1, max, mpos, dtest;
@@ -71,8 +71,8 @@ namespace aspect
     }
 
     template<>
-    double d_from_vof<2> (Tensor<1, 2, double> normal,
-                          double vol)
+    double compute_interface_location<2> (Tensor<1, 2, double> normal,
+                                          double vol)
     {
       const int dim = 2;
       double norm1, max, mpos;
@@ -120,8 +120,8 @@ namespace aspect
     }
 
     template<>
-    double vof_from_d<3> (const Tensor<1, 3, double> normal,
-                          const double d)
+    double compute_fluid_fraction<3> (const Tensor<1, 3, double> normal,
+                                      const double d)
     {
       // Calculations done by Scardovelli and Zaleski in
       // doi:10.1006/jcph.2000.6567,
@@ -132,7 +132,7 @@ namespace aspect
       //Simplify calculation by reducing to negative d case
       if (d>0.0)
         {
-          return 1.0-vof_from_d<dim>(-normal, -d);
+          return 1.0-compute_fluid_fraction<dim>(-normal, -d);
         }
 
       //Get 1-Norm
@@ -224,8 +224,8 @@ namespace aspect
     }
 
     template<>
-    double d_from_vof<3> (const Tensor<1, 3, double> normal,
-                          const double vol)
+    double compute_interface_location<3> (const Tensor<1, 3, double> normal,
+                                          const double vol)
     {
       // Calculations done by Scardovelli and Zaleski in
       // doi:10.1006/jcph.2000.6567,
@@ -236,7 +236,7 @@ namespace aspect
       // Simplify to vol<0.5 case
       if (vol>0.5)
         {
-          return -d_from_vof<dim>(-normal, 1.0-vol);
+          return -compute_interface_location<dim>(-normal, 1.0-vol);
         }
 
       //Get 1-Norm
@@ -551,13 +551,13 @@ namespace aspect
 
 
     template<int dim>
-    double d_from_vof_newton(const int degree,
-                             const Tensor<1, dim, double> normal,
-                             const double vol_frac,
-                             const double vol,
-                             const double epsilon,
-                             const std::vector<Point<dim>> &points,
-                             const std::vector<double> &weights)
+    double compute_interface_location_newton(const int degree,
+                                             const Tensor<1, dim, double> normal,
+                                             const double vol_frac,
+                                             const double vol,
+                                             const double epsilon,
+                                             const std::vector<Point<dim>> &points,
+                                             const std::vector<double> &weights)
     {
       double norm1=0.0;
       for (int i=0; i<dim; ++i) norm1+=fabs(normal[i]);
@@ -619,11 +619,11 @@ namespace aspect
     }
 
     template<int dim>
-    double vol_from_d(const int degree,
-                      const Tensor<1, dim, double> normal,
-                      const double d,
-                      const std::vector<Point<dim>> &points,
-                      const std::vector<double> &weights)
+    double compute_fluid_volume_xFEM(const int degree,
+                                     const Tensor<1, dim, double> normal,
+                                     const double d,
+                                     const std::vector<Point<dim>> &points,
+                                     const std::vector<double> &weights)
     {
       std::vector<double> f_values(points.size());
 
@@ -649,7 +649,7 @@ namespace aspect
       i_normal = normal;
       i_normal[dir] = timeGrad;
 
-      return vof_from_d (i_normal, i_d);
+      return compute_fluid_fraction (i_normal, i_d);
     }
   }
 }
@@ -663,18 +663,18 @@ namespace aspect
                                           double timeGrad, \
                                           Tensor<1, dim, double> normal, \
                                           double d); \
-  template double d_from_vof_newton<dim>(const int degree, \
-                                         const Tensor<1, dim, double> normal, \
-                                         const double vol_frac, \
-                                         const double vol, \
-                                         const double epsilon, \
-                                         const std::vector<Point<dim>> &points, \
-                                         const std::vector<double> &weights); \
-  template double vol_from_d<dim>(const int degree, \
-                                  const Tensor<1, dim, double> normal,\
-                                  const double d,\
-                                  const std::vector<Point<dim>> &points,\
-                                  const std::vector<double> &weights);
+  template double compute_interface_location_newton<dim>(const int degree, \
+                                                         const Tensor<1, dim, double> normal, \
+                                                         const double vol_frac, \
+                                                         const double vol, \
+                                                         const double epsilon, \
+                                                         const std::vector<Point<dim>> &points, \
+                                                         const std::vector<double> &weights); \
+  template double compute_fluid_volume_xFEM<dim>(const int degree, \
+                                                 const Tensor<1, dim, double> normal,\
+                                                 const double d,\
+                                                 const std::vector<Point<dim>> &points,\
+                                                 const std::vector<double> &weights);
 
     ASPECT_INSTANTIATE(INSTANTIATE)
   }

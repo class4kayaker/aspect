@@ -39,8 +39,8 @@ namespace aspect
      * Currently only works assuming constant Jacobian determinant.
      */
     template<int dim>
-    double vof_from_d (const Tensor<1, dim, double> normal,
-                       const double d);
+    double compute_fluid_fraction (const Tensor<1, dim, double> normal,
+                                   const double d);
 
     /**
      * Function to calculate required value of d to obtain given volume
@@ -50,8 +50,8 @@ namespace aspect
      * Currently only works assuming constant Jacobian determinant.
      */
     template<int dim>
-    double d_from_vof (const Tensor<1, dim, double> normal,
-                       const double vol);
+    double compute_interface_location (const Tensor<1, dim, double> normal,
+                                       const double vol);
 
     /**
      * Obtain values at points for a polynomial function that is equivalent to
@@ -107,13 +107,13 @@ namespace aspect
      * @param weights JxW values to use for quadrature
      */
     template<int dim>
-    double d_from_vof_newton(const int degree,
-                             const Tensor<1, dim, double> normal,
-                             const double vol_frac,
-                             const double vol,
-                             const double epsilon,
-                             const std::vector<Point<dim>> &points,
-                             const std::vector<double> &weights);
+    double compute_interface_location_newton(const int degree,
+                                             const Tensor<1, dim, double> normal,
+                                             const double vol_frac,
+                                             const double vol,
+                                             const double epsilon,
+                                             const std::vector<Point<dim>> &points,
+                                             const std::vector<double> &weights);
 
     /**
      * Function to calculate volume fraction contained by indicator function
@@ -127,11 +127,11 @@ namespace aspect
      * @param weights JxW values to use for quadrature
      */
     template<int dim>
-    double vol_from_d(const int degree,
-                      const Tensor<1, dim, double> normal,
-                      const double d,
-                      const std::vector<Point<dim>> &points,
-                      const std::vector<double> &weights);
+    double compute_fluid_volume_xFEM(const int degree,
+                                     const Tensor<1, dim, double> normal,
+                                     const double d,
+                                     const std::vector<Point<dim>> &points,
+                                     const std::vector<double> &weights);
 
     /**
      * Function to calculate flux volume fraction based on a method of

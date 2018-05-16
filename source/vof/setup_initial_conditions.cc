@@ -193,7 +193,7 @@ namespace aspect
                         grad[di] = (dL-dH);
                         d += (0.5/dim)*(dH+dL);
                       }
-                    double ptvof = VolumeOfFluid::vof_from_d<dim> (grad, d);
+                    double ptvof = VolumeOfFluid::compute_fluid_fraction<dim> (grad, d);
                     vof_val += ptvof * (fe_init.JxW (i) / cell_vol);
                   }
               }

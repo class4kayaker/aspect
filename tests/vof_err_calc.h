@@ -314,15 +314,15 @@ namespace aspect
                   grad_t[di] = (dL - dH);
                   d_t += (0.5 / dim) * (dH + dL);
                 }
-              double ptvof_t = VolumeOfFluid::vof_from_d<dim> (grad_t, d_t);
+              double ptvof_t = VolumeOfFluid::compute_fluid_fraction<dim> (grad_t, d_t);
               vof_reinit += ptvof_t *(fe_err.JxW (i) / cell_vol);
               for (unsigned int di = 0; di < dim; ++di)
                 {
                   xU[di] -= 0.5;
                 }
               double dot = normal * xU;
-              double ptvof_e = VolumeOfFluid::vof_from_d<dim> (h * normal,
-                                                               (d - dot));
+              double ptvof_e = VolumeOfFluid::compute_fluid_fraction<dim> (h * normal,
+                                                                           (d - dot));
               double diff = abs (ptvof_t - ptvof_e);
               val += diff * fe_err.JxW (i);
             }

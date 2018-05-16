@@ -97,7 +97,7 @@ namespace aspect
     // print number of iterations and also record it in the
     // statistics file
     this->get_pcout() << solver_control.last_step()
-              << " iterations." << std::endl;
+                      << " iterations." << std::endl;
 
     // Do not add VoF solver iterations to statistics, duplicaiton due to
     // splitting messes with file format

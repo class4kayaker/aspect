@@ -290,9 +290,9 @@ namespace aspect
 
                   if (normal_norm > vof_epsilon) // If candidate normal too small set error to maximum
                     {
-                      d_vals[nind] = VolumeOfFluid::d_from_vof_newton<dim> (max_degree, normals[nind], cell_vof, cell_vol,
-                                                                            vof_reconstruct_epsilon,
-                                                                            quadrature.get_points(), weights);
+                      d_vals[nind] = VolumeOfFluid::compute_interface_location_newton<dim> (max_degree, normals[nind], cell_vof, cell_vol,
+                                                                                            vof_reconstruct_epsilon,
+                                                                                            quadrature.get_points(), weights);
                     }
                   else
                     {
@@ -327,8 +327,8 @@ namespace aspect
                         double dot = 0.0;
                         for (unsigned int di = 0; di < dim; ++di)
                           dot += normals[nind][di] * resc_cell_centers[i][di];
-                        const double n_vof = VolumeOfFluid::vol_from_d<dim> (max_degree, normals[nind], d_vals[nind]-dot,
-                                                                             quadrature.get_points(), weights)/cell_vol;
+                        const double n_vof = VolumeOfFluid::compute_fluid_volume_xFEM<dim> (max_degree, normals[nind], d_vals[nind]-dot,
+                                                                                            quadrature.get_points(), weights)/cell_vol;
                         const double cell_err = local_vofs (i) - n_vof;
                         errs[nind] += cell_err * cell_err;
                       }
@@ -464,7 +464,7 @@ namespace aspect
           {
             const unsigned int system_local_dof
               = system_fe.component_to_system_index(composition_field.component_index(sim.introspection),
-                                                             /*dof index within component*/i);
+                                                    /*dof index within component*/i);
 
             Tensor<1, dim, double> uSupp = support_points[i]-uReCen;
 
