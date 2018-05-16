@@ -105,7 +105,7 @@ namespace aspect
                          Patterns::Double(0,1),
                          "The relative tolerance up to which the linear system"
                          "for the Volume of Fluid system gets solved. See"
-                         "\'Solver parameters/Composition solver tolerance\'"
+                         "'Solver parameters/Composition solver tolerance'"
                          "for more details.");
 
       prm.declare_entry ("Volume of Fluid field names", "",
@@ -295,7 +295,7 @@ namespace aspect
   }
 
   template <int dim>
-  const std::string VoFHandler<dim>::get_field_name(unsigned int field) const
+  const std::string VoFHandler<dim>::name_for_field_index(unsigned int field) const
   {
     Assert(field < n_vof_fields,
            ExcMessage("Invalid field index"));
@@ -309,7 +309,7 @@ namespace aspect
   }
 
   template <int dim>
-  const VoFField<dim> &VoFHandler<dim>::get_field(unsigned int field) const
+  const VoFField<dim> &VoFHandler<dim>::field_struct_for_field_index(unsigned int field) const
   {
     Assert(field < n_vof_fields,
            ExcMessage("Invalid field index"));
@@ -317,7 +317,7 @@ namespace aspect
   }
 
   template <int dim>
-  unsigned int VoFHandler<dim>::get_vof_field(std::string composition_fieldname) const
+  unsigned int VoFHandler<dim>::field_index_for_name(std::string composition_fieldname) const
   {
     if (vof_composition_map_index.count(composition_fieldname) ==0)
       return n_vof_fields;
@@ -364,7 +364,7 @@ namespace aspect
       {
         const unsigned int c_var_index = this->introspection().compositional_index_for_name(iter->first);
         const typename Simulator<dim>::AdvectionField adv_f = Simulator<dim>::AdvectionField::composition(c_var_index);
-        const VoFField<dim> vof_f= get_field(iter->second);
+        const VoFField<dim> vof_f= field_struct_for_field_index(iter->second);
         update_vof_composition(adv_f, vof_f, sim.solution);
       }
     // change dimension iteration order

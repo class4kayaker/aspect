@@ -82,7 +82,7 @@ namespace aspect
 
         for (unsigned int f=0; f<this->get_vof_handler().get_n_fields(); ++f)
           {
-            VoFField<dim> field = this->get_vof_handler().get_field(f);
+            VoFField<dim> field = this->get_vof_handler().field_struct_for_field_index(f);
 
             const FEVariable<dim> &vof_var = field.volume_fraction;
             const unsigned int vof_ind = vof_var.first_component_index;
@@ -155,7 +155,7 @@ namespace aspect
 
               for (unsigned int f=0; f<this->get_vof_handler().get_n_fields(); ++f)
                 {
-                  std::string field_name = this->get_vof_handler().get_field_name(f);
+                  std::string field_name = this->get_vof_handler().name_for_field_index(f);
                   vof_names.push_back("volume_fraction_"+field_name);
                   interp.push_back(DataComponentInterpretation::component_is_scalar);
 

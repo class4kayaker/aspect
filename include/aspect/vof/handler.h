@@ -72,13 +72,13 @@ namespace aspect
       /**
        * Get the name of Volume of Fluid field i
        */
-      const std::string get_field_name(unsigned int i) const;
+      const std::string name_for_field_index(unsigned int i) const;
 
       /**
        * Get the structure containing the variable locations for Volume of
        * Fluid field i.
        */
-      const VoFField<dim> &get_field(unsigned int i) const;
+      const VoFField<dim> &field_struct_for_field_index(unsigned int i) const;
 
       /**
        * Get threshold for volume fraction
@@ -88,9 +88,8 @@ namespace aspect
       /**
        * Get the index for the named volume of fluid field
        */
-      unsigned int get_vof_field(std::string volume_of_fluid_fieldname) const;
+      unsigned int field_index_for_name(std::string volume_of_fluid_fieldname) const;
 
-      // initialiation
       /**
        * Do necessary internal initialization that is dependent on having the
        * simulator and Finite Element initialized.

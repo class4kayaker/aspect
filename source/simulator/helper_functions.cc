@@ -1267,7 +1267,7 @@ namespace aspect
     // Skip if this composition field is being set from the vof handler
     if (!advection_field.is_temperature() &&
         parameters.vof_tracking_enabled)
-      if (vof_handler->get_vof_field(introspection.name_for_compositional_index(advection_field.compositional_variable))
+      if (vof_handler->field_index_for_name(introspection.name_for_compositional_index(advection_field.compositional_variable))
           != vof_handler->get_n_fields())
         return;
 

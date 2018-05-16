@@ -55,7 +55,8 @@ namespace aspect
 
       for (unsigned int f=0; f<n_vof_fields; ++f)
         {
-          FEValuesExtractors::Scalar vof = this->get_vof_handler().get_field(f).volume_fraction.extractor_scalar();
+          FEValuesExtractors::Scalar vof = this->get_vof_handler().field_struct_for_field_index(f)
+                                           .volume_fraction.extractor_scalar();
           double vof_vol_sum=0.0, vof_vol_corr=0.0;
 
           typename DoFHandler<dim>::active_cell_iterator
@@ -90,7 +91,7 @@ namespace aspect
       for (unsigned int f=0; f<n_vof_fields; ++f)
         {
           std::string col_name = "Global VoF volumes for " +
-                                 this->get_vof_handler().get_field_name(f);
+                                 this->get_vof_handler().name_for_field_index(f);
           statistics.add_value (col_name, global_vof_vol_sums[f]);
 
           output << global_vof_vol_sums[f];
