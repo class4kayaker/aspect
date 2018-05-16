@@ -22,7 +22,7 @@
 #include <aspect/simulator.h>
 #include <aspect/global.h>
 #include <aspect/free_surface.h>
-#include <aspect/vof/handler.h>
+#include <aspect/volume_of_fluid/handler.h>
 #include <aspect/newton.h>
 #include <aspect/melt.h>
 
@@ -163,8 +163,8 @@ namespace aspect
   std::vector<double> Simulator<dim>::assemble_and_solve_composition (const bool compute_initial_residual,
                                                                       std::vector<double> *initial_residual)
   {
-    if (parameters.vof_tracking_enabled)
-      vof_handler->do_vof_update ();
+    if (parameters.volume_of_fluid_tracking_enabled)
+      volume_of_fluid_handler->do_volume_of_fluid_update ();
 
     std::vector<double> current_residual(introspection.n_compositional_fields,0.0);
 

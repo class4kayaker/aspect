@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__vof_initial_conditions_interface_h
-#define __aspect__vof_initial_conditions_interface_h
+#ifndef __aspect__volume_of_fluid_initial_conditions_interface_h
+#define __aspect__volume_of_fluid_initial_conditions_interface_h
 
 #include <aspect/plugins.h>
 #include <aspect/geometry_model/interface.h>

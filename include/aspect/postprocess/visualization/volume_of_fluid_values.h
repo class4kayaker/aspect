@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect__postprocess_visualization_vof_values_h
-#define __aspect__postprocess_visualization_vof_values_h
+#ifndef __aspect__postprocess_visualization_volume_of_fluid_values_h
+#define __aspect__postprocess_visualization_volume_of_fluid_values_h
 
 #include <aspect/postprocess/visualization.h>
 #include <aspect/simulator_access.h>
@@ -96,7 +96,7 @@ namespace aspect
           /**
            * Stored list of names for the produced components
            */
-          std::vector<std::string> vof_names;
+          std::vector<std::string> volume_of_fluid_names;
 
           /**
            * Stored list of interpretations for produced components

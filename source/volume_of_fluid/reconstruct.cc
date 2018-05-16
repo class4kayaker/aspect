@@ -20,15 +20,15 @@
 
 #include <aspect/global.h>
 #include <aspect/simulator.h>
-#include <aspect/vof/handler.h>
-#include <aspect/vof/utilities.h>
+#include <aspect/volume_of_fluid/handler.h>
+#include <aspect/volume_of_fluid/utilities.h>
 
 namespace aspect
 {
   using namespace dealii;
 
   template <>
-  void VoFHandler<2>::update_vof_normals (const VoFField<2> field,
+  void VoFHandler<2>::update_volume_of_fluid_normals (const VoFField<2> field,
                                           LinearAlgebra::BlockVector &solution)
   {
     const int dim = 2;
@@ -47,7 +47,7 @@ namespace aspect
     // Interface Reconstruction vars
     const unsigned int n_local = 9;
 
-    Vector<double> local_vofs (n_local);
+    Vector<double> local_volume_of_fluids (n_local);
     std::vector<Point<dim>> resc_cell_centers (n_local);
     std::vector<typename DoFHandler<dim>::active_cell_iterator> neighbor_cells(n_local);
 
@@ -81,20 +81,20 @@ namespace aspect
     std::vector<types::global_dof_index> cell_dof_indicies (system_fe.dofs_per_cell);
     std::vector<types::global_dof_index> local_dof_indicies (system_fe.dofs_per_cell);
 
-    const FEVariable<dim> &vof_var = field.volume_fraction;
-    const unsigned int vof_c_index = vof_var.first_component_index;
-    const unsigned int vof_ind
-      = this->get_fe().component_to_system_index(vof_c_index, 0);
-    const unsigned int vof_blockidx = vof_var.block_index;
+    const FEVariable<dim> &volume_of_fluid_var = field.volume_fraction;
+    const unsigned int volume_of_fluid_c_index = volume_of_fluid_var.first_component_index;
+    const unsigned int volume_of_fluid_ind
+      = this->get_fe().component_to_system_index(volume_of_fluid_c_index, 0);
+    const unsigned int volume_of_fluid_blockidx = volume_of_fluid_var.block_index;
 
-    const FEVariable<dim> &vofN_var = field.reconstruction;
-    const unsigned int vofN_c_index = vofN_var.first_component_index;
-    const unsigned int vofN_blockidx = vofN_var.block_index;
+    const FEVariable<dim> &volume_of_fluidN_var = field.reconstruction;
+    const unsigned int volume_of_fluidN_c_index = volume_of_fluidN_var.first_component_index;
+    const unsigned int volume_of_fluidN_blockidx = volume_of_fluidN_var.block_index;
 
-    const FEVariable<dim> &vofLS_var = field.level_set;
-    const unsigned int vofLS_c_index = vofLS_var.first_component_index;
-    const unsigned int n_vofLS_dofs = vofLS_var.fe->dofs_per_cell;
-    const unsigned int vofLS_blockidx = vofLS_var.block_index;
+    const FEVariable<dim> &volume_of_fluidLS_var = field.level_set;
+    const unsigned int volume_of_fluidLS_c_index = volume_of_fluidLS_var.first_component_index;
+    const unsigned int n_volume_of_fluidLS_dofs = volume_of_fluidLS_var.fe->dofs_per_cell;
+    const unsigned int volume_of_fluidLS_blockidx = volume_of_fluidLS_var.block_index;
 
     //Iterate over cells
     for (auto cell : this->get_dof_handler().active_cell_iterators ())
@@ -102,29 +102,29 @@ namespace aspect
         if (!cell->is_locally_owned ())
           continue;
 
-        double cell_vof;
+        double cell_volume_of_fluid;
 
         // Obtain data for this cell and neighbors
         cell->get_dof_indices (local_dof_indicies);
-        cell_vof = solution(local_dof_indicies[vof_ind]);
+        cell_volume_of_fluid = solution(local_dof_indicies[volume_of_fluid_ind]);
 
         normal[0] = 0.0;
         normal[1] = 0.0;
         d = -1.0;
 
-        if (cell_vof > 1.0 - volume_fraction_threshold)
+        if (cell_volume_of_fluid > 1.0 - volume_fraction_threshold)
           {
             d = 1.0;
-            initial_solution(local_dof_indicies[vof_ind]) = 1.0;
+            initial_solution(local_dof_indicies[volume_of_fluid_ind]) = 1.0;
           }
-        else if (cell_vof < volume_fraction_threshold)
+        else if (cell_volume_of_fluid < volume_fraction_threshold)
           {
             d = -1.0;
-            initial_solution(local_dof_indicies[vof_ind]) = 0.0;
+            initial_solution(local_dof_indicies[volume_of_fluid_ind]) = 0.0;
           }
         else
           {
-            initial_solution(local_dof_indicies[vof_ind]) = cell_vof;
+            initial_solution(local_dof_indicies[volume_of_fluid_ind]) = cell_volume_of_fluid;
 
             //Identify best normal
             // Get references to neighboring cells
@@ -193,7 +193,7 @@ namespace aspect
                         resc_cell_centers[3 * j + i] = Point<dim> (0.0,
                                                                    0.0);
                       }
-                    local_vofs (3 * j + i) = solution (cell_dof_indicies[vof_ind]);
+                    local_volume_of_fluids (3 * j + i) = solution (cell_dof_indicies[volume_of_fluid_ind]);
                     neighbor_cells[3 * j + i] = curr;
                   }
               }
@@ -206,8 +206,8 @@ namespace aspect
               {
                 for (unsigned int j = 0; j < 3; ++j)
                   {
-                    strip_sums[3 * 0 + i] += local_vofs (3 * j + i);
-                    strip_sums[3 * 1 + j] += local_vofs (3 * j + i);
+                    strip_sums[3 * 0 + i] += local_volume_of_fluids (3 * j + i);
+                    strip_sums[3 * 1 + j] += local_volume_of_fluids (3 * j + i);
                   }
               }
 
@@ -264,7 +264,7 @@ namespace aspect
             // interface reconstruction, so other tests will also be necessary.
             for (unsigned int i=0; i<dim; ++i)
               normals[6][i] = solution(local_dof_indicies[system_fe
-                                                          .component_to_system_index(vofN_c_index+i, 0)]);
+                                                          .component_to_system_index(volume_of_fluidN_c_index+i, 0)]);
 
             // If candidate normal too small, remove from consideration
             if (normals[6]*normals[6]< volume_fraction_threshold)
@@ -290,8 +290,8 @@ namespace aspect
 
                   if (normal_norm > volume_fraction_threshold) // If candidate normal too small set error to maximum
                     {
-                      d_vals[nind] = VolumeOfFluid::compute_interface_location_newton<dim> (max_degree, normals[nind], cell_vof, cell_vol,
-                                                                                            vof_reconstruct_epsilon,
+                      d_vals[nind] = VolumeOfFluid::compute_interface_location_newton<dim> (max_degree, normals[nind], cell_volume_of_fluid, cell_vol,
+                                                                                            volume_of_fluid_reconstruct_epsilon,
                                                                                             quadrature.get_points(), weights);
                     }
                   else
@@ -327,9 +327,9 @@ namespace aspect
                         double dot = 0.0;
                         for (unsigned int di = 0; di < dim; ++di)
                           dot += normals[nind][di] * resc_cell_centers[i][di];
-                        const double n_vof = VolumeOfFluid::compute_fluid_volume_xFEM<dim> (max_degree, normals[nind], d_vals[nind]-dot,
+                        const double n_volume_of_fluid = VolumeOfFluid::compute_fluid_volume_xFEM<dim> (max_degree, normals[nind], d_vals[nind]-dot,
                                                                                             quadrature.get_points(), weights)/cell_vol;
-                        const double cell_err = local_vofs (i) - n_vof;
+                        const double cell_err = local_volume_of_fluids (i) - n_volume_of_fluid;
                         errs[nind] += cell_err * cell_err;
                       }
                   }
@@ -362,17 +362,17 @@ namespace aspect
 
         for (unsigned int i=0; i<dim; ++i)
           initial_solution (local_dof_indicies[system_fe
-                                               .component_to_system_index(vofN_c_index+i, 0)]) = normal[i];
+                                               .component_to_system_index(volume_of_fluidN_c_index+i, 0)]) = normal[i];
 
         initial_solution (local_dof_indicies[system_fe
-                                             .component_to_system_index(vofN_c_index+dim, 0)]) = d;
+                                             .component_to_system_index(volume_of_fluidN_c_index+dim, 0)]) = d;
 
-        for (unsigned int i=0; i<n_vofLS_dofs; ++i)
+        for (unsigned int i=0; i<n_volume_of_fluidLS_dofs; ++i)
           {
             // Recenter unit cell on origin
-            Tensor<1, dim, double> uSupp = vofLS_var.fe->unit_support_point(i)-uReCen;
+            Tensor<1, dim, double> uSupp = volume_of_fluidLS_var.fe->unit_support_point(i)-uReCen;
             initial_solution (local_dof_indicies[system_fe
-                                                 .component_to_system_index(vofLS_c_index, i)])
+                                                 .component_to_system_index(volume_of_fluidLS_c_index, i)])
               = d-uSupp*normal;
           }
       }
@@ -382,24 +382,24 @@ namespace aspect
     sim.compute_current_constraints();
     sim.current_constraints.distribute(initial_solution);
 
-    // solution.block(vof_blockidx) = initial_solution.block(vof_blockidx);
-    solution.block(vofN_blockidx) = initial_solution.block(vofN_blockidx);
-    solution.block(vofLS_blockidx) = initial_solution.block(vofLS_blockidx);
+    // solution.block(volume_of_fluid_blockidx) = initial_solution.block(volume_of_fluid_blockidx);
+    solution.block(volume_of_fluidN_blockidx) = initial_solution.block(volume_of_fluidN_blockidx);
+    solution.block(volume_of_fluidLS_blockidx) = initial_solution.block(volume_of_fluidLS_blockidx);
 
     sim.computing_timer.exit_section();
   }
 
 
   template <>
-  void VoFHandler<3>::update_vof_normals (const VoFField<3> /*field*/,
+  void VoFHandler<3>::update_volume_of_fluid_normals (const VoFField<3> /*field*/,
                                           LinearAlgebra::BlockVector &/*solution*/)
   {
     Assert(false, ExcNotImplemented());
   }
 
   template <>
-  void VoFHandler<2>::update_vof_composition (const typename Simulator<2>::AdvectionField composition_field,
-                                              const VoFField<2> vof_field,
+  void VoFHandler<2>::update_volume_of_fluid_composition (const typename Simulator<2>::AdvectionField composition_field,
+                                              const VoFField<2> volume_of_fluid_field,
                                               LinearAlgebra::BlockVector &solution)
   {
     const int dim = 2;
@@ -420,13 +420,13 @@ namespace aspect
 
     std::vector<types::global_dof_index> local_dof_indicies (system_fe.dofs_per_cell);
 
-    const FEVariable<dim> &vof_var = vof_field.volume_fraction;
-    const unsigned int vof_c_index = vof_var.first_component_index;
-    const unsigned int vof_ind
-      = system_fe.component_to_system_index(vof_c_index, 0);
+    const FEVariable<dim> &volume_of_fluid_var = volume_of_fluid_field.volume_fraction;
+    const unsigned int volume_of_fluid_c_index = volume_of_fluid_var.first_component_index;
+    const unsigned int volume_of_fluid_ind
+      = system_fe.component_to_system_index(volume_of_fluid_c_index, 0);
 
-    const FEVariable<dim> &vofN_var = vof_field.reconstruction;
-    const unsigned int vofN_c_index = vofN_var.first_component_index;
+    const FEVariable<dim> &volume_of_fluidN_var = volume_of_fluid_field.reconstruction;
+    const unsigned int volume_of_fluidN_c_index = volume_of_fluidN_var.first_component_index;
 
     const unsigned int base_element = composition_field.base_element(this->introspection());
     const std::vector<Point<dim> > support_points = system_fe.base_element(base_element).get_unit_support_points();
@@ -437,16 +437,16 @@ namespace aspect
           continue;
 
         cell->get_dof_indices (local_dof_indicies);
-        const double cell_vof = solution(local_dof_indicies[vof_ind]);
+        const double cell_volume_of_fluid = solution(local_dof_indicies[volume_of_fluid_ind]);
 
         Tensor<1, dim, double> normal;
 
         for (unsigned int i=0; i<dim; ++i)
           normal[i] = solution(local_dof_indicies[system_fe
-                                                  .component_to_system_index(vofN_c_index+i, 0)]);
+                                                  .component_to_system_index(volume_of_fluidN_c_index+i, 0)]);
 
         const double d = solution(local_dof_indicies[system_fe
-                                                     .component_to_system_index(vofN_c_index+dim, 0)]);
+                                                     .component_to_system_index(volume_of_fluidN_c_index+dim, 0)]);
         Tensor<1, dim, double> nnormal;
         double normall1n = 0.0;
         for (unsigned int i=0; i<dim; ++i)
@@ -459,7 +459,7 @@ namespace aspect
             nnormal = normal / normall1n;
           }
         //Calculate correct factor to retain vol frac and [0,1] bound
-        double fact = 2.0*(0.5-abs(cell_vof-0.5));
+        double fact = 2.0*(0.5-abs(cell_volume_of_fluid-0.5));
         for (unsigned int i=0; i<system_fe.base_element(base_element).dofs_per_cell; ++i)
           {
             const unsigned int system_local_dof
@@ -468,7 +468,7 @@ namespace aspect
 
             Tensor<1, dim, double> uSupp = support_points[i]-uReCen;
 
-            const double value = cell_vof - fact*(uSupp*nnormal);
+            const double value = cell_volume_of_fluid - fact*(uSupp*nnormal);
 
             initial_solution(local_dof_indicies[system_local_dof]) = value;
           }
@@ -482,8 +482,8 @@ namespace aspect
   }
 
   template <>
-  void VoFHandler<3>::update_vof_composition (const typename Simulator<3>::AdvectionField composition_field,
-                                              const VoFField<3> vof_field,
+  void VoFHandler<3>::update_volume_of_fluid_composition (const typename Simulator<3>::AdvectionField composition_field,
+                                              const VoFField<3> volume_of_fluid_field,
                                               LinearAlgebra::BlockVector &solution)
   {
     Assert(false, ExcNotImplemented());

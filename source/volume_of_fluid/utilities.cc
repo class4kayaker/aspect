@@ -18,7 +18,7 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#include <aspect/vof/utilities.h>
+#include <aspect/volume_of_fluid/utilities.h>
 
 namespace aspect
 {
@@ -637,7 +637,7 @@ namespace aspect
     }
 
     template<int dim>
-    double calc_vof_flux_edge (const unsigned int dir,
+    double calc_volume_of_fluid_flux_edge (const unsigned int dir,
                                const double timeGrad,
                                const Tensor<1, dim, double> normal,
                                const double d_face)
@@ -659,7 +659,7 @@ namespace aspect
   namespace VolumeOfFluid
   {
 #define INSTANTIATE(dim) \
-  template double calc_vof_flux_edge<dim>(unsigned int dir, \
+  template double calc_volume_of_fluid_flux_edge<dim>(unsigned int dir, \
                                           double timeGrad, \
                                           Tensor<1, dim, double> normal, \
                                           double d); \

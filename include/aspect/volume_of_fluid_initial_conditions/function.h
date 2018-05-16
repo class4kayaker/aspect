@@ -19,10 +19,10 @@
 */
 
 
-#ifndef __aspect__vof_initial_conditions_function_h
-#define __aspect__vof_initial_conditions_function_h
+#ifndef __aspect__volume_of_fluid_initial_conditions_function_h
+#define __aspect__volume_of_fluid_initial_conditions_function_h
 
-#include <aspect/vof_initial_conditions/interface.h>
+#include <aspect/volume_of_fluid_initial_conditions/interface.h>
 #include <aspect/simulator_access.h>
 
 #include <deal.II/base/parsed_function.h>

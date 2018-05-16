@@ -21,9 +21,9 @@
 #include <aspect/simulator_access.h>
 #include <aspect/utilities.h>
 #include <aspect/free_surface.h>
-#include <aspect/vof/utilities.h>
-#include <aspect/vof/field.h>
-#include <aspect/vof/assembly.h>
+#include <aspect/volume_of_fluid/utilities.h>
+#include <aspect/volume_of_fluid/field.h>
+#include <aspect/volume_of_fluid/assembly.h>
 
 //#include <deal.II/base/quadrature_lib.h>
 //#include <deal.II/lac/full_matrix.h>
@@ -45,7 +45,7 @@ namespace aspect
     }
 
     template <int dim>
-    void VoFAssembler<dim>::local_assemble_vof_system (const VoFField<dim> field,
+    void VoFAssembler<dim>::local_assemble_volume_of_fluid_system (const VoFField<dim> field,
                                                        const unsigned int calc_dir,
                                                        const bool update_from_old,
                                                        const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -56,17 +56,17 @@ namespace aspect
 
       // also have the number of dofs that correspond just to the element for
       // the system we are currently trying to assemble
-      const unsigned int vof_dofs_per_cell = data.local_dof_indices.size();
+      const unsigned int volume_of_fluid_dofs_per_cell = data.local_dof_indices.size();
 
-      Assert (vof_dofs_per_cell < scratch.finite_element_values.get_fe().dofs_per_cell, ExcInternalError());
-      Assert (vof_dofs_per_cell < scratch.face_finite_element_values.get_fe().dofs_per_cell, ExcInternalError());
-      Assert (scratch.phi_field.size() == vof_dofs_per_cell, ExcInternalError());
+      Assert (volume_of_fluid_dofs_per_cell < scratch.finite_element_values.get_fe().dofs_per_cell, ExcInternalError());
+      Assert (volume_of_fluid_dofs_per_cell < scratch.face_finite_element_values.get_fe().dofs_per_cell, ExcInternalError());
+      Assert (scratch.phi_field.size() == volume_of_fluid_dofs_per_cell, ExcInternalError());
 
       const FiniteElement<dim> &main_fe = scratch.finite_element_values.get_fe();
 
-      const unsigned int vofN_component = field.reconstruction.first_component_index;
-      const FEValuesExtractors::Vector vofN_n = FEValuesExtractors::Vector(vofN_component);
-      const FEValuesExtractors::Scalar vofN_d = FEValuesExtractors::Scalar(vofN_component+dim);
+      const unsigned int volume_of_fluidN_component = field.reconstruction.first_component_index;
+      const FEValuesExtractors::Vector volume_of_fluidN_n = FEValuesExtractors::Vector(volume_of_fluidN_component);
+      const FEValuesExtractors::Scalar volume_of_fluidN_d = FEValuesExtractors::Scalar(volume_of_fluidN_component+dim);
 
       const unsigned int solution_component = field.volume_fraction.first_component_index;
       const FEValuesExtractors::Scalar solution_field = field.volume_fraction.extractor_scalar();
@@ -74,7 +74,7 @@ namespace aspect
       scratch.finite_element_values.reinit (cell);
 
       cell->get_dof_indices (scratch.local_dof_indices);
-      for (unsigned int i=0; i<vof_dofs_per_cell; ++i)
+      for (unsigned int i=0; i<volume_of_fluid_dofs_per_cell; ++i)
         data.local_dof_indices[i] = scratch.local_dof_indices[main_fe.component_to_system_index(solution_component, i)];
 
       data.local_matrix = 0;
@@ -93,10 +93,10 @@ namespace aspect
           scratch.finite_element_values[solution_field].get_function_values (this->get_old_solution(),
                                                                              scratch.old_field_values);
 
-          scratch.finite_element_values[vofN_n].get_function_values (this->get_old_solution(),
+          scratch.finite_element_values[volume_of_fluidN_n].get_function_values (this->get_old_solution(),
                                                                      scratch.cell_i_n_values);
 
-          scratch.finite_element_values[vofN_d].get_function_values (this->get_old_solution(),
+          scratch.finite_element_values[volume_of_fluidN_d].get_function_values (this->get_old_solution(),
                                                                      scratch.cell_i_d_values);
         }
       else
@@ -104,10 +104,10 @@ namespace aspect
           scratch.finite_element_values[solution_field].get_function_values (this->get_solution(),
                                                                              scratch.old_field_values);
 
-          scratch.finite_element_values[vofN_n].get_function_values (this->get_solution(),
+          scratch.finite_element_values[volume_of_fluidN_n].get_function_values (this->get_solution(),
                                                                      scratch.cell_i_n_values);
 
-          scratch.finite_element_values[vofN_d].get_function_values (this->get_solution(),
+          scratch.finite_element_values[volume_of_fluidN_d].get_function_values (this->get_solution(),
                                                                      scratch.cell_i_d_values);
         }
 
@@ -115,15 +115,15 @@ namespace aspect
       for (unsigned int q = 0; q< n_q_points; ++q)
         {
           // Init FE field vals
-          for (unsigned int k=0; k<vof_dofs_per_cell; ++k)
+          for (unsigned int k=0; k<volume_of_fluid_dofs_per_cell; ++k)
             scratch.phi_field[k] = scratch.finite_element_values[solution_field].value(main_fe.component_to_system_index(solution_component, k), q);
 
           // Init required local time
-          for (unsigned int i = 0; i<vof_dofs_per_cell; ++i)
+          for (unsigned int i = 0; i<volume_of_fluid_dofs_per_cell; ++i)
             {
               data.local_rhs[i] += scratch.old_field_values[q] *
                                    scratch.finite_element_values.JxW(q);
-              for (unsigned int j=0; j<vof_dofs_per_cell; ++j)
+              for (unsigned int j=0; j<volume_of_fluid_dofs_per_cell; ++j)
                 data.local_matrix (i, j) += scratch.phi_field[i] *
                                             scratch.phi_field[j] *
                                             scratch.finite_element_values.JxW(q);
@@ -141,17 +141,17 @@ namespace aspect
 
           if (!face->at_boundary())
             {
-              this->local_assemble_internal_face_vof_system (field, calc_dir, update_from_old, cell, face_no, scratch, data);
+              this->local_assemble_internal_face_volume_of_fluid_system (field, calc_dir, update_from_old, cell, face_no, scratch, data);
             }
           else
             {
-              this->local_assemble_boundary_face_vof_system (field, calc_dir, update_from_old, cell, face_no, scratch, data);
+              this->local_assemble_boundary_face_volume_of_fluid_system (field, calc_dir, update_from_old, cell, face_no, scratch, data);
             }
         }
     }
 
     template <int dim>
-    void VoFAssembler<dim>::local_assemble_boundary_face_vof_system (const VoFField<dim> field,
+    void VoFAssembler<dim>::local_assemble_boundary_face_volume_of_fluid_system (const VoFField<dim> field,
                                                                      const unsigned int calc_dir,
                                                                      const bool update_from_old,
                                                                      const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -168,7 +168,7 @@ namespace aspect
 
       // volume fraction and interface values are constants, so can set from first value
       const double cell_vol = cell->measure();
-      const double cell_vof = scratch.old_field_values[0];
+      const double cell_volume_of_fluid = scratch.old_field_values[0];
       const Tensor<1, dim, double> cell_i_normal = scratch.cell_i_n_values[0];
       const double cell_i_d = scratch.cell_i_d_values[0];
 
@@ -193,7 +193,7 @@ namespace aspect
       if (cell->has_periodic_neighbor (face_no))
         {
           // Periodic temperature/composition term: consider the corresponding periodic faces as the case of interior faces
-          this->local_assemble_internal_face_vof_system(field, calc_dir, update_from_old, cell, face_no, scratch, data);
+          this->local_assemble_internal_face_volume_of_fluid_system(field, calc_dir, update_from_old, cell, face_no, scratch, data);
         }
       else
         {
@@ -239,18 +239,18 @@ namespace aspect
             }
 
           // Calculate outward flux
-          double flux_vof;
+          double flux_volume_of_fluid;
           if (std::abs(face_flux) < volume_fraction_threshold*cell_vol)
             {
-              flux_vof = cell_vof;
+              flux_volume_of_fluid = cell_volume_of_fluid;
             }
           else if (face_flux < 0.0) // edge is upwind, currently assume zero inflow
             {
-              flux_vof = 0.0;
+              flux_volume_of_fluid = 0.0;
             }
           else // Cell is upwind, outflow boundary
             {
-              flux_vof = VolumeOfFluid::calc_vof_flux_edge<dim> (f_dim,
+              flux_volume_of_fluid = VolumeOfFluid::calc_volume_of_fluid_flux_edge<dim> (f_dim,
                                                                  face_ls_time_grad,
                                                                  cell_i_normal,
                                                                  face_ls_d);
@@ -259,12 +259,12 @@ namespace aspect
           //TODO: Handle non-zero inflow VoF boundary conditions
 
           // Add fluxes to RHS
-          data.local_rhs[0] -= (flux_vof-cell_vof) * face_flux;
+          data.local_rhs[0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
         }
     }
 
     template <int dim>
-    void VoFAssembler<dim>::local_assemble_internal_face_vof_system (const VoFField<dim> field,
+    void VoFAssembler<dim>::local_assemble_internal_face_volume_of_fluid_system (const VoFField<dim> field,
                                                                      const unsigned int calc_dir,
                                                                      bool update_from_old,
                                                                      const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -281,7 +281,7 @@ namespace aspect
 
       // vol fraction and interface values are constants, so can set from first value
       const double cell_vol = cell->measure();
-      const double cell_vof = scratch.old_field_values[0];
+      const double cell_volume_of_fluid = scratch.old_field_values[0];
       const Tensor<1, dim, double> cell_i_normal = scratch.cell_i_n_values[0];
       const double cell_i_d = scratch.cell_i_d_values[0];
 
@@ -289,14 +289,14 @@ namespace aspect
 
       // also have the number of dofs that correspond just to the element for
       // the system we are currently trying to assemble
-      const unsigned int vof_dofs_per_cell = data.local_dof_indices.size();
+      const unsigned int volume_of_fluid_dofs_per_cell = data.local_dof_indices.size();
 
       const unsigned int solution_component = field.volume_fraction.first_component_index;
       const FEValuesExtractors::Scalar solution_field = field.volume_fraction.extractor_scalar();
 
-      const unsigned int vofN_component = field.reconstruction.first_component_index;
-      const FEValuesExtractors::Vector vofN_n = FEValuesExtractors::Vector(vofN_component);
-      const FEValuesExtractors::Scalar vofN_d = FEValuesExtractors::Scalar(vofN_component+dim);
+      const unsigned int volume_of_fluidN_component = field.reconstruction.first_component_index;
+      const FEValuesExtractors::Vector volume_of_fluidN_n = FEValuesExtractors::Vector(volume_of_fluidN_component);
+      const FEValuesExtractors::Scalar volume_of_fluidN_d = FEValuesExtractors::Scalar(volume_of_fluidN_component+dim);
 
       const typename DoFHandler<dim>::face_iterator face = cell->face (face_no);
 
@@ -357,10 +357,10 @@ namespace aspect
                   scratch.neighbor_finite_element_values[solution_field]
                   .get_function_values(this->get_old_solution(),
                                        scratch.neighbor_old_values);
-                  scratch.neighbor_finite_element_values[vofN_n]
+                  scratch.neighbor_finite_element_values[volume_of_fluidN_n]
                   .get_function_values(this->get_old_solution(),
                                        scratch.neighbor_i_n_values);
-                  scratch.neighbor_finite_element_values[vofN_d]
+                  scratch.neighbor_finite_element_values[volume_of_fluidN_d]
                   .get_function_values(this->get_old_solution(),
                                        scratch.neighbor_i_d_values);
                 }
@@ -369,16 +369,16 @@ namespace aspect
                   scratch.neighbor_finite_element_values[solution_field]
                   .get_function_values(this->get_solution(),
                                        scratch.neighbor_old_values);
-                  scratch.neighbor_finite_element_values[vofN_n]
+                  scratch.neighbor_finite_element_values[volume_of_fluidN_n]
                   .get_function_values(this->get_solution(),
                                        scratch.neighbor_i_n_values);
-                  scratch.neighbor_finite_element_values[vofN_d]
+                  scratch.neighbor_finite_element_values[volume_of_fluidN_d]
                   .get_function_values(this->get_solution(),
                                        scratch.neighbor_i_d_values);
                 }
 
               const double neighbor_vol = neighbor->measure();
-              const double neighbor_vof = scratch.neighbor_old_values[0];
+              const double neighbor_volume_of_fluid = scratch.neighbor_old_values[0];
               const Tensor<1, dim, double> neighbor_i_normal = scratch.neighbor_i_n_values[0];
               const double neighbor_i_d = scratch.neighbor_i_d_values[0];
 
@@ -435,21 +435,21 @@ namespace aspect
                 }
 
               // Calculate outward flux
-              double flux_vof;
+              double flux_volume_of_fluid;
               if (std::abs(face_flux) < 0.5*volume_fraction_threshold*(cell_vol+neighbor_vol))
                 {
-                  flux_vof = 0.5*(cell_vof+neighbor_vof);
+                  flux_volume_of_fluid = 0.5*(cell_volume_of_fluid+neighbor_volume_of_fluid);
                 }
               else if (face_flux < 0.0) // Neighbor is upwind
                 {
-                  flux_vof = VolumeOfFluid::calc_vof_flux_edge<dim> (n_f_dim,
+                  flux_volume_of_fluid = VolumeOfFluid::calc_volume_of_fluid_flux_edge<dim> (n_f_dim,
                                                                      n_face_ls_time_grad,
                                                                      neighbor_i_normal,
                                                                      n_face_ls_d);
                 }
               else // This cell is upwind
                 {
-                  flux_vof = VolumeOfFluid::calc_vof_flux_edge<dim> (f_dim,
+                  flux_volume_of_fluid = VolumeOfFluid::calc_volume_of_fluid_flux_edge<dim> (f_dim,
                                                                      face_ls_time_grad,
                                                                      cell_i_normal,
                                                                      face_ls_d);
@@ -469,15 +469,15 @@ namespace aspect
 
               const unsigned int f_rhs_ind = face_no * GeometryInfo<dim>::max_children_per_face;
 
-              for (unsigned int i=0; i<vof_dofs_per_cell; ++i)
+              for (unsigned int i=0; i<volume_of_fluid_dofs_per_cell; ++i)
                 data.neighbor_dof_indices[f_rhs_ind][i]
                   = neighbor_dof_indices[main_fe.component_to_system_index(solution_component, i)];
 
               data.face_contributions_mask[f_rhs_ind] = true;
 
               // fluxes to RHS
-              data.local_rhs [0] -= (flux_vof-cell_vof) * face_flux;
-              data.local_face_rhs[f_rhs_ind][0] += (flux_vof-neighbor_vof) * face_flux;
+              data.local_rhs [0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
+              data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid-neighbor_volume_of_fluid) * face_flux;
             }
           else
             {
@@ -509,10 +509,10 @@ namespace aspect
                   scratch.neighbor_finite_element_values[solution_field]
                   .get_function_values(this->get_old_solution(),
                                        scratch.neighbor_old_values);
-                  scratch.neighbor_finite_element_values[vofN_n]
+                  scratch.neighbor_finite_element_values[volume_of_fluidN_n]
                   .get_function_values(this->get_old_solution(),
                                        scratch.neighbor_i_n_values);
-                  scratch.neighbor_finite_element_values[vofN_d]
+                  scratch.neighbor_finite_element_values[volume_of_fluidN_d]
                   .get_function_values(this->get_old_solution(),
                                        scratch.neighbor_i_d_values);
                 }
@@ -521,16 +521,16 @@ namespace aspect
                   scratch.neighbor_finite_element_values[solution_field]
                   .get_function_values(this->get_solution(),
                                        scratch.neighbor_old_values);
-                  scratch.neighbor_finite_element_values[vofN_n]
+                  scratch.neighbor_finite_element_values[volume_of_fluidN_n]
                   .get_function_values(this->get_solution(),
                                        scratch.neighbor_i_n_values);
-                  scratch.neighbor_finite_element_values[vofN_d]
+                  scratch.neighbor_finite_element_values[volume_of_fluidN_d]
                   .get_function_values(this->get_solution(),
                                        scratch.neighbor_i_d_values);
                 }
 
               const double neighbor_vol = neighbor->measure();
-              const double neighbor_vof = scratch.neighbor_old_values[0];
+              const double neighbor_volume_of_fluid = scratch.neighbor_old_values[0];
               // Unneeded neighbor data
               // const Tensor<1, dim, double> neighbor_i_normal = scratch.neighbor_i_n_values[0];
               // const double neighbor_i_d = scratch.neighbor_i_d_values[0];
@@ -582,30 +582,30 @@ namespace aspect
 
               const unsigned int f_rhs_ind = face_no * GeometryInfo<dim>::max_children_per_face+subface_no;
 
-              for (unsigned int i=0; i<vof_dofs_per_cell; ++i)
+              for (unsigned int i=0; i<volume_of_fluid_dofs_per_cell; ++i)
                 data.neighbor_dof_indices[f_rhs_ind][i]
                   = neighbor_dof_indices[main_fe.component_to_system_index(solution_component, i)];
 
               data.face_contributions_mask[f_rhs_ind] = true;
 
               // fluxes to RHS
-              double flux_vof = cell_vof;
+              double flux_volume_of_fluid = cell_volume_of_fluid;
               if (std::abs(face_flux) < 0.5*volume_fraction_threshold*(cell_vol+neighbor_vol))
                 {
-                  flux_vof = 0.5*(cell_vof+neighbor_vof);
+                  flux_volume_of_fluid = 0.5*(cell_volume_of_fluid+neighbor_volume_of_fluid);
                 }
-              if (flux_vof < 0.0)
-                flux_vof = 0.0;
-              if (flux_vof > 1.0)
-                flux_vof = 1.0;
+              if (flux_volume_of_fluid < 0.0)
+                flux_volume_of_fluid = 0.0;
+              if (flux_volume_of_fluid > 1.0)
+                flux_volume_of_fluid = 1.0;
 
-              data.local_rhs [0] -= (flux_vof-cell_vof) * face_flux;
-              data.local_face_rhs[f_rhs_ind][0] += (flux_vof-neighbor_vof) * face_flux;
+              data.local_rhs [0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
+              data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid-neighbor_volume_of_fluid) * face_flux;
 
               // Limit to constant cases, otherwise announce error
-              if (cell_vof > volume_fraction_threshold && cell_vof<1.0-volume_fraction_threshold)
+              if (cell_volume_of_fluid > volume_fraction_threshold && cell_volume_of_fluid<1.0-volume_fraction_threshold)
                 {
-                  this->get_pcout() << "Cell at " << cell->center() << " " << cell_vof << std::endl
+                  this->get_pcout() << "Cell at " << cell->center() << " " << cell_volume_of_fluid << std::endl
                                     << "\t" << face_flux/this->get_timestep()/cell_vol << std::endl
                                     << "\t" << cell_i_normal << ".x=" << cell_i_d << std::endl;
                   Assert(false, ExcNotImplemented());

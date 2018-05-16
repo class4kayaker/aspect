@@ -666,7 +666,7 @@ namespace aspect
        * Return a pointer to the VoF handler.
        */
       const VoFHandler<dim> &
-      get_vof_handler () const;
+      get_volume_of_fluid_handler () const;
 
       /**
        * Return a reference to the Newton handler that controls the Newton

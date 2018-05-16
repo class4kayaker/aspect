@@ -20,8 +20,8 @@
 
 #include <aspect/global.h>
 #include <aspect/simulator.h>
-#include <aspect/vof/handler.h>
-#include <aspect/vof/utilities.h>
+#include <aspect/volume_of_fluid/handler.h>
+#include <aspect/volume_of_fluid/utilities.h>
 
 // #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -32,40 +32,40 @@ namespace aspect
   using namespace dealii;
 
   template <int dim>
-  void VoFHandler<dim>::set_initial_vofs ()
+  void VoFHandler<dim>::set_initial_volume_of_fluids ()
   {
-    for (unsigned int f=0; f<n_vof_fields; ++f)
+    for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
-        switch (vof_initial_conditions->init_type())
+        switch (volume_of_fluid_initial_conditions->init_type())
           {
             case VoFInitialConditions::VoFInitType::composition:
             {
-              init_vof_compos (data[f], f);
+              init_volume_of_fluid_compos (data[f], f);
               break;
             }
             case VoFInitialConditions::VoFInitType::signed_distance_level_set:
             {
-              init_vof_ls (data[f], f);
+              init_volume_of_fluid_ls (data[f], f);
               break;
             }
             default:
               Assert(false, ExcNotImplemented ());
           }
 
-        const unsigned int vofN_blockidx = data[f].reconstruction.block_index;
-        const unsigned int vofLS_blockidx = data[f].level_set.block_index;
-        update_vof_normals (data[f], sim.solution);
-        sim.old_solution.block(vofN_blockidx) = sim.solution.block(vofN_blockidx);
-        sim.old_old_solution.block(vofN_blockidx) = sim.solution.block(vofN_blockidx);
-        sim.old_solution.block(vofLS_blockidx) = sim.solution.block(vofLS_blockidx);
-        sim.old_old_solution.block(vofLS_blockidx) = sim.solution.block(vofLS_blockidx);
+        const unsigned int volume_of_fluidN_blockidx = data[f].reconstruction.block_index;
+        const unsigned int volume_of_fluidLS_blockidx = data[f].level_set.block_index;
+        update_volume_of_fluid_normals (data[f], sim.solution);
+        sim.old_solution.block(volume_of_fluidN_blockidx) = sim.solution.block(volume_of_fluidN_blockidx);
+        sim.old_old_solution.block(volume_of_fluidN_blockidx) = sim.solution.block(volume_of_fluidN_blockidx);
+        sim.old_solution.block(volume_of_fluidLS_blockidx) = sim.solution.block(volume_of_fluidLS_blockidx);
+        sim.old_old_solution.block(volume_of_fluidLS_blockidx) = sim.solution.block(volume_of_fluidLS_blockidx);
       }
   }
 
   template <int dim>
-  void VoFHandler<dim>::init_vof_compos (const VoFField<dim> field, const unsigned int f_ind)
+  void VoFHandler<dim>::init_volume_of_fluid_compos (const VoFField<dim> field, const unsigned int f_ind)
   {
-    unsigned int n_samples = vof_initial_conditions->n_samples ();
+    unsigned int n_samples = volume_of_fluid_initial_conditions->n_samples ();
 
     LinearAlgebra::BlockVector initial_solution;
 
@@ -78,10 +78,10 @@ namespace aspect
     std::vector<types::global_dof_index>
     local_dof_indicies (this->get_fe().dofs_per_cell);
 
-    const FEVariable<dim> &vof_var = field.volume_fraction;
-    const unsigned int component_index = vof_var.first_component_index;
-    const unsigned int blockidx = vof_var.block_index;
-    const unsigned int vof_ind
+    const FEVariable<dim> &volume_of_fluid_var = field.volume_fraction;
+    const unsigned int component_index = volume_of_fluid_var.first_component_index;
+    const unsigned int blockidx = volume_of_fluid_var.block_index;
+    const unsigned int volume_of_fluid_ind
       = this->get_fe().component_to_system_index(component_index, 0);
 
     // Initialize state based on provided function
@@ -97,15 +97,15 @@ namespace aspect
         cell_vol = cell->measure ();
         fe_init.reinit (cell);
 
-        double vof_val = 0.0;
+        double volume_of_fluid_val = 0.0;
 
         for (unsigned int i = 0; i < fe_init.n_quadrature_points; ++i)
           {
-            double ptvof = vof_initial_conditions->initial_value (fe_init.quadrature_point(i), f_ind);
-            vof_val += ptvof * (fe_init.JxW (i) / cell_vol);
+            double ptvolume_of_fluid = volume_of_fluid_initial_conditions->initial_value (fe_init.quadrature_point(i), f_ind);
+            volume_of_fluid_val += ptvolume_of_fluid * (fe_init.JxW (i) / cell_vol);
           }
 
-        initial_solution (local_dof_indicies[vof_ind]) = vof_val;
+        initial_solution (local_dof_indicies[volume_of_fluid_ind]) = volume_of_fluid_val;
       }
 
     initial_solution.compress(VectorOperation::insert);
@@ -119,9 +119,9 @@ namespace aspect
   }
 
   template <int dim>
-  void VoFHandler<dim>::init_vof_ls (const VoFField<dim> field, const unsigned int f_ind)
+  void VoFHandler<dim>::init_volume_of_fluid_ls (const VoFField<dim> field, const unsigned int f_ind)
   {
-    unsigned int n_samples = vof_initial_conditions->n_samples ();
+    unsigned int n_samples = volume_of_fluid_initial_conditions->n_samples ();
 
     LinearAlgebra::BlockVector initial_solution;
 
@@ -138,10 +138,10 @@ namespace aspect
     std::vector<types::global_dof_index>
     local_dof_indicies (this->get_fe().dofs_per_cell);
 
-    const FEVariable<dim> &vof_var = field.volume_fraction;
-    const unsigned int component_index = vof_var.first_component_index;
-    const unsigned int blockidx = vof_var.block_index;
-    const unsigned int vof_ind
+    const FEVariable<dim> &volume_of_fluid_var = field.volume_fraction;
+    const unsigned int component_index = volume_of_fluid_var.first_component_index;
+    const unsigned int blockidx = volume_of_fluid_var.block_index;
+    const unsigned int volume_of_fluid_ind
       = this->get_fe().component_to_system_index(component_index, 0);
 
     // Initialize state based on provided function
@@ -156,20 +156,20 @@ namespace aspect
 
         cell_vol = cell->measure ();
         cell_diam = cell->diameter();
-        d_func = vof_initial_conditions->initial_value (cell->barycenter(), f_ind);
+        d_func = volume_of_fluid_initial_conditions->initial_value (cell->barycenter(), f_ind);
         fe_init.reinit (cell);
 
-        double vof_val = 0.0;
+        double volume_of_fluid_val = 0.0;
 
         if (d_func <=-0.5*cell_diam)
           {
-            vof_val = 0.0;
+            volume_of_fluid_val = 0.0;
           }
         else
           {
             if (d_func >= 0.5*cell_diam)
               {
-                vof_val = 1.0;
+                volume_of_fluid_val = 1.0;
               }
             else
               {
@@ -186,20 +186,20 @@ namespace aspect
                         xL = xU;
                         xH[di] += 0.5*h;
                         xL[di] -= 0.5*h;
-                        double dH = vof_initial_conditions
+                        double dH = volume_of_fluid_initial_conditions
                                     ->initial_value (cell->intermediate_point(xH), f_ind);
-                        double dL = vof_initial_conditions
+                        double dL = volume_of_fluid_initial_conditions
                                     ->initial_value (cell->intermediate_point(xL), f_ind);
                         grad[di] = (dL-dH);
                         d += (0.5/dim)*(dH+dL);
                       }
-                    double ptvof = VolumeOfFluid::compute_fluid_fraction<dim> (grad, d);
-                    vof_val += ptvof * (fe_init.JxW (i) / cell_vol);
+                    double ptvolume_of_fluid = VolumeOfFluid::compute_fluid_fraction<dim> (grad, d);
+                    volume_of_fluid_val += ptvolume_of_fluid * (fe_init.JxW (i) / cell_vol);
                   }
               }
           }
 
-        initial_solution (local_dof_indicies[vof_ind]) = vof_val;
+        initial_solution (local_dof_indicies[volume_of_fluid_ind]) = volume_of_fluid_val;
       }
 
     initial_solution.compress(VectorOperation::insert);
@@ -216,9 +216,9 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template void VoFHandler<dim>::set_initial_vofs ();\
-  template void VoFHandler<dim>::init_vof_ls (const VoFField<dim> field, const unsigned int f_ind); \
-  template void VoFHandler<dim>::init_vof_compos (const VoFField<dim> field, const unsigned int f_ind);
+  template void VoFHandler<dim>::set_initial_volume_of_fluids ();\
+  template void VoFHandler<dim>::init_volume_of_fluid_ls (const VoFField<dim> field, const unsigned int f_ind); \
+  template void VoFHandler<dim>::init_volume_of_fluid_compos (const VoFField<dim> field, const unsigned int f_ind);
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

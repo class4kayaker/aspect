@@ -23,8 +23,8 @@ along with ASPECT; see the file doc/COPYING.  If not see
 #include <aspect/global.h>
 #include <aspect/simulator_access.h>
 #include <aspect/postprocess/interface.h>
-#include <aspect/vof/utilities.h>
-#include <aspect/vof/handler.h>
+#include <aspect/volume_of_fluid/utilities.h>
+#include <aspect/volume_of_fluid/handler.h>
 
 // Deal II includes
 #include <deal.II/base/parsed_function.h>
@@ -139,19 +139,19 @@ namespace aspect
           label_stream << "):";
           label_string = label_stream.str();
 
-          unsigned int n_vof_fields = this->get_vof_handler().get_n_fields();
-          std::vector<double> local_err_vals (n_vof_fields*n_err);
-          for (unsigned int f=0; f<n_vof_fields; ++f)
+          unsigned int n_volume_of_fluid_fields = this->get_volume_of_fluid_handler().get_n_fields();
+          std::vector<double> local_err_vals (n_volume_of_fluid_fields*n_err);
+          for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
             {
               std::vector<double> l_err_vals_f = calc_error_ls (*trueSolLS, n_e_samp, f);
               for (unsigned int i=0; i<n_err; ++i)
                 local_err_vals[f*n_err+i] = l_err_vals_f[i];
             }
 
-          std::vector<double> global_err_vals(n_vof_fields*n_err);
+          std::vector<double> global_err_vals(n_volume_of_fluid_fields*n_err);
           Utilities::MPI::sum (local_err_vals, this->get_mpi_communicator(), global_err_vals);
 
-          for (unsigned int f=0; f<n_vof_fields; ++f)
+          for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
             {
               for (unsigned int i=0; i<n_err; ++i)
                 {
@@ -160,7 +160,7 @@ namespace aspect
                   if (i+1<n_err)
                     err_str << "/";
                 }
-              if (f+1<n_vof_fields)
+              if (f+1<n_volume_of_fluid_fields)
                 err_str << "//";
             }
           result_string = err_str.str ();
@@ -212,7 +212,7 @@ namespace aspect
             err_interval *= year_in_seconds;
           prm.enter_subsection ("True LS");
           {
-            trueSolLS.reset(new Functions::ParsedFunction<dim>(this->get_vof_handler().get_n_fields()));
+            trueSolLS.reset(new Functions::ParsedFunction<dim>(this->get_volume_of_fluid_handler().get_n_fields()));
             trueSolLS->parse_parameters (prm);
           }
           prm.leave_subsection ();
@@ -255,9 +255,9 @@ namespace aspect
                             update_JxW_values |
                             update_quadrature_points);
 
-      const unsigned int vof_index = this->get_vof_handler().field_struct_for_field_index(f_ind)
+      const unsigned int volume_of_fluid_index = this->get_volume_of_fluid_handler().field_struct_for_field_index(f_ind)
           .volume_fraction.first_component_index;
-      const unsigned int vofN_c_index = this->get_vof_handler().field_struct_for_field_index(f_ind)
+      const unsigned int volume_of_fluidN_c_index = this->get_volume_of_fluid_handler().field_struct_for_field_index(f_ind)
           .reconstruction.first_component_index;
 
       // Initialize state based on provided function
@@ -266,16 +266,16 @@ namespace aspect
           if (!cell->is_locally_owned ())
             continue;
 
-          double cell_vof, cell_vol;
+          double cell_volume_of_fluid, cell_vol;
           double cell_diam;
           double d_func;
 
           // Obtain data for this cell and neighbors
           cell->get_dof_indices (local_dof_indices);
           for (unsigned int i=0; i<dim; ++i)
-            normal[i] = solution(local_dof_indices[finite_element.component_to_system_index(vofN_c_index+i, 0)]);
-          d = solution(local_dof_indices[finite_element.component_to_system_index(vofN_c_index+dim, 0)]);
-          cell_vof = solution(local_dof_indices[finite_element.component_to_system_index(vof_index, 0)]);
+            normal[i] = solution(local_dof_indices[finite_element.component_to_system_index(volume_of_fluidN_c_index+i, 0)]);
+          d = solution(local_dof_indices[finite_element.component_to_system_index(volume_of_fluidN_c_index+dim, 0)]);
+          cell_volume_of_fluid = solution(local_dof_indices[finite_element.component_to_system_index(volume_of_fluid_index, 0)]);
 
           // Calculate approximation for volume
           fe_err.reinit (cell);
@@ -299,7 +299,7 @@ namespace aspect
           Tensor<1, dim, double> grad_t;
           double d_t;
           double val = 0.0;
-          double vof_reinit = 0.0;
+          double volume_of_fluid_reinit = 0.0;
           for (unsigned int i = 0; i < fe_err.n_quadrature_points; ++i)
             {
               d_t = 0.0;
@@ -316,20 +316,20 @@ namespace aspect
                   grad_t[di] = (dL - dH);
                   d_t += (0.5 / dim) * (dH + dL);
                 }
-              double ptvof_t = VolumeOfFluid::compute_fluid_fraction<dim> (grad_t, d_t);
-              vof_reinit += ptvof_t *(fe_err.JxW (i) / cell_vol);
+              double ptvolume_of_fluid_t = VolumeOfFluid::compute_fluid_fraction<dim> (grad_t, d_t);
+              volume_of_fluid_reinit += ptvolume_of_fluid_t *(fe_err.JxW (i) / cell_vol);
               for (unsigned int di = 0; di < dim; ++di)
                 {
                   xU[di] -= 0.5;
                 }
               double dot = normal * xU;
-              double ptvof_e = VolumeOfFluid::compute_fluid_fraction<dim> (h * normal,
+              double ptvolume_of_fluid_e = VolumeOfFluid::compute_fluid_fraction<dim> (h * normal,
                                                                            (d - dot));
-              double diff = abs (ptvof_t - ptvof_e);
+              double diff = abs (ptvolume_of_fluid_t - ptvolume_of_fluid_e);
               val += diff * fe_err.JxW (i);
             }
           I_err_est += val;
-          F_err_est += abs (cell_vof - vof_reinit) * cell_vol;
+          F_err_est += abs (cell_volume_of_fluid - volume_of_fluid_reinit) * cell_vol;
         }
 
       std::vector<double> errors(1, I_err_est);
@@ -346,7 +346,7 @@ namespace aspect
   namespace Postprocess
   {
     ASPECT_REGISTER_POSTPROCESSOR(VoFMMSErr,
-                                  "vof mms",
+                                  "volume of fluid mms",
                                   "A postprocessor that approximates the interface error.")
   }
 }

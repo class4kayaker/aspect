@@ -19,7 +19,7 @@
  */
 
 #include <aspect/global.h>
-#include <aspect/vof/handler.h>
+#include <aspect/volume_of_fluid/handler.h>
 
 #include <deal.II/lac/constraint_matrix.h>
 
@@ -36,7 +36,7 @@
 namespace aspect
 {
   template <int dim>
-  void VoFHandler<dim>::solve_vof_system (const VoFField<dim> field)
+  void VoFHandler<dim>::solve_volume_of_fluid_system (const VoFField<dim> field)
   {
     unsigned int block_idx = field.volume_fraction.block_index;
 
@@ -44,7 +44,7 @@ namespace aspect
     this->get_pcout() << "   Solving VoF system... " << std::flush;
 
     const double tolerance = std::max(1e-50,
-                                      vof_solver_tolerance*sim.system_rhs.block(block_idx).l2_norm());
+                                      volume_of_fluid_solver_tolerance*sim.system_rhs.block(block_idx).l2_norm());
 
     SolverControl solver_control (1000, tolerance);
 
@@ -111,7 +111,7 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template void VoFHandler<dim>::solve_vof_system (const VoFField<dim> field);
+  template void VoFHandler<dim>::solve_volume_of_fluid_system (const VoFField<dim> field);
 
 
   ASPECT_INSTANTIATE(INSTANTIATE)

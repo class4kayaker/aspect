@@ -21,7 +21,7 @@
 
 #include <aspect/simulator.h>
 #include <aspect/melt.h>
-#include <aspect/vof/handler.h>
+#include <aspect/volume_of_fluid/handler.h>
 #include <aspect/newton.h>
 #include <aspect/global.h>
 
@@ -1264,11 +1264,11 @@ namespace aspect
   void Simulator<dim>::apply_limiter_to_dg_solutions (const AdvectionField &advection_field)
   {
     // TODO: Modify to more robust method
-    // Skip if this composition field is being set from the vof handler
+    // Skip if this composition field is being set from the volume_of_fluid handler
     if (!advection_field.is_temperature() &&
-        parameters.vof_tracking_enabled)
-      if (vof_handler->field_index_for_name(introspection.name_for_compositional_index(advection_field.compositional_variable))
-          != vof_handler->get_n_fields())
+        parameters.volume_of_fluid_tracking_enabled)
+      if (volume_of_fluid_handler->field_index_for_name(introspection.name_for_compositional_index(advection_field.compositional_variable))
+          != volume_of_fluid_handler->get_n_fields())
         return;
 
     /*

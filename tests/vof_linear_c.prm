@@ -75,7 +75,7 @@ subsection Initial Volume of Fluid model
 end
 
 subsection Postprocess
-  set List of postprocessors = vof statistics, composition statistics, vof mms
+  set List of postprocessors = volume of fluid statistics, composition statistics, volume of fluid mms
 
   subsection VoF MMS
     set Number error samples = 16
@@ -91,7 +91,7 @@ subsection Postprocess
   subsection Visualization
     set Time between graphical output = 1.0
 
-    set List of output variables = vof values
+    set List of output variables = volume of fluid values
 
     subsection Volume of Fluid
       set Include internal reconstruction contour = true

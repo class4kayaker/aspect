@@ -19,8 +19,8 @@
 */
 
 
-#include <aspect/mesh_refinement/vof_interface.h>
-#include <aspect/vof/handler.h>
+#include <aspect/mesh_refinement/volume_of_fluid_interface.h>
+#include <aspect/volume_of_fluid/handler.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/geometry_info.h>
@@ -60,14 +60,14 @@ namespace aspect
                                qMidC,
                                update_values |
                                update_quadrature_points);
-      for (unsigned int f=0; f<this->get_vof_handler().get_n_fields(); ++f)
+      for (unsigned int f=0; f<this->get_volume_of_fluid_handler().get_n_fields(); ++f)
         {
 
-          const FEValuesExtractors::Scalar vof_field = this->get_vof_handler().field_struct_for_field_index(f)
+          const FEValuesExtractors::Scalar volume_of_fluid_field = this->get_volume_of_fluid_handler().field_struct_for_field_index(f)
                                                        .volume_fraction.extractor_scalar();
-          std::vector<double> vof_q_values(qMidC.size());
+          std::vector<double> volume_of_fluid_q_values(qMidC.size());
 
-          const double voleps = this->get_vof_handler().get_volume_fraction_threshold();
+          const double voleps = this->get_volume_of_fluid_handler().get_volume_fraction_threshold();
 
           typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active(),
                                                          endc = this->get_dof_handler().end();
@@ -79,21 +79,21 @@ namespace aspect
 
               bool mark = false;
 
-              // Get cell vof
+              // Get cell volume_of_fluid
               fe_values.reinit(cell);
-              fe_values[vof_field].get_function_values(this->get_solution(),
-                                                       vof_q_values);
-              double cell_vof = vof_q_values[0];
+              fe_values[volume_of_fluid_field].get_function_values(this->get_solution(),
+                                                       volume_of_fluid_q_values);
+              double cell_volume_of_fluid = volume_of_fluid_q_values[0];
 
               // Handle overshoots
-              if (cell_vof > 1.0)
-                cell_vof = 1.0;
+              if (cell_volume_of_fluid > 1.0)
+                cell_volume_of_fluid = 1.0;
 
-              if (cell_vof < 0.0)
-                cell_vof = 0.0;
+              if (cell_volume_of_fluid < 0.0)
+                cell_volume_of_fluid = 0.0;
 
               // Check if at interface
-              if (cell_vof > voleps && cell_vof < (1.0 - voleps))
+              if (cell_volume_of_fluid > voleps && cell_volume_of_fluid < (1.0 - voleps))
                 {
                   mark = true;
                 }
@@ -121,18 +121,18 @@ namespace aspect
                             {
                               if (neighbor==endc) continue;
                               fe_values.reinit(neighbor);
-                              fe_values[vof_field].get_function_values(this->get_solution(),
-                                                                       vof_q_values);
+                              fe_values[volume_of_fluid_field].get_function_values(this->get_solution(),
+                                                                       volume_of_fluid_q_values);
 
-                              double neighbor_vof = vof_q_values[0];
+                              double neighbor_volume_of_fluid = volume_of_fluid_q_values[0];
 
-                              if (neighbor_vof > 1.0)
-                                neighbor_vof = 1.0;
+                              if (neighbor_volume_of_fluid > 1.0)
+                                neighbor_volume_of_fluid = 1.0;
 
-                              if (neighbor_vof < 0.0)
-                                neighbor_vof = 0.0;
+                              if (neighbor_volume_of_fluid < 0.0)
+                                neighbor_volume_of_fluid = 0.0;
 
-                              if (std::abs(neighbor_vof-cell_vof)>voleps)
+                              if (std::abs(neighbor_volume_of_fluid-cell_volume_of_fluid)>voleps)
                                 {
                                   mark = true;
                                   break;
@@ -156,18 +156,18 @@ namespace aspect
 
                               if (neighbor_sub==endc) continue;
                               fe_values.reinit(neighbor_sub);
-                              fe_values[vof_field].get_function_values(this->get_solution(),
-                                                                       vof_q_values);
+                              fe_values[volume_of_fluid_field].get_function_values(this->get_solution(),
+                                                                       volume_of_fluid_q_values);
 
-                              double neighbor_vof = vof_q_values[0];
+                              double neighbor_volume_of_fluid = volume_of_fluid_q_values[0];
 
-                              if (neighbor_vof > 1.0)
-                                neighbor_vof = 1.0;
+                              if (neighbor_volume_of_fluid > 1.0)
+                                neighbor_volume_of_fluid = 1.0;
 
-                              if (neighbor_vof < 0.0)
-                                neighbor_vof = 0.0;
+                              if (neighbor_volume_of_fluid < 0.0)
+                                neighbor_volume_of_fluid = 0.0;
 
-                              if (std::abs(neighbor_vof-cell_vof)>voleps)
+                              if (std::abs(neighbor_volume_of_fluid-cell_volume_of_fluid)>voleps)
                                 {
                                   mark = true;
                                   break;
@@ -266,7 +266,7 @@ namespace aspect
     {
       prm.enter_subsection("Mesh refinement");
       {
-        prm.enter_subsection("VOF Interface");
+        prm.enter_subsection("Volume of fluid interface");
         {
           prm.declare_entry("Strict refinement", "false",
                             Patterns::Bool(),
@@ -282,13 +282,13 @@ namespace aspect
     void
     VoFInterface<dim>::parse_parameters (ParameterHandler &prm)
     {
-      //TODO: Add check for vof active
-      AssertThrow(this->get_parameters().vof_tracking_enabled,
-                  ExcMessage("The 'vof boundary' mesh refinement strategy requires that the 'Use VoF tracking' parameter is enabled."));
+      //TODO: Add check for volume_of_fluid active
+      AssertThrow(this->get_parameters().volume_of_fluid_tracking_enabled,
+                  ExcMessage("The 'volume_of_fluid boundary' mesh refinement strategy requires that the 'Use VoF tracking' parameter is enabled."));
 
       prm.enter_subsection("Mesh refinement");
       {
-        prm.enter_subsection("VOF Interface");
+        prm.enter_subsection("Volume of fluid interface");
         {
           strict_refinement = prm.get_bool("Strict refinement");
         }
@@ -307,7 +307,7 @@ namespace aspect
   namespace MeshRefinement
   {
     ASPECT_REGISTER_MESH_REFINEMENT_CRITERION(VoFInterface,
-                                              "vof interface",
+                                              "volume of fluid interface",
                                               "A class that implements a mesh refinement criterion, which "
                                               "ensures a minimum level of refinement near the VoF interface boundary.")
   }

@@ -19,8 +19,8 @@
 */
 
 
-#ifndef __aspect_mesh_refinement_vof_interface_h
-#define __aspect_mesh_refinement_vof_interface_h
+#ifndef __aspect_mesh_refinement_volume_of_fluid_interface_h
+#define __aspect_mesh_refinement_volume_of_fluid_interface_h
 
 #include <aspect/mesh_refinement/interface.h>
 #include <aspect/simulator_access.h>

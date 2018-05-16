@@ -17,7 +17,7 @@ subsection Mesh refinement
   set Initial adaptive refinement        = 2
   set Time steps between mesh refinement = 1
   set Run postprocessors on initial refinement = true
-  set Strategy                                 = vof interface
+  set Strategy                                 = volume of fluid interface
 end
 
 subsection Geometry model
@@ -68,7 +68,7 @@ subsection Initial Volume of Fluid model
 end
 
 subsection Postprocess
-  set List of postprocessors = vof statistics, vof mms
+  set List of postprocessors = volume of fluid statistics, volume of fluid mms
 
   subsection VoF MMS
     set Number error samples = 16
@@ -84,7 +84,7 @@ subsection Postprocess
   subsection Visualization
     set Time between graphical output = 2.0
 
-    set List of output variables = vof values, error indicator
+    set List of output variables = volume of fluid values, error indicator
 
     subsection Volume of Fluid
       set Include internal reconstruction contour = true

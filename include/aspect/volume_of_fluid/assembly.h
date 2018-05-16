@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__vof_assembly_h
-#define __aspect__vof_assembly_h
+#ifndef __aspect__volume_of_fluid_assembly_h
+#define __aspect__volume_of_fluid_assembly_h
 
 #include <aspect/global.h>
 #include <aspect/simulator_access.h>
@@ -49,7 +49,7 @@ namespace aspect
         struct VoFSystem
         {
           VoFSystem (const FiniteElement<dim> &finite_element,
-                     const FiniteElement<dim> &vof_element,
+                     const FiniteElement<dim> &volume_of_fluid_element,
                      const Mapping<dim>       &mapping,
                      const Quadrature<dim>    &quadrature,
                      const Quadrature<dim-1>  &face_quadrature);
@@ -138,8 +138,8 @@ namespace aspect
 
           /**
            * Indices of those degrees of freedom that actually correspond to
-           * the vof field. Since this structure is used to represent just
-           * contributions to the vof systems, there will be no contributions
+           * the volume_of_fluid field. Since this structure is used to represent just
+           * contributions to the volume_of_fluid systems, there will be no contributions
            * to other parts of the system and consequently, we do not need to
            * list here indices that correspond to velocity or pressure degrees
            * (or, in fact any other variable outside the block we are currently
@@ -148,7 +148,7 @@ namespace aspect
           std::vector<types::global_dof_index>   local_dof_indices;
 
           /**
-           * Indices of the degrees of freedom corresponding to the vof field
+           * Indices of the degrees of freedom corresponding to the volume_of_fluid field
            * on all possible neighboring cells. This is used in the
            * discontinuous Galerkin interpretation of the VoF method. The outer
            * std::vector has length GeometryInfo<dim>::max_children_per_face *
@@ -176,7 +176,7 @@ namespace aspect
          * Do setup and assembly on internal quadrature points and dispatch to
          * other functions for face assembly
          */
-        void local_assemble_vof_system (const VoFField<dim> field,
+        void local_assemble_volume_of_fluid_system (const VoFField<dim> field,
                                         const unsigned int calc_dir,
                                         const bool update_from_old,
                                         const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -186,7 +186,7 @@ namespace aspect
         /**
          * Do assembly for cell faces on the boundary
          */
-        void local_assemble_boundary_face_vof_system (const VoFField<dim> field,
+        void local_assemble_boundary_face_volume_of_fluid_system (const VoFField<dim> field,
                                                       const unsigned int calc_dir,
                                                       const bool update_from_old,
                                                       const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -197,7 +197,7 @@ namespace aspect
         /**
          * Function for assembling face fluxes for VoF system.
          */
-        void local_assemble_internal_face_vof_system (const VoFField<dim> field,
+        void local_assemble_internal_face_volume_of_fluid_system (const VoFField<dim> field,
                                                       const unsigned int calc_dir,
                                                       bool update_from_old,
                                                       const typename DoFHandler<dim>::active_cell_iterator &cell,

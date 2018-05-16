@@ -18,9 +18,9 @@
   <http://www.gnu.org/licenses/>.
 */
 
-#include <aspect/postprocess/visualization/vof_values.h>
+#include <aspect/postprocess/visualization/volume_of_fluid_values.h>
 #include <aspect/simulator_access.h>
-#include <aspect/vof/handler.h>
+#include <aspect/volume_of_fluid/handler.h>
 
 
 namespace aspect
@@ -42,7 +42,7 @@ namespace aspect
       VoFValues<dim>::
       get_names () const
       {
-        return vof_names;
+        return volume_of_fluid_names;
       }
 
 
@@ -80,29 +80,29 @@ namespace aspect
         if (include_normal)
           out_per_field += dim;
 
-        for (unsigned int f=0; f<this->get_vof_handler().get_n_fields(); ++f)
+        for (unsigned int f=0; f<this->get_volume_of_fluid_handler().get_n_fields(); ++f)
           {
-            VoFField<dim> field = this->get_vof_handler().field_struct_for_field_index(f);
+            VoFField<dim> field = this->get_volume_of_fluid_handler().field_struct_for_field_index(f);
 
-            const FEVariable<dim> &vof_var = field.volume_fraction;
-            const unsigned int vof_ind = vof_var.first_component_index;
-            const FEVariable<dim> &vofLS_var = field.level_set;
-            const unsigned int vofLS_ind = vofLS_var.first_component_index;
+            const FEVariable<dim> &volume_of_fluid_var = field.volume_fraction;
+            const unsigned int volume_of_fluid_ind = volume_of_fluid_var.first_component_index;
+            const FEVariable<dim> &volume_of_fluidLS_var = field.level_set;
+            const unsigned int volume_of_fluidLS_ind = volume_of_fluidLS_var.first_component_index;
 
             for (unsigned int q=0; q<n_quadrature_points; ++q)
               {
                 unsigned int out_ind = f*out_per_field;
-                computed_quantities[q][out_ind] = input_data.solution_values[q][vof_ind];
+                computed_quantities[q][out_ind] = input_data.solution_values[q][volume_of_fluid_ind];
                 ++out_ind;
                 if (include_contour)
                   {
-                    computed_quantities[q][out_ind] = input_data.solution_values[q][vofLS_ind];
+                    computed_quantities[q][out_ind] = input_data.solution_values[q][volume_of_fluidLS_ind];
                     ++out_ind;
                   }
 
                 if (include_normal)
                   {
-                    Tensor<1, dim, double> normal = -input_data.solution_gradients[q][vofLS_ind];
+                    Tensor<1, dim, double> normal = -input_data.solution_gradients[q][volume_of_fluidLS_ind];
                     for (unsigned int i = 0; i<dim; ++i)
                       {
                         computed_quantities[q][out_ind] = normal[i];
@@ -153,15 +153,15 @@ namespace aspect
               include_contour = prm.get_bool("Include internal reconstruction contour");
               include_normal = prm.get_bool("Include normals");
 
-              for (unsigned int f=0; f<this->get_vof_handler().get_n_fields(); ++f)
+              for (unsigned int f=0; f<this->get_volume_of_fluid_handler().get_n_fields(); ++f)
                 {
-                  std::string field_name = this->get_vof_handler().name_for_field_index(f);
-                  vof_names.push_back("volume_fraction_"+field_name);
+                  std::string field_name = this->get_volume_of_fluid_handler().name_for_field_index(f);
+                  volume_of_fluid_names.push_back("volume_fraction_"+field_name);
                   interp.push_back(DataComponentInterpretation::component_is_scalar);
 
                   if (include_contour)
                     {
-                      vof_names.push_back("volume_of_fluid_contour_"+field_name);
+                      volume_of_fluid_names.push_back("volume_of_fluid_contour_"+field_name);
                       interp.push_back(DataComponentInterpretation::component_is_scalar);
                     }
 
@@ -169,7 +169,7 @@ namespace aspect
                     {
                       for (unsigned int i=0; i<dim; ++i)
                         {
-                          vof_names.push_back("volume_of_fluid_interface_normal_"+field_name);
+                          volume_of_fluid_names.push_back("volume_of_fluid_interface_normal_"+field_name);
                           interp.push_back(DataComponentInterpretation::component_is_part_of_vector);
                         }
                     }
@@ -193,8 +193,8 @@ namespace aspect
     namespace VisualizationPostprocessors
     {
       ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(VoFValues,
-                                                  "vof values",
-                                                  "A visualization output object that outputs the  vof data."
+                                                  "volume of fluid values",
+                                                  "A visualization output object that outputs the  volume_of_fluid data."
                                                   "Names are given in Postprocess/Visualization/VoF values")
     }
   }

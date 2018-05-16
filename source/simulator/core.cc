@@ -23,7 +23,7 @@
 #include <aspect/global.h>
 #include <aspect/utilities.h>
 #include <aspect/melt.h>
-#include <aspect/vof/handler.h>
+#include <aspect/volume_of_fluid/handler.h>
 #include <aspect/newton.h>
 #include <aspect/free_surface.h>
 
@@ -136,8 +136,8 @@ namespace aspect
     assemblers (new Assemblers::Manager<dim>()),
     parameters (prm, mpi_communicator_),
     melt_handler (parameters.include_melt_transport ? new MeltHandler<dim> (prm) : NULL),
-    vof_handler (parameters.vof_tracking_enabled ? new VoFHandler<dim> (*this, prm) : NULL),
     newton_handler (parameters.nonlinear_solver == NonlinearSolver::iterated_Advection_and_Newton_Stokes ? new NewtonHandler<dim> () : NULL),
+    volume_of_fluid_handler (parameters.volume_of_fluid_tracking_enabled ? new VoFHandler<dim> (*this, prm) : NULL),
     post_signal_creation(
       std_cxx11::bind (&internals::SimulatorSignals::call_connector_functions<dim>,
                        std_cxx11::ref(signals))),
@@ -335,9 +335,9 @@ namespace aspect
         newton_handler->parameters.parse_parameters(prm);
       }
 
-    if (parameters.vof_tracking_enabled)
+    if (parameters.volume_of_fluid_tracking_enabled)
       {
-        vof_handler->initialize (prm);
+        volume_of_fluid_handler->initialize (prm);
       }
 
     postprocess_manager.initialize_simulator (*this);
@@ -866,13 +866,13 @@ namespace aspect
 
       // If we are using VoF interface tracking, create a matrix block in the
       // field corresponding to the volume fraction.
-      if (parameters.vof_tracking_enabled)
+      if (parameters.volume_of_fluid_tracking_enabled)
         {
-          for (unsigned int f=0; f<vof_handler->get_n_fields(); ++f)
+          for (unsigned int f=0; f<volume_of_fluid_handler->get_n_fields(); ++f)
             {
-              const unsigned int vof_c_index = vof_handler->field_struct_for_field_index(f)
+              const unsigned int volume_of_fluid_c_index = volume_of_fluid_handler->field_struct_for_field_index(f)
                                                .volume_fraction.first_component_index;
-              coupling[vof_c_index][vof_c_index] = DoFTools::always;
+              coupling[volume_of_fluid_c_index][volume_of_fluid_c_index] = DoFTools::always;
             }
         }
     }
@@ -889,7 +889,7 @@ namespace aspect
 
     if ((parameters.use_discontinuous_temperature_discretization) ||
         (parameters.use_discontinuous_composition_discretization) ||
-        (parameters.vof_tracking_enabled))
+        (parameters.volume_of_fluid_tracking_enabled))
       {
         Table<2,DoFTools::Coupling> face_coupling (introspection.n_components,
                                                    introspection.n_components);
@@ -904,13 +904,13 @@ namespace aspect
         if (parameters.use_discontinuous_composition_discretization && have_fem_compositional_field)
           face_coupling[x.compositional_fields[0]][x.compositional_fields[0]] = DoFTools::always;
 
-        if (parameters.vof_tracking_enabled)
+        if (parameters.volume_of_fluid_tracking_enabled)
           {
-            for (unsigned int f=0; f<vof_handler->get_n_fields(); ++f)
+            for (unsigned int f=0; f<volume_of_fluid_handler->get_n_fields(); ++f)
               {
-                const unsigned int vof_c_index = vof_handler->field_struct_for_field_index(f)
+                const unsigned int volume_of_fluid_c_index = volume_of_fluid_handler->field_struct_for_field_index(f)
                                                  .volume_fraction.first_component_index;
-                face_coupling[vof_c_index][vof_c_index] = DoFTools::always;
+                face_coupling[volume_of_fluid_c_index][volume_of_fluid_c_index] = DoFTools::always;
               }
           }
 

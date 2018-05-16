@@ -18,8 +18,8 @@
   <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __aspect_vof_field_h
-#define __aspect_vof_field_h
+#ifndef __aspect_volume_of_fluid_field_h
+#define __aspect_volume_of_fluid_field_h
 
 #include <aspect/fe_variable_collection.h>
 

@@ -21,9 +21,9 @@
 #include <aspect/simulator.h>
 #include <aspect/utilities.h>
 #include <aspect/free_surface.h>
-#include <aspect/vof/handler.h>
-#include <aspect/vof/utilities.h>
-#include <aspect/vof/assembly.h>
+#include <aspect/volume_of_fluid/handler.h>
+#include <aspect/volume_of_fluid/utilities.h>
+#include <aspect/volume_of_fluid/assembly.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/work_stream.h>
@@ -46,7 +46,7 @@ namespace aspect
       {
         template <int dim>
         VoFSystem<dim>::VoFSystem (const FiniteElement<dim> &finite_element,
-                                   const FiniteElement<dim> &vof_element,
+                                   const FiniteElement<dim> &volume_of_fluid_element,
                                    const Mapping<dim>       &mapping,
                                    const Quadrature<dim>    &quadrature,
                                    const Quadrature<dim-1>  &face_quadrature)
@@ -80,7 +80,7 @@ namespace aspect
                                          update_normal_vectors |
                                          update_JxW_values),
           local_dof_indices(finite_element.dofs_per_cell),
-          phi_field (vof_element.dofs_per_cell, numbers::signaling_nan<double>()),
+          phi_field (volume_of_fluid_element.dofs_per_cell, numbers::signaling_nan<double>()),
           old_field_values (quadrature.size(), numbers::signaling_nan<double>()),
           cell_i_n_values (quadrature.size(), numbers::signaling_nan<Tensor<1, dim> > ()),
           cell_i_d_values (quadrature.size(), numbers::signaling_nan<double> ()),
@@ -183,7 +183,7 @@ namespace aspect
 
 
   template <int dim>
-  void VoFHandler<dim>::assemble_vof_system (const VoFField<dim> field,
+  void VoFHandler<dim>::assemble_volume_of_fluid_system (const VoFField<dim> field,
                                              const unsigned int dir,
                                              const bool update_from_old)
   {
@@ -196,7 +196,7 @@ namespace aspect
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>
     CellFilter;
 
-    const FiniteElement<dim> &vof_fe = (*field.volume_fraction.fe);
+    const FiniteElement<dim> &volume_of_fluid_fe = (*field.volume_fraction.fe);
 
     WorkStream::
     run (CellFilter (IteratorFilters::LocallyOwnedCell(),
@@ -204,7 +204,7 @@ namespace aspect
          CellFilter (IteratorFilters::LocallyOwnedCell(),
                      this->get_dof_handler().end()),
          std_cxx11::bind (&Assemblers::VoFAssembler<dim>::
-                          local_assemble_vof_system,
+                          local_assemble_volume_of_fluid_system,
                           assembler,
                           field,
                           dir,
@@ -213,7 +213,7 @@ namespace aspect
                           std_cxx11::_2,
                           std_cxx11::_3),
          std_cxx11::bind (&VoFHandler<dim>::
-                          copy_local_to_global_vof_system,
+                          copy_local_to_global_volume_of_fluid_system,
                           this,
                           std_cxx11::_1),
          // we have to assemble the term u.grad phi_i * phi_j, which is
@@ -234,12 +234,12 @@ namespace aspect
          // field index.)
          internal::Assembly::Scratch::
          VoFSystem<dim> (this->get_fe(),
-                         vof_fe,
+                         volume_of_fluid_fe,
                          this->get_mapping(),
                          QGauss<dim>((this->get_parameters().stokes_velocity_degree+1)/2),
                          QGauss<dim-1>((this->get_parameters().stokes_velocity_degree+1)/2)),
          internal::Assembly::CopyData::
-         VoFSystem<dim> (vof_fe));
+         VoFSystem<dim> (volume_of_fluid_fe));
 
     sim.system_matrix.compress(VectorOperation::add);
     sim.system_rhs.compress(VectorOperation::add);
@@ -248,7 +248,7 @@ namespace aspect
   }
 
   template <int dim>
-  void VoFHandler<dim>::copy_local_to_global_vof_system (const internal::Assembly::CopyData::VoFSystem<dim> &data)
+  void VoFHandler<dim>::copy_local_to_global_volume_of_fluid_system (const internal::Assembly::CopyData::VoFSystem<dim> &data)
   {
     // copy entries into the global matrix. note that these local contributions
     // only correspond to the advection dofs, as assembled above
@@ -284,10 +284,10 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template void VoFHandler<dim>::assemble_vof_system (const VoFField<dim> field, \
+  template void VoFHandler<dim>::assemble_volume_of_fluid_system (const VoFField<dim> field, \
                                                       unsigned int dir, \
                                                       bool update_from_old); \
-  template void VoFHandler<dim>::copy_local_to_global_vof_system (const internal::Assembly::CopyData::VoFSystem<dim> &data);
+  template void VoFHandler<dim>::copy_local_to_global_volume_of_fluid_system (const internal::Assembly::CopyData::VoFSystem<dim> &data);
 
 
   ASPECT_INSTANTIATE(INSTANTIATE)

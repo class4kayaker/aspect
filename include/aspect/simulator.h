@@ -1479,10 +1479,10 @@ namespace aspect
 
       /**
        * Shared pointer for an instance of the VoFHandler. This way,
-       * if we do not need the machinery for doing vof stuff, we do
+       * if we do not need the machinery for doing volume_of_fluid stuff, we do
        * not even allocate it.
        */
-      std_cxx11::shared_ptr<VoFHandler<dim> > vof_handler;
+      std_cxx11::shared_ptr<VoFHandler<dim> > volume_of_fluid_handler;
 
       const IntermediaryConstructorAction post_signal_creation;
 

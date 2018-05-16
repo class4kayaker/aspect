@@ -507,7 +507,7 @@ namespace aspect
      * @name Parameters that have to do with VoF calculations
      * @{
      */
-    bool                           vof_tracking_enabled;
+    bool                           volume_of_fluid_tracking_enabled;
     /**
      * @}
      */

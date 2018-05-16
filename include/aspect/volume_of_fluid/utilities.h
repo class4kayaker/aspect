@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__vof_utilities_h
-#define __aspect__vof_utilities_h
+#ifndef __aspect__volume_of_fluid_utilities_h
+#define __aspect__volume_of_fluid_utilities_h
 
 #include <aspect/global.h>
 
@@ -139,7 +139,7 @@ namespace aspect
      * the timestep.
      */
     template<int dim>
-    double calc_vof_flux_edge (const unsigned int compute_direction,
+    double calc_volume_of_fluid_flux_edge (const unsigned int compute_direction,
                                const double time_direction_derivative,
                                const Tensor<1, dim, double> inteface_normal_in_cell,
                                const double d_at_face_center);

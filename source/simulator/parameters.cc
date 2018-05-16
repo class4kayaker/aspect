@@ -23,7 +23,7 @@
 #include <aspect/global.h>
 #include <aspect/utilities.h>
 #include <aspect/melt.h>
-#include <aspect/vof/handler.h>
+#include <aspect/volume_of_fluid/handler.h>
 #include <aspect/newton.h>
 #include <aspect/free_surface.h>
 
@@ -1514,7 +1514,7 @@ namespace aspect
 
     prm.enter_subsection ("Volume of Fluid");
     {
-      vof_tracking_enabled = prm.get_bool("Enable interface tracking");
+      volume_of_fluid_tracking_enabled = prm.get_bool("Enable interface tracking");
     }
     prm.leave_subsection ();
 

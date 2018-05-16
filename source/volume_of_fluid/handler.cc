@@ -20,8 +20,8 @@
 
 #include <aspect/simulator.h>
 #include <aspect/global.h>
-#include <aspect/vof/handler.h>
-#include <aspect/vof/assembly.h>
+#include <aspect/volume_of_fluid/handler.h>
+#include <aspect/volume_of_fluid/assembly.h>
 
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/mapping_cartesian.h>
@@ -44,7 +44,7 @@ namespace aspect
   VoFHandler<dim>::VoFHandler (Simulator<dim> &simulator,
                                ParameterHandler &prm)
     : sim (simulator),
-      vof_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm)),
+      volume_of_fluid_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm)),
       assembler (),
       direction_order_descending(false)
   {
@@ -56,7 +56,7 @@ namespace aspect
     this->get_signals().edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::edit_finite_element_variables,
                                                                               std_cxx11::ref(*this),
                                                                               std_cxx11::_1));
-    this->get_signals().post_set_initial_state.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::set_initial_vofs,
+    this->get_signals().post_set_initial_state.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::set_initial_volume_of_fluids,
                                                                        std_cxx11::ref(*this)));
   }
 
@@ -64,23 +64,23 @@ namespace aspect
   void
   VoFHandler<dim>::edit_finite_element_variables (std::vector<VariableDeclaration<dim> > &vars)
   {
-    for (unsigned int f=0; f<n_vof_fields; ++f)
+    for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
         // Add declaration for volume fraction field
-        vars.push_back(VariableDeclaration<dim>("volume_fraction_"+vof_field_names[f],
+        vars.push_back(VariableDeclaration<dim>("volume_fraction_"+volume_of_fluid_field_names[f],
                                                 std_cxx11::shared_ptr<FiniteElement<dim>>(
                                                   new FE_DGQ<dim>(0)),
                                                 1,
                                                 1));
 
         // Add declaration for reconstructed interface cache
-        vars.push_back(VariableDeclaration<dim>("volume_of_fluid_interface_reconstruction_"+vof_field_names[f],
+        vars.push_back(VariableDeclaration<dim>("volume_of_fluid_interface_reconstruction_"+volume_of_fluid_field_names[f],
                                                 std_cxx11::shared_ptr<FiniteElement<dim>>(
                                                   new FE_DGQ<dim>(0)),
                                                 dim+1,
                                                 1));
 
-        vars.push_back(VariableDeclaration<dim>("volume_of_fluid_contour_"+vof_field_names[f],
+        vars.push_back(VariableDeclaration<dim>("volume_of_fluid_contour_"+volume_of_fluid_field_names[f],
                                                 std_cxx11::shared_ptr<FiniteElement<dim>>(
                                                   new FE_DGQ<dim>(1)),
                                                 1,
@@ -128,53 +128,53 @@ namespace aspect
     {
       volume_fraction_threshold = prm.get_double("Volume fraction threshold");
 
-      vof_solver_tolerance = prm.get_double("Volume of Fluid solver tolerance");
+      volume_of_fluid_solver_tolerance = prm.get_double("Volume of Fluid solver tolerance");
 
-      n_vof_fields = prm.get_integer("Number of fields");
+      n_volume_of_fluid_fields = prm.get_integer("Number of fields");
 
-      vof_field_names = Utilities::split_string_list (prm.get("Volume of Fluid field names"));
-      AssertThrow((vof_field_names.size() == 0) ||
-                  (vof_field_names.size() == n_vof_fields),
+      volume_of_fluid_field_names = Utilities::split_string_list (prm.get("Volume of Fluid field names"));
+      AssertThrow((volume_of_fluid_field_names.size() == 0) ||
+                  (volume_of_fluid_field_names.size() == n_volume_of_fluid_fields),
                   ExcMessage("The length of the list of names for the Volume of Fluid fields "
                              "needs to either be empty or have length equal to the "
                              "number of compositional fields."));
 
       // check that names use only allowed characters, are not empty strings, and are unique
-      for (unsigned int i=0; i<vof_field_names.size(); ++i)
+      for (unsigned int i=0; i<volume_of_fluid_field_names.size(); ++i)
         {
-          Assert (vof_field_names[i].find_first_not_of("abcdefghijklmnopqrstuvwxyz"
+          Assert (volume_of_fluid_field_names[i].find_first_not_of("abcdefghijklmnopqrstuvwxyz"
                                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                                        "0123456789_") == std::string::npos,
-                  ExcMessage("Invalid character in field " + vof_field_names[i] + ". "
+                  ExcMessage("Invalid character in field " + volume_of_fluid_field_names[i] + ". "
                              "Names of Volume of Fluid fields should consist of a "
                              "combination of letters, numbers and underscores."));
-          Assert (vof_field_names[i].size() > 0,
-                  ExcMessage("Invalid name of field " + vof_field_names[i] + ". "
+          Assert (volume_of_fluid_field_names[i].size() > 0,
+                  ExcMessage("Invalid name of field " + volume_of_fluid_field_names[i] + ". "
                              "Names of Volume of Fluid fields need to be non-empty."));
           for (unsigned int j=0; j<i; ++j)
-            Assert (vof_field_names[i] != vof_field_names[j],
-                    ExcMessage("Names of Volume of Fluid fields have to be unique! " + vof_field_names[i] +
+            Assert (volume_of_fluid_field_names[i] != volume_of_fluid_field_names[j],
+                    ExcMessage("Names of Volume of Fluid fields have to be unique! " + volume_of_fluid_field_names[i] +
                                " is used more than once."));
         }
 
       // default names if not empty
-      if (vof_field_names.size()==0)
+      if (volume_of_fluid_field_names.size()==0)
         {
-          for (unsigned int i=0; i<n_vof_fields; ++i)
-            vof_field_names.push_back("F_" + Utilities::int_to_string(i+1));
+          for (unsigned int i=0; i<n_volume_of_fluid_fields; ++i)
+            volume_of_fluid_field_names.push_back("F_" + Utilities::int_to_string(i+1));
         }
 
-      const std::vector<std::string> x_vof_composition_vars =
+      const std::vector<std::string> x_volume_of_fluid_composition_vars =
         Utilities::split_string_list
         (prm.get ("Volume of Fluid composition mapping"));
 
-      if (x_vof_composition_vars.size()>0 && !this->get_parameters().use_discontinuous_composition_discretization)
+      if (x_volume_of_fluid_composition_vars.size()>0 && !this->get_parameters().use_discontinuous_composition_discretization)
         {
           AssertThrow(false, ExcMessage("Volume of Fluid composition field not implemented for continuous composition."));
         }
 
-      for (std::vector<std::string>::const_iterator p = x_vof_composition_vars.begin();
-           p != x_vof_composition_vars.end(); ++p)
+      for (std::vector<std::string>::const_iterator p = x_volume_of_fluid_composition_vars.begin();
+           p != x_volume_of_fluid_composition_vars.end(); ++p)
         {
           const std::vector<std::string> split_parts = Utilities::split_string_list(*p, ':');
           AssertThrow (split_parts.size() == 2,
@@ -182,7 +182,7 @@ namespace aspect
                                   "`composition:Vof field', but there does not appear to be a colon in the entry <" + *p + ">."));
 
           const std::string composition_field = split_parts[0];
-          const std::string vof_field = split_parts[1];
+          const std::string volume_of_fluid_field = split_parts[1];
 
           // Check composition_field exists
           bool field_exists=false;
@@ -197,31 +197,31 @@ namespace aspect
                                           composition_field +
                                           " does not exist."));
 
-          // Check vof_field exists
+          // Check volume_of_fluid_field exists
           field_exists=false;
-          unsigned int vof_field_index = n_vof_fields;
+          unsigned int volume_of_fluid_field_index = n_volume_of_fluid_fields;
 
-          for (unsigned int i=0; i<n_vof_fields; ++i)
+          for (unsigned int i=0; i<n_volume_of_fluid_fields; ++i)
             {
-              if (vof_field == vof_field_names[i])
+              if (volume_of_fluid_field == volume_of_fluid_field_names[i])
                 {
                   field_exists = true;
-                  vof_field_index = i;
+                  volume_of_fluid_field_index = i;
                   break;
                 }
             }
 
           Assert(field_exists, ExcMessage("Volume of Fluid field variable " +
-                                          vof_field +
+                                          volume_of_fluid_field +
                                           " does not exist."));
 
           // Ensure no duplicate mapping to a composition field
-          Assert (vof_composition_map_index.count(composition_field) == 0,
+          Assert (volume_of_fluid_composition_map_index.count(composition_field) == 0,
                   ExcMessage("Volume of Fluid composition field mappings have to be unique! " + composition_field +
                              " is used more than once."));
 
           // Add to mappings
-          vof_composition_map_index[composition_field] = vof_field_index;
+          volume_of_fluid_composition_map_index[composition_field] = volume_of_fluid_field_index;
         }
     }
     prm.leave_subsection ();
@@ -258,13 +258,13 @@ namespace aspect
           std::vector<std::string> plugin_names
             = Utilities::split_string_list(prm.get("Strategy"));
 
-          bool has_vof_strategy = false;
+          bool has_volume_of_fluid_strategy = false;
           for (unsigned int name=0; name<plugin_names.size(); ++name)
             {
-              has_vof_strategy = (plugin_names[name] == "vof interface") || has_vof_strategy;
+              has_volume_of_fluid_strategy = (plugin_names[name] == "volume_of_fluid interface") || has_volume_of_fluid_strategy;
             }
-          AssertThrow(has_vof_strategy,
-                      ExcMessage("Volume of Fluid Interface Tracking requires that the 'vof interface' strategy be used for AMR"));
+          AssertThrow(has_volume_of_fluid_strategy,
+                      ExcMessage("Volume of Fluid Interface Tracking requires that the 'volume_of_fluid interface' strategy be used for AMR"));
         }
         prm.leave_subsection();
 
@@ -274,33 +274,33 @@ namespace aspect
 
     // Gather the created volume fraction data into a structure for easier programmatic referencing
 
-    for (unsigned int f=0; f<n_vof_fields; ++f)
+    for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
-        data.push_back(VoFField<dim>(this->introspection().variable("volume_fraction_"+vof_field_names[f]),
-                                     this->introspection().variable("volume_of_fluid_interface_reconstruction_"+vof_field_names[f]),
-                                     this->introspection().variable("volume_of_fluid_contour_"+vof_field_names[f])));
+        data.push_back(VoFField<dim>(this->introspection().variable("volume_fraction_"+volume_of_fluid_field_names[f]),
+                                     this->introspection().variable("volume_of_fluid_interface_reconstruction_"+volume_of_fluid_field_names[f]),
+                                     this->introspection().variable("volume_of_fluid_contour_"+volume_of_fluid_field_names[f])));
       }
 
     // Do initial conditions setup
-    if (SimulatorAccess<dim> *sim_a = dynamic_cast<SimulatorAccess<dim>*>(vof_initial_conditions.get()))
+    if (SimulatorAccess<dim> *sim_a = dynamic_cast<SimulatorAccess<dim>*>(volume_of_fluid_initial_conditions.get()))
       sim_a->initialize_simulator (sim);
-    vof_initial_conditions->parse_parameters (prm);
-    vof_initial_conditions->initialize ();
+    volume_of_fluid_initial_conditions->parse_parameters (prm);
+    volume_of_fluid_initial_conditions->initialize ();
 
   }
 
   template <int dim>
   unsigned int VoFHandler<dim>::get_n_fields() const
   {
-    return n_vof_fields;
+    return n_volume_of_fluid_fields;
   }
 
   template <int dim>
   const std::string VoFHandler<dim>::name_for_field_index(unsigned int field) const
   {
-    Assert(field < n_vof_fields,
+    Assert(field < n_volume_of_fluid_fields,
            ExcMessage("Invalid field index"));
-    return vof_field_names[field];
+    return volume_of_fluid_field_names[field];
   }
 
   template <int dim>
@@ -312,7 +312,7 @@ namespace aspect
   template <int dim>
   const VoFField<dim> &VoFHandler<dim>::field_struct_for_field_index(unsigned int field) const
   {
-    Assert(field < n_vof_fields,
+    Assert(field < n_volume_of_fluid_fields,
            ExcMessage("Invalid field index"));
     return data[field];
   }
@@ -320,18 +320,18 @@ namespace aspect
   template <int dim>
   unsigned int VoFHandler<dim>::field_index_for_name(std::string composition_fieldname) const
   {
-    if (vof_composition_map_index.count(composition_fieldname) ==0)
-      return n_vof_fields;
-    return vof_composition_map_index.at(composition_fieldname);
+    if (volume_of_fluid_composition_map_index.count(composition_fieldname) ==0)
+      return n_volume_of_fluid_fields;
+    return volume_of_fluid_composition_map_index.at(composition_fieldname);
   }
 
   template <int dim>
-  void VoFHandler<dim>::do_vof_update ()
+  void VoFHandler<dim>::do_volume_of_fluid_update ()
   {
-    for (unsigned int f=0; f<n_vof_fields; ++f)
+    for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
-        const unsigned int vof_block_idx = data[f].volume_fraction.block_index;
-        const unsigned int vofN_block_idx = data[f].reconstruction.block_index;
+        const unsigned int volume_of_fluid_block_idx = data[f].volume_fraction.block_index;
+        const unsigned int volume_of_fluidN_block_idx = data[f].reconstruction.block_index;
 
         // Due to dimensionally split formulation, use Strang (second-order dimensional) splitting
         for (unsigned int direction = 0; direction < dim; ++direction)
@@ -342,29 +342,29 @@ namespace aspect
             // Update base to intermediate solution
             if (!direction_order_descending)
               {
-                assemble_vof_system(data[f], direction, update_from_old);
+                assemble_volume_of_fluid_system(data[f], direction, update_from_old);
               }
             else
               {
-                assemble_vof_system(data[f], dim-direction-1, update_from_old);
+                assemble_volume_of_fluid_system(data[f], dim-direction-1, update_from_old);
               }
-            solve_vof_system (data[f]);
+            solve_volume_of_fluid_system (data[f]);
             // Copy current candidate normals.
             // primarily useful for exact linear translation
-            sim.solution.block(vofN_block_idx) = sim.old_solution.block(vofN_block_idx);
-            update_vof_normals (data[f], sim.solution);
+            sim.solution.block(volume_of_fluidN_block_idx) = sim.old_solution.block(volume_of_fluidN_block_idx);
+            update_volume_of_fluid_normals (data[f], sim.solution);
 
-            sim.current_linearization_point.block(vof_block_idx) = sim.solution.block(vof_block_idx);
-            sim.current_linearization_point.block(vofN_block_idx) = sim.solution.block(vofN_block_idx);
+            sim.current_linearization_point.block(volume_of_fluid_block_idx) = sim.solution.block(volume_of_fluid_block_idx);
+            sim.current_linearization_point.block(volume_of_fluidN_block_idx) = sim.solution.block(volume_of_fluidN_block_idx);
           }
       }
-    for (std::map<std::string, unsigned int>::const_iterator iter=vof_composition_map_index.begin();
-         iter!=vof_composition_map_index.end(); ++iter)
+    for (std::map<std::string, unsigned int>::const_iterator iter=volume_of_fluid_composition_map_index.begin();
+         iter!=volume_of_fluid_composition_map_index.end(); ++iter)
       {
         const unsigned int composition_index = this->introspection().compositional_index_for_name(iter->first);
         const typename Simulator<dim>::AdvectionField advection_field = Simulator<dim>::AdvectionField::composition(composition_index);
-        const VoFField<dim> vof_f= field_struct_for_field_index(iter->second);
-        update_vof_composition(advection_field, vof_f, sim.solution);
+        const VoFField<dim> volume_of_fluid_f= field_struct_for_field_index(iter->second);
+        update_volume_of_fluid_composition(advection_field, volume_of_fluid_f, sim.solution);
       }
     // change dimension iteration order
     direction_order_descending = !direction_order_descending;

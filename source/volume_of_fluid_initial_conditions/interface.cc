@@ -20,7 +20,7 @@
 
 
 #include <aspect/global.h>
-#include <aspect/vof_initial_conditions/interface.h>
+#include <aspect/volume_of_fluid_initial_conditions/interface.h>
 
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/std_cxx11/tuple.h>
@@ -91,8 +91,8 @@ namespace aspect
       // See if Volume of Fluid is enabled
       prm.enter_subsection ("Volume of Fluid");
       {
-        bool vof_enabled = prm.get_bool ("Enable interface tracking");
-        if (!vof_enabled)
+        bool volume_of_fluid_enabled = prm.get_bool ("Enable interface tracking");
+        if (!volume_of_fluid_enabled)
           return NULL;
       }
       prm.leave_subsection ();

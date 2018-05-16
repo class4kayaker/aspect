@@ -19,8 +19,8 @@
 */
 
 
-#include <aspect/vof/handler.h>
-#include <aspect/vof_initial_conditions/function.h>
+#include <aspect/volume_of_fluid/handler.h>
+#include <aspect/volume_of_fluid_initial_conditions/function.h>
 #include <aspect/postprocess/interface.h>
 
 namespace aspect
@@ -96,7 +96,7 @@ namespace aspect
 
         try
           {
-            function.reset(new Functions::ParsedFunction<dim>(this->get_vof_handler().get_n_fields()));
+            function.reset(new Functions::ParsedFunction<dim>(this->get_volume_of_fluid_handler().get_n_fields()));
             function->parse_parameters (prm);
           }
         catch (...)
