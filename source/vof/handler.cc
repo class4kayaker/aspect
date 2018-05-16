@@ -45,7 +45,8 @@ namespace aspect
                                ParameterHandler &prm)
     : sim (simulator),
       vof_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm)),
-      assembler ()
+      assembler (),
+      direction_order_descending(false)
   {
     this->initialize_simulator(sim);
     assembler.initialize_simulator(sim);
@@ -332,21 +333,20 @@ namespace aspect
         const unsigned int vof_block_idx = data[f].volume_fraction.block_index;
         const unsigned int vofN_block_idx = data[f].reconstruction.block_index;
 
-        // Reset current base to values at beginning of timestep
-
-        // Due to dimensionally split formulation, use strang splitting
-        // TODO: Reformulate for unsplit (may require flux limiter)
-        bool update_from_old = true;
-        for (unsigned int dir = 0; dir < dim; ++dir)
+        // Due to dimensionally split formulation, use Strang (second-order dimensional) splitting
+        for (unsigned int direction = 0; direction < dim; ++direction)
           {
+            // Only reference old_solution for data from prior substep if this is the first
+            // substep for dimensional splitting
+            bool update_from_old = (direction == 0);
             // Update base to intermediate solution
-            if (!vof_dir_order_dsc)
+            if (!direction_order_descending)
               {
-                assemble_vof_system(data[f], dir, update_from_old);
+                assemble_vof_system(data[f], direction, update_from_old);
               }
             else
               {
-                assemble_vof_system(data[f], dim-dir-1, update_from_old);
+                assemble_vof_system(data[f], dim-direction-1, update_from_old);
               }
             solve_vof_system (data[f]);
             // Copy current candidate normals.
@@ -356,7 +356,6 @@ namespace aspect
 
             sim.current_linearization_point.block(vof_block_idx) = sim.solution.block(vof_block_idx);
             sim.current_linearization_point.block(vofN_block_idx) = sim.solution.block(vofN_block_idx);
-            update_from_old = false;
           }
       }
     for (std::map<std::string, unsigned int>::const_iterator iter=vof_composition_map_index.begin();
@@ -368,7 +367,7 @@ namespace aspect
         update_vof_composition(adv_f, vof_f, sim.solution);
       }
     // change dimension iteration order
-    vof_dir_order_dsc = !vof_dir_order_dsc;
+    direction_order_descending = !direction_order_descending;
   }
 }
 

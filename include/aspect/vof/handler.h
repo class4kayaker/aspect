@@ -209,7 +209,7 @@ namespace aspect
        * iteration. False is ascending order, True is descending order.
        * Used to alternate the direction of the update
        */
-      bool vof_dir_order_dsc;
+      bool direction_order_descending;
 
       friend class Simulator<dim>;
   };
