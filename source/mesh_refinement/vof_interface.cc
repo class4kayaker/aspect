@@ -67,8 +67,7 @@ namespace aspect
                                                        .volume_fraction.extractor_scalar();
           std::vector<double> vof_q_values(qMidC.size());
 
-          // Should be vof_epsilon, look into how to access that
-          const double voleps = this->get_vof_handler().get_vof_epsilon();
+          const double voleps = this->get_vof_handler().get_volume_fraction_threshold();
 
           typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active(),
                                                          endc = this->get_dof_handler().end();

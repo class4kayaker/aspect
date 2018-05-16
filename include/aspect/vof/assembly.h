@@ -208,10 +208,10 @@ namespace aspect
         /**
          * Set volume fraction threshold for use in assembly
          */
-        void set_vof_epsilon(const double value);
+        void set_volume_fraction_threshold(const double value);
 
       private:
-        double vof_epsilon;
+        double volume_fraction_threshold;
     };
   }
 }

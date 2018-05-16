@@ -112,12 +112,12 @@ namespace aspect
         normal[1] = 0.0;
         d = -1.0;
 
-        if (cell_vof > 1.0 - vof_epsilon)
+        if (cell_vof > 1.0 - volume_fraction_threshold)
           {
             d = 1.0;
             initial_solution(local_dof_indicies[vof_ind]) = 1.0;
           }
-        else if (cell_vof < vof_epsilon)
+        else if (cell_vof < volume_fraction_threshold)
           {
             d = -1.0;
             initial_solution(local_dof_indicies[vof_ind]) = 0.0;
@@ -267,7 +267,7 @@ namespace aspect
                                                           .component_to_system_index(vofN_c_index+i, 0)]);
 
             // If candidate normal too small, remove from consideration
-            if (normals[6]*normals[6]< vof_epsilon)
+            if (normals[6]*normals[6]< volume_fraction_threshold)
               {
                 normals[6][0] = 0;
                 normals[6][1] = 0;
@@ -288,7 +288,7 @@ namespace aspect
                   errs[nind] = 0.0;
                   const double normal_norm = normals[nind].norm_square();
 
-                  if (normal_norm > vof_epsilon) // If candidate normal too small set error to maximum
+                  if (normal_norm > volume_fraction_threshold) // If candidate normal too small set error to maximum
                     {
                       d_vals[nind] = VolumeOfFluid::compute_interface_location_newton<dim> (max_degree, normals[nind], cell_vof, cell_vol,
                                                                                             vof_reconstruct_epsilon,
@@ -322,7 +322,7 @@ namespace aspect
                   {
                     const double normal_norm = normals[nind]*normals[nind];
 
-                    if (normal_norm > vof_epsilon) // If candidate normal too small skip as set to max already
+                    if (normal_norm > volume_fraction_threshold) // If candidate normal too small skip as set to max already
                       {
                         double dot = 0.0;
                         for (unsigned int di = 0; di < dim; ++di)
@@ -349,7 +349,7 @@ namespace aspect
           }
 
         // double n2 = sqrt(normal*normal);
-        // if (n2 > vof_epsilon)
+        // if (n2 > volume_fraction_threshold)
         //   {
         //     normal = (normal / n2);
         //     d = d / n2;
@@ -454,7 +454,7 @@ namespace aspect
             normall1n += numbers::NumberTraits<double>::abs(normal[i]);
             nnormal[i] = 0.0;
           }
-        if (normall1n > vof_epsilon)
+        if (normall1n > volume_fraction_threshold)
           {
             nnormal = normal / normall1n;
           }

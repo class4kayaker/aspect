@@ -39,9 +39,9 @@ namespace aspect
   namespace Assemblers
   {
     template <int dim>
-    void VoFAssembler<dim>::set_vof_epsilon(const double value)
+    void VoFAssembler<dim>::set_volume_fraction_threshold(const double value)
     {
-      vof_epsilon = value;
+      volume_fraction_threshold = value;
     }
 
     template <int dim>
@@ -240,7 +240,7 @@ namespace aspect
 
           // Calculate outward flux
           double flux_vof;
-          if (std::abs(face_flux) < vof_epsilon*cell_vol)
+          if (std::abs(face_flux) < volume_fraction_threshold*cell_vol)
             {
               flux_vof = cell_vof;
             }
@@ -436,7 +436,7 @@ namespace aspect
 
               // Calculate outward flux
               double flux_vof;
-              if (std::abs(face_flux) < 0.5*vof_epsilon*(cell_vol+neighbor_vol))
+              if (std::abs(face_flux) < 0.5*volume_fraction_threshold*(cell_vol+neighbor_vol))
                 {
                   flux_vof = 0.5*(cell_vof+neighbor_vof);
                 }
@@ -590,7 +590,7 @@ namespace aspect
 
               // fluxes to RHS
               double flux_vof = cell_vof;
-              if (std::abs(face_flux) < 0.5*vof_epsilon*(cell_vol+neighbor_vol))
+              if (std::abs(face_flux) < 0.5*volume_fraction_threshold*(cell_vol+neighbor_vol))
                 {
                   flux_vof = 0.5*(cell_vof+neighbor_vof);
                 }
@@ -603,7 +603,7 @@ namespace aspect
               data.local_face_rhs[f_rhs_ind][0] += (flux_vof-neighbor_vof) * face_flux;
 
               // Limit to constant cases, otherwise announce error
-              if (cell_vof > vof_epsilon && cell_vof<1.0-vof_epsilon)
+              if (cell_vof > volume_fraction_threshold && cell_vof<1.0-volume_fraction_threshold)
                 {
                   this->get_pcout() << "Cell at " << cell->center() << " " << cell_vof << std::endl
                                     << "\t" << face_flux/this->get_timestep()/cell_vol << std::endl

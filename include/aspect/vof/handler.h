@@ -83,7 +83,7 @@ namespace aspect
       /**
        * Get threshold for volume fraction
        */
-      double get_vof_epsilon() const;
+      double get_volume_fraction_threshold() const;
 
       /**
        * Get the index for the named volume of fluid field
@@ -181,7 +181,7 @@ namespace aspect
        * Volume fraction threshold for the reconstruction and advection
        * algorithms indicating minimum relevant volume fraction.
        */
-      double vof_epsilon;
+      double volume_fraction_threshold;
 
       /**
        * Tolerance to use for the Newton iteration in the reconstruction step

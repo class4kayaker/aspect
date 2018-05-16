@@ -51,7 +51,7 @@ namespace aspect
     this->initialize_simulator(sim);
     assembler.initialize_simulator(sim);
     parse_parameters (prm);
-    assembler.set_vof_epsilon(vof_epsilon);
+    assembler.set_volume_fraction_threshold(volume_fraction_threshold);
 
     this->get_signals().edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::edit_finite_element_variables,
                                                                               std_cxx11::ref(*this),
@@ -126,7 +126,7 @@ namespace aspect
   {
     prm.enter_subsection ("Volume of Fluid");
     {
-      vof_epsilon = prm.get_double("Volume fraction threshold");
+      volume_fraction_threshold = prm.get_double("Volume fraction threshold");
 
       vof_solver_tolerance = prm.get_double("Volume of Fluid solver tolerance");
 
@@ -304,9 +304,9 @@ namespace aspect
   }
 
   template <int dim>
-  double VoFHandler<dim>::get_vof_epsilon() const
+  double VoFHandler<dim>::get_volume_fraction_threshold() const
   {
-    return vof_epsilon;
+    return volume_fraction_threshold;
   }
 
   template <int dim>
@@ -361,7 +361,7 @@ namespace aspect
     for (std::map<std::string, unsigned int>::const_iterator iter=vof_composition_map_index.begin();
          iter!=vof_composition_map_index.end(); ++iter)
       {
-        const unsigned int comosition_index = this->introspection().compositional_index_for_name(iter->first);
+        const unsigned int composition_index = this->introspection().compositional_index_for_name(iter->first);
         const typename Simulator<dim>::AdvectionField advection_field = Simulator<dim>::AdvectionField::composition(composition_index);
         const VoFField<dim> vof_f= field_struct_for_field_index(iter->second);
         update_vof_composition(advection_field, vof_f, sim.solution);
