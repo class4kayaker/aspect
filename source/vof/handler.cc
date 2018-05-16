@@ -66,7 +66,7 @@ namespace aspect
     for (unsigned int f=0; f<n_vof_fields; ++f)
       {
         // Add declaration for volume fraction field
-        vars.push_back(VariableDeclaration<dim>("vof_"+vof_field_names[f],
+        vars.push_back(VariableDeclaration<dim>("volume_fraction_"+vof_field_names[f],
                                                 std_cxx11::shared_ptr<FiniteElement<dim>>(
                                                   new FE_DGQ<dim>(0)),
                                                 1,
@@ -103,9 +103,10 @@ namespace aspect
 
       prm.declare_entry ("Volume of Fluid solver tolerance", "1e-12",
                          Patterns::Double(0,1),
-                         "The relative tolerance up to which the linear system for "
-                         "the Volume of Fluid system gets solved. See 'linear solver "
-                         "tolerance' for more details.");
+                         "The relative tolerance up to which the linear system"
+                         "for the Volume of Fluid system gets solved. See"
+                         "\'Solver parameters/Composition solver tolerance\'"
+                         "for more details.");
 
       prm.declare_entry ("Volume of Fluid field names", "",
                          Patterns::List(Patterns::Anything()),
@@ -218,7 +219,6 @@ namespace aspect
                   ExcMessage("Volume of Fluid composition field mappings have to be unique! " + composition_field +
                              " is used more than once."));
 
-
           // Add to mappings
           vof_composition_map_index[composition_field] = vof_field_index;
         }
@@ -249,8 +249,6 @@ namespace aspect
     AssertThrow(!this->get_parameters().include_melt_transport,
                 ExcMessage("Volume of Fluid Interface Tracking has not been tested with melt transport yet, so inclusion of both is currently disabled."))
 
-    // Check for correct mapping
-
     if ( this->get_parameters().initial_adaptive_refinement > 0 ||
          this->get_parameters().adaptive_refinement_interval > 0 )
       {
@@ -273,11 +271,11 @@ namespace aspect
                     ExcMessage("Volume of Fluid Interface Tracking requires that the AMR interval be less than 1/CFL_number"));
       }
 
-    // Gather data
+    // Gather the created volume fraction data into a structure for easier programmatic referencing
 
     for (unsigned int f=0; f<n_vof_fields; ++f)
       {
-        data.push_back(VoFField<dim>(this->introspection().variable("vof_"+vof_field_names[f]),
+        data.push_back(VoFField<dim>(this->introspection().variable("volume_fraction_"+vof_field_names[f]),
                                      this->introspection().variable("volume_of_fluid_interface_reconstruction_"+vof_field_names[f]),
                                      this->introspection().variable("volume_of_fluid_contour_"+vof_field_names[f])));
       }
@@ -285,11 +283,8 @@ namespace aspect
     // Do initial conditions setup
     if (SimulatorAccess<dim> *sim_a = dynamic_cast<SimulatorAccess<dim>*>(vof_initial_conditions.get()))
       sim_a->initialize_simulator (sim);
-    if (vof_initial_conditions.get())
-      {
-        vof_initial_conditions->parse_parameters (prm);
-        vof_initial_conditions->initialize ();
-      }
+    vof_initial_conditions->parse_parameters (prm);
+    vof_initial_conditions->initialize ();
 
   }
 
