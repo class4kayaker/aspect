@@ -32,18 +32,18 @@ namespace aspect
   using namespace dealii;
 
   template <int dim>
-  void VoFHandler<dim>::set_initial_volume_of_fluids ()
+  void VolumeOfFluidHandler<dim>::set_initial_volume_of_fluids ()
   {
     for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
         switch (volume_of_fluid_initial_conditions->init_type())
           {
-            case VoFInitialConditions::VoFInitType::composition:
+            case VolumeOfFluidInitialConditions::VolumeOfFluidInitType::composition:
             {
               init_volume_of_fluid_compos (data[f], f);
               break;
             }
-            case VoFInitialConditions::VoFInitType::signed_distance_level_set:
+            case VolumeOfFluidInitialConditions::VolumeOfFluidInitType::signed_distance_level_set:
             {
               init_volume_of_fluid_ls (data[f], f);
               break;
@@ -63,7 +63,7 @@ namespace aspect
   }
 
   template <int dim>
-  void VoFHandler<dim>::init_volume_of_fluid_compos (const VoFField<dim> field, const unsigned int f_ind)
+  void VolumeOfFluidHandler<dim>::init_volume_of_fluid_compos (const VolumeOfFluidField<dim> field, const unsigned int f_ind)
   {
     unsigned int n_samples = volume_of_fluid_initial_conditions->n_samples ();
 
@@ -119,7 +119,7 @@ namespace aspect
   }
 
   template <int dim>
-  void VoFHandler<dim>::init_volume_of_fluid_ls (const VoFField<dim> field, const unsigned int f_ind)
+  void VolumeOfFluidHandler<dim>::init_volume_of_fluid_ls (const VolumeOfFluidField<dim> field, const unsigned int f_ind)
   {
     unsigned int n_samples = volume_of_fluid_initial_conditions->n_samples ();
 
@@ -216,9 +216,9 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template void VoFHandler<dim>::set_initial_volume_of_fluids ();\
-  template void VoFHandler<dim>::init_volume_of_fluid_ls (const VoFField<dim> field, const unsigned int f_ind); \
-  template void VoFHandler<dim>::init_volume_of_fluid_compos (const VoFField<dim> field, const unsigned int f_ind);
+  template void VolumeOfFluidHandler<dim>::set_initial_volume_of_fluids ();\
+  template void VolumeOfFluidHandler<dim>::init_volume_of_fluid_ls (const VolumeOfFluidField<dim> field, const unsigned int f_ind); \
+  template void VolumeOfFluidHandler<dim>::init_volume_of_fluid_compos (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

@@ -32,12 +32,12 @@ namespace aspect
 
     /**
      * A class that implements a mesh refinement criterion that refines the
-     * mesh near boundaries for the VoF interface tracking algorithm.
+     * mesh near boundaries for the volume of fluid interface tracking algorithm.
      *
      * @ingroup MeshRefinement
      */
     template <int dim>
-    class VoFInterface: public Interface<dim>,
+    class VolumeOfFluidInterface: public Interface<dim>,
       public SimulatorAccess<dim>
     {
       public:

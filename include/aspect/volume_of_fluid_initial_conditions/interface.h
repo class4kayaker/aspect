@@ -34,9 +34,9 @@ namespace aspect
    * A namespace in which we define everything that has to do with defining
    * the initial conditions.
    *
-   * @ingroup VoFInitialConditionsModels
+   * @ingroup VolumeOfFluidInitialConditionsModels
    */
-  namespace VoFInitialConditions
+  namespace VolumeOfFluidInitialConditions
   {
     using namespace dealii;
 
@@ -45,7 +45,7 @@ namespace aspect
      * initialization. Interpolation approach has less resolution than desired,
      * and the nature of the data allows a more accurate approximation.
      */
-    struct VoFInitType
+    struct VolumeOfFluidInitType
     {
       enum Kind
       {
@@ -66,7 +66,7 @@ namespace aspect
      * A base class for parameterizations of volume-of-fluid initial
      * conditions.
      *
-     * @ingroup VoFInitialConditionsModels
+     * @ingroup VolumeOfFluidInitialConditionsModels
      */
     template <int dim>
     class Interface
@@ -101,7 +101,7 @@ namespace aspect
          * Return which type of initialization data is being used.
          */
         virtual
-        typename VoFInitType::Kind init_type() const = 0;
+        typename VolumeOfFluidInitType::Kind init_type() const = 0;
 
         /**
          * Return the initial value as a function of position.
@@ -149,7 +149,7 @@ namespace aspect
      * @param factory_function A pointer to a function that can create an
      * object of this initial conditions model.
      *
-     * @ingroup VoFInitialConditionsModels
+     * @ingroup VolumeOfFluidInitialConditionsModels
      */
     template <int dim>
     void
@@ -166,7 +166,7 @@ namespace aspect
      * The model object returned is not yet initialized and has not read its
      * runtime parameters yet.
      *
-     * @ingroup VoFInitialConditionsModels
+     * @ingroup VolumeOfFluidInitialConditionsModels
      */
     template <int dim>
     Interface<dim> *
@@ -177,7 +177,7 @@ namespace aspect
      * Declare the runtime parameters of the registered volume-of-fluid initial
      * conditions models.
      *
-     * @ingroup VoFInitialConditionsModels
+     * @ingroup VolumeOfFluidInitialConditionsModels
      */
     template <int dim>
     void
@@ -190,18 +190,18 @@ namespace aspect
      * a volume-of-fluid initial conditions model, register it with the
      * functions that can declare their parameters and create these objects.
      *
-     * @ingroup VoFInitialConditionsModels
+     * @ingroup VolumeOfFluidInitialConditionsModels
      */
 #define ASPECT_REGISTER_VOF_INITIAL_CONDITIONS(classname,name,description) \
   template class classname<2>; \
   template class classname<3>; \
   namespace ASPECT_REGISTER_VOF_INITIAL_CONDITIONS_ ## classname \
   { \
-    aspect::internal::Plugins::RegisterHelper<aspect::VoFInitialConditions::Interface<2>,classname<2> > \
-    dummy_ ## classname ## _2d (&aspect::VoFInitialConditions::register_initial_conditions_model<2>, \
+    aspect::internal::Plugins::RegisterHelper<aspect::VolumeOfFluidInitialConditions::Interface<2>,classname<2> > \
+    dummy_ ## classname ## _2d (&aspect::VolumeOfFluidInitialConditions::register_initial_conditions_model<2>, \
                                 name, description); \
-    aspect::internal::Plugins::RegisterHelper<aspect::VoFInitialConditions::Interface<3>,classname<3> > \
-    dummy_ ## classname ## _3d (&aspect::VoFInitialConditions::register_initial_conditions_model<3>, \
+    aspect::internal::Plugins::RegisterHelper<aspect::VolumeOfFluidInitialConditions::Interface<3>,classname<3> > \
+    dummy_ ## classname ## _3d (&aspect::VolumeOfFluidInitialConditions::register_initial_conditions_model<3>, \
                                 name, description); \
   }
   }

@@ -584,11 +584,11 @@ namespace aspect
   }
 
   template <int dim>
-  const VoFHandler<dim> &
+  const VolumeOfFluidHandler<dim> &
   SimulatorAccess<dim>::get_volume_of_fluid_handler () const
   {
     Assert (simulator->volume_of_fluid_handler.get() != 0,
-            ExcMessage("You can not call this function if VoF interface tracking is not enabled."));
+            ExcMessage("You can not call this function if volume of fluid interface tracking is not enabled."));
     return *(simulator->volume_of_fluid_handler);
   }
 

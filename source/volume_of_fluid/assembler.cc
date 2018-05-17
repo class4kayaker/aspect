@@ -39,18 +39,18 @@ namespace aspect
   namespace Assemblers
   {
     template <int dim>
-    void VoFAssembler<dim>::set_volume_fraction_threshold(const double value)
+    void VolumeOfFluidAssembler<dim>::set_volume_fraction_threshold(const double value)
     {
       volume_fraction_threshold = value;
     }
 
     template <int dim>
-    void VoFAssembler<dim>::local_assemble_volume_of_fluid_system (const VoFField<dim> field,
+    void VolumeOfFluidAssembler<dim>::local_assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
                                                        const unsigned int calc_dir,
                                                        const bool update_from_old,
                                                        const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                                       internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                                       internal::Assembly::CopyData::VoFSystem<dim> &data) const
+                                                       internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                       internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
     {
       const unsigned int n_q_points    = scratch.finite_element_values.n_quadrature_points;
 
@@ -151,13 +151,13 @@ namespace aspect
     }
 
     template <int dim>
-    void VoFAssembler<dim>::local_assemble_boundary_face_volume_of_fluid_system (const VoFField<dim> field,
+    void VolumeOfFluidAssembler<dim>::local_assemble_boundary_face_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
                                                                      const unsigned int calc_dir,
                                                                      const bool update_from_old,
                                                                      const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                                      const unsigned int face_no,
-                                                                     internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                                                     internal::Assembly::CopyData::VoFSystem<dim> &data) const
+                                                                     internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                                     internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
     {
       const bool old_velocity_avail = (this->get_timestep_number() > 0);
 
@@ -203,7 +203,7 @@ namespace aspect
           double face_ls_d = 0;
           double face_ls_time_grad = 0;
 
-          // Using VoF so need to accumulate flux through face
+          // Using VolumeOfFluid so need to accumulate flux through face
           for (unsigned int q=0; q<n_f_q_points; ++q)
             {
 
@@ -256,7 +256,7 @@ namespace aspect
                                                                  face_ls_d);
             }
 
-          //TODO: Handle non-zero inflow VoF boundary conditions
+          //TODO: Handle non-zero inflow VolumeOfFluid boundary conditions
 
           // Add fluxes to RHS
           data.local_rhs[0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
@@ -264,13 +264,13 @@ namespace aspect
     }
 
     template <int dim>
-    void VoFAssembler<dim>::local_assemble_internal_face_volume_of_fluid_system (const VoFField<dim> field,
+    void VolumeOfFluidAssembler<dim>::local_assemble_internal_face_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
                                                                      const unsigned int calc_dir,
                                                                      bool update_from_old,
                                                                      const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                                      const unsigned int face_no,
-                                                                     internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                                                     internal::Assembly::CopyData::VoFSystem<dim> &data) const
+                                                                     internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                                     internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
     {
       const bool old_velocity_avail = (this->get_timestep_number() > 0);
 
@@ -388,7 +388,7 @@ namespace aspect
               double n_face_ls_d = 0;
               double n_face_ls_time_grad =0;
 
-              // Using VoF so need to accumulate flux through face
+              // Using VolumeOfFluid so need to accumulate flux through face
               for (unsigned int q=0; q<n_f_q_points; ++q)
                 {
 
@@ -555,7 +555,7 @@ namespace aspect
               // double face_ls_d = 0;
               // double face_ls_time_grad = 0;
 
-              // Using VoF so need to accumulate flux through face
+              // Using VolumeOfFluid so need to accumulate flux through face
               for (unsigned int q=0; q<n_f_q_points; ++q)
                 {
 
@@ -621,7 +621,7 @@ namespace aspect
   namespace Assemblers
   {
 #define INSTANTIATE(dim) \
-  template class VoFAssembler<dim>;
+  template class VolumeOfFluidAssembler<dim>;
 
     ASPECT_INSTANTIATE(INSTANTIATE)
 

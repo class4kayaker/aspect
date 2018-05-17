@@ -37,7 +37,7 @@ namespace aspect
      * @ingroup Postprocessing
      */
     template <int dim>
-    class VoFStatistics : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    class VolumeOfFluidStatistics : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
     {
       public:
         /**

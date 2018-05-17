@@ -30,8 +30,8 @@ namespace aspect
     namespace VisualizationPostprocessors
     {
       template <int dim>
-      VoFValues<dim>::
-      VoFValues ()
+      VolumeOfFluidValues<dim>::
+      VolumeOfFluidValues ()
         :
         DataPostprocessor<dim> ()
       {}
@@ -39,7 +39,7 @@ namespace aspect
 
       template <int dim>
       std::vector<std::string>
-      VoFValues<dim>::
+      VolumeOfFluidValues<dim>::
       get_names () const
       {
         return volume_of_fluid_names;
@@ -48,7 +48,7 @@ namespace aspect
 
       template <int dim>
       std::vector<DataComponentInterpretation::DataComponentInterpretation>
-      VoFValues<dim>::
+      VolumeOfFluidValues<dim>::
       get_data_component_interpretation () const
       {
         return interp;
@@ -57,7 +57,7 @@ namespace aspect
 
       template <int dim>
       UpdateFlags
-      VoFValues<dim>::
+      VolumeOfFluidValues<dim>::
       get_needed_update_flags () const
       {
         return update_values;
@@ -66,7 +66,7 @@ namespace aspect
 
       template <int dim>
       void
-      VoFValues<dim>::
+      VolumeOfFluidValues<dim>::
       evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
                             std::vector<Vector<double>> &computed_quantities) const
       {
@@ -82,7 +82,7 @@ namespace aspect
 
         for (unsigned int f=0; f<this->get_volume_of_fluid_handler().get_n_fields(); ++f)
           {
-            VoFField<dim> field = this->get_volume_of_fluid_handler().field_struct_for_field_index(f);
+            VolumeOfFluidField<dim> field = this->get_volume_of_fluid_handler().field_struct_for_field_index(f);
 
             const FEVariable<dim> &volume_of_fluid_var = field.volume_fraction;
             const unsigned int volume_of_fluid_ind = volume_of_fluid_var.first_component_index;
@@ -116,7 +116,7 @@ namespace aspect
 
       template <int dim>
       void
-      VoFValues<dim>::declare_parameters (ParameterHandler &prm)
+      VolumeOfFluidValues<dim>::declare_parameters (ParameterHandler &prm)
       {
         prm.enter_subsection("Postprocess");
         {
@@ -142,7 +142,7 @@ namespace aspect
 
       template <int dim>
       void
-      VoFValues<dim>::parse_parameters (ParameterHandler &prm)
+      VolumeOfFluidValues<dim>::parse_parameters (ParameterHandler &prm)
       {
         prm.enter_subsection("Postprocess");
         {
@@ -192,10 +192,10 @@ namespace aspect
   {
     namespace VisualizationPostprocessors
     {
-      ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(VoFValues,
+      ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(VolumeOfFluidValues,
                                                   "volume of fluid values",
                                                   "A visualization output object that outputs the  volume_of_fluid data."
-                                                  "Names are given in Postprocess/Visualization/VoF values")
+                                                  "Names are given in Postprocess/Visualization/Volume of fluid")
     }
   }
 }

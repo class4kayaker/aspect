@@ -38,7 +38,7 @@ namespace aspect
 
     template <int dim>
     void
-    VoFInterface<dim>::tag_additional_cells() const
+    VolumeOfFluidInterface<dim>::tag_additional_cells() const
     {
 
       //Break early if DoFs do not exist
@@ -261,7 +261,7 @@ namespace aspect
 
     template <int dim>
     void
-    VoFInterface<dim>::
+    VolumeOfFluidInterface<dim>::
     declare_parameters (ParameterHandler &prm)
     {
       prm.enter_subsection("Mesh refinement");
@@ -271,7 +271,7 @@ namespace aspect
           prm.declare_entry("Strict refinement", "false",
                             Patterns::Bool(),
                             "If true, then explicitly coarsen any cells not "
-                            "neighboring the VoF interface.");
+                            "neighboring the VolumeOfFluid interface.");
         }
         prm.leave_subsection();
       }
@@ -280,11 +280,11 @@ namespace aspect
 
     template <int dim>
     void
-    VoFInterface<dim>::parse_parameters (ParameterHandler &prm)
+    VolumeOfFluidInterface<dim>::parse_parameters (ParameterHandler &prm)
     {
       //TODO: Add check for volume_of_fluid active
       AssertThrow(this->get_parameters().volume_of_fluid_tracking_enabled,
-                  ExcMessage("The 'volume_of_fluid boundary' mesh refinement strategy requires that the 'Use VoF tracking' parameter is enabled."));
+                  ExcMessage("The 'volume_of_fluid boundary' mesh refinement strategy requires that the 'Use interface tracking' parameter is enabled."));
 
       prm.enter_subsection("Mesh refinement");
       {
@@ -306,9 +306,9 @@ namespace aspect
 {
   namespace MeshRefinement
   {
-    ASPECT_REGISTER_MESH_REFINEMENT_CRITERION(VoFInterface,
+    ASPECT_REGISTER_MESH_REFINEMENT_CRITERION(VolumeOfFluidInterface,
                                               "volume of fluid interface",
                                               "A class that implements a mesh refinement criterion, which "
-                                              "ensures a minimum level of refinement near the VoF interface boundary.")
+                                              "ensures a minimum level of refinement near the volume of fluid interface boundary.")
   }
 }

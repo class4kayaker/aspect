@@ -32,7 +32,7 @@ namespace aspect
 {
 
   template <int dim>
-  VoFField<dim>::VoFField(const FEVariable<dim> &volume_fraction,
+  VolumeOfFluidField<dim>::VolumeOfFluidField(const FEVariable<dim> &volume_fraction,
                           const FEVariable<dim> &reconstruction,
                           const FEVariable<dim> &level_set)
     : volume_fraction (volume_fraction),
@@ -41,10 +41,10 @@ namespace aspect
   {}
 
   template <int dim>
-  VoFHandler<dim>::VoFHandler (Simulator<dim> &simulator,
+  VolumeOfFluidHandler<dim>::VolumeOfFluidHandler (Simulator<dim> &simulator,
                                ParameterHandler &prm)
     : sim (simulator),
-      volume_of_fluid_initial_conditions (VoFInitialConditions::create_initial_conditions<dim>(prm)),
+      volume_of_fluid_initial_conditions (VolumeOfFluidInitialConditions::create_initial_conditions<dim>(prm)),
       assembler (),
       direction_order_descending(false)
   {
@@ -53,16 +53,16 @@ namespace aspect
     parse_parameters (prm);
     assembler.set_volume_fraction_threshold(volume_fraction_threshold);
 
-    this->get_signals().edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::edit_finite_element_variables,
+    this->get_signals().edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VolumeOfFluidHandler<dim>::edit_finite_element_variables,
                                                                               std_cxx11::ref(*this),
                                                                               std_cxx11::_1));
-    this->get_signals().post_set_initial_state.connect(std_cxx11::bind(&aspect::VoFHandler<dim>::set_initial_volume_of_fluids,
+    this->get_signals().post_set_initial_state.connect(std_cxx11::bind(&aspect::VolumeOfFluidHandler<dim>::set_initial_volume_of_fluids,
                                                                        std_cxx11::ref(*this)));
   }
 
   template <int dim>
   void
-  VoFHandler<dim>::edit_finite_element_variables (std::vector<VariableDeclaration<dim> > &vars)
+  VolumeOfFluidHandler<dim>::edit_finite_element_variables (std::vector<VariableDeclaration<dim> > &vars)
   {
     for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
@@ -90,7 +90,7 @@ namespace aspect
 
   template <int dim>
   void
-  VoFHandler<dim>::declare_parameters (ParameterHandler &prm)
+  VolumeOfFluidHandler<dim>::declare_parameters (ParameterHandler &prm)
   {
     prm.enter_subsection ("Volume of Fluid");
     {
@@ -115,14 +115,14 @@ namespace aspect
 
       prm.declare_entry ("Volume of Fluid composition mapping", "",
                          Patterns::Map(Patterns::Anything(), Patterns::Anything()),
-                         "Links between composition and Volume of Fluid fields in composition:VoF form");
+                         "Links between composition and Volume of Fluid fields in composition:VolumeOfFluid form");
     }
     prm.leave_subsection ();
   }
 
   template <int dim>
   void
-  VoFHandler<dim>::parse_parameters (ParameterHandler &prm)
+  VolumeOfFluidHandler<dim>::parse_parameters (ParameterHandler &prm)
   {
     prm.enter_subsection ("Volume of Fluid");
     {
@@ -229,7 +229,7 @@ namespace aspect
 
   template <int dim>
   void
-  VoFHandler<dim>::initialize (ParameterHandler &prm)
+  VolumeOfFluidHandler<dim>::initialize (ParameterHandler &prm)
   {
     // Do checks on required assumptions
     AssertThrow(dim==2,
@@ -261,10 +261,10 @@ namespace aspect
           bool has_volume_of_fluid_strategy = false;
           for (unsigned int name=0; name<plugin_names.size(); ++name)
             {
-              has_volume_of_fluid_strategy = (plugin_names[name] == "volume_of_fluid interface") || has_volume_of_fluid_strategy;
+              has_volume_of_fluid_strategy = (plugin_names[name] == "volume of fluid interface") || has_volume_of_fluid_strategy;
             }
           AssertThrow(has_volume_of_fluid_strategy,
-                      ExcMessage("Volume of Fluid Interface Tracking requires that the 'volume_of_fluid interface' strategy be used for AMR"));
+                      ExcMessage("Volume of Fluid Interface Tracking requires that the 'volume of fluid interface' strategy be used for AMR"));
         }
         prm.leave_subsection();
 
@@ -276,7 +276,7 @@ namespace aspect
 
     for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
-        data.push_back(VoFField<dim>(this->introspection().variable("volume_fraction_"+volume_of_fluid_field_names[f]),
+        data.push_back(VolumeOfFluidField<dim>(this->introspection().variable("volume_fraction_"+volume_of_fluid_field_names[f]),
                                      this->introspection().variable("volume_of_fluid_interface_reconstruction_"+volume_of_fluid_field_names[f]),
                                      this->introspection().variable("volume_of_fluid_contour_"+volume_of_fluid_field_names[f])));
       }
@@ -290,13 +290,13 @@ namespace aspect
   }
 
   template <int dim>
-  unsigned int VoFHandler<dim>::get_n_fields() const
+  unsigned int VolumeOfFluidHandler<dim>::get_n_fields() const
   {
     return n_volume_of_fluid_fields;
   }
 
   template <int dim>
-  const std::string VoFHandler<dim>::name_for_field_index(unsigned int field) const
+  const std::string VolumeOfFluidHandler<dim>::name_for_field_index(unsigned int field) const
   {
     Assert(field < n_volume_of_fluid_fields,
            ExcMessage("Invalid field index"));
@@ -304,13 +304,13 @@ namespace aspect
   }
 
   template <int dim>
-  double VoFHandler<dim>::get_volume_fraction_threshold() const
+  double VolumeOfFluidHandler<dim>::get_volume_fraction_threshold() const
   {
     return volume_fraction_threshold;
   }
 
   template <int dim>
-  const VoFField<dim> &VoFHandler<dim>::field_struct_for_field_index(unsigned int field) const
+  const VolumeOfFluidField<dim> &VolumeOfFluidHandler<dim>::field_struct_for_field_index(unsigned int field) const
   {
     Assert(field < n_volume_of_fluid_fields,
            ExcMessage("Invalid field index"));
@@ -318,7 +318,7 @@ namespace aspect
   }
 
   template <int dim>
-  unsigned int VoFHandler<dim>::field_index_for_name(std::string composition_fieldname) const
+  unsigned int VolumeOfFluidHandler<dim>::field_index_for_name(std::string composition_fieldname) const
   {
     if (volume_of_fluid_composition_map_index.count(composition_fieldname) ==0)
       return n_volume_of_fluid_fields;
@@ -326,7 +326,7 @@ namespace aspect
   }
 
   template <int dim>
-  void VoFHandler<dim>::do_volume_of_fluid_update ()
+  void VolumeOfFluidHandler<dim>::do_volume_of_fluid_update ()
   {
     for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
@@ -363,7 +363,7 @@ namespace aspect
       {
         const unsigned int composition_index = this->introspection().compositional_index_for_name(iter->first);
         const typename Simulator<dim>::AdvectionField advection_field = Simulator<dim>::AdvectionField::composition(composition_index);
-        const VoFField<dim> volume_of_fluid_f= field_struct_for_field_index(iter->second);
+        const VolumeOfFluidField<dim> volume_of_fluid_f= field_struct_for_field_index(iter->second);
         update_volume_of_fluid_composition(advection_field, volume_of_fluid_f, sim.solution);
       }
     // change dimension iteration order
@@ -374,7 +374,7 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template class VoFHandler<dim>;
+  template class VolumeOfFluidHandler<dim>;
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

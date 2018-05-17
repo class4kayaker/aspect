@@ -25,7 +25,7 @@
 
 namespace aspect
 {
-  namespace VoFInitialConditions
+  namespace VolumeOfFluidInitialConditions
   {
     template <int dim>
     Function<dim>::Function ()
@@ -40,7 +40,7 @@ namespace aspect
     }
 
     template <int dim>
-    typename VoFInitType::Kind Function<dim>::init_type () const
+    typename VolumeOfFluidInitType::Kind Function<dim>::init_type () const
     {
       return function_init_type;
     }
@@ -88,9 +88,9 @@ namespace aspect
         bool is_dist_init = prm.get_bool("Signed distance init");
 
         if (is_dist_init)
-          function_init_type = VoFInitType::signed_distance_level_set;
+          function_init_type = VolumeOfFluidInitType::signed_distance_level_set;
         else
-          function_init_type = VoFInitType::composition;
+          function_init_type = VolumeOfFluidInitType::composition;
 
         n_init_samples = prm.get_integer ("Number initialization samples");
 
@@ -102,7 +102,7 @@ namespace aspect
         catch (...)
           {
             std::cerr << "ERROR: FunctionParser failed to parse\n"
-                      << "\t'VoF initial conditions.Function'\n"
+                      << "\t'VolumeOfFluid initial conditions.Function'\n"
                       << "with expression\n"
                       << "\t'" << prm.get("Function expression") << "'\n"
                       << "More information about the cause of the parse error \n"
@@ -121,7 +121,7 @@ namespace aspect
 // explicit instantiations
 namespace aspect
 {
-  namespace VoFInitialConditions
+  namespace VolumeOfFluidInitialConditions
   {
     ASPECT_REGISTER_VOF_INITIAL_CONDITIONS(Function,
                                            "function",

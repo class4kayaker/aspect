@@ -34,10 +34,10 @@ namespace aspect
   {
     template <int dim>
     std::pair<std::string,std::string>
-    VoFStatistics<dim>::execute (TableHandler &statistics)
+    VolumeOfFluidStatistics<dim>::execute (TableHandler &statistics)
     {
       AssertThrow(this->get_volume_of_fluid_handler().get_n_fields()!=numbers::invalid_unsigned_int,
-                  ExcMessage("This postprocessor cannot be used without VoF fields"));
+                  ExcMessage("This postprocessor cannot be used without VolumeOfFluid fields"));
       const QGauss<dim> quadrature_formula (1);
       const unsigned int n_q_points = quadrature_formula.size();
 
@@ -90,7 +90,7 @@ namespace aspect
 
       for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
         {
-          std::string col_name = "Global VoF volumes for " +
+          std::string col_name = "Global volume of fluid volumes for " +
                                  this->get_volume_of_fluid_handler().name_for_field_index(f);
           statistics.add_value (col_name, global_volume_of_fluid_vol_sums[f]);
 
@@ -112,7 +112,7 @@ namespace aspect
           }
         }
 
-      return std::pair<std::string, std::string> ("Global VoF volumes (m^3):",
+      return std::pair<std::string, std::string> ("Global volume of fluid volumes (m^3):",
                                                   output.str());
     }
   }
@@ -124,7 +124,7 @@ namespace aspect
 {
   namespace Postprocess
   {
-    ASPECT_REGISTER_POSTPROCESSOR(VoFStatistics,
+    ASPECT_REGISTER_POSTPROCESSOR(VolumeOfFluidStatistics,
                                   "volume of fluid statistics",
                                   "A postprocessor that computes some statistics about the "
                                   "volume_of_fluid field.")

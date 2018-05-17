@@ -34,7 +34,7 @@ namespace aspect
   class Simulator;
 
   template <int dim>
-  struct VoFField;
+  struct VolumeOfFluidField;
 
   namespace internal
   {
@@ -46,14 +46,14 @@ namespace aspect
          * Standard scratch data structure for matrix assembly
          */
         template <int dim>
-        struct VoFSystem
+        struct VolumeOfFluidSystem
         {
-          VoFSystem (const FiniteElement<dim> &finite_element,
+          VolumeOfFluidSystem (const FiniteElement<dim> &finite_element,
                      const FiniteElement<dim> &volume_of_fluid_element,
                      const Mapping<dim>       &mapping,
                      const Quadrature<dim>    &quadrature,
                      const Quadrature<dim-1>  &face_quadrature);
-          VoFSystem (const VoFSystem &data);
+          VolumeOfFluidSystem (const VolumeOfFluidSystem &data);
 
           FEValues<dim>          finite_element_values;
           FEValues<dim>          neighbor_finite_element_values;
@@ -67,8 +67,8 @@ namespace aspect
            * Variables describing the values of the shape functions at the
            * quadrature points, as they are used in the advection assembly
            * function. note that the sizes of these arrays are equal to the
-           * number of shape functions corresponding to a single VoF field (and
-           * not of all VoF fields field!), and that they are also correspondingly
+           * number of shape functions corresponding to a single VolumeOfFluid field (and
+           * not of all VolumeOfFluid fields field!), and that they are also correspondingly
            * indexed.
            */
           std::vector<double>         phi_field;
@@ -95,7 +95,7 @@ namespace aspect
          * Standard copy data structure for matrix assembly
          */
         template <int dim>
-        struct VoFSystem
+        struct VolumeOfFluidSystem
         {
           /**
            * Constructor.
@@ -103,8 +103,8 @@ namespace aspect
            *    are trying to assemble a linear system. <b>Not</b> the global finite
            *    element.
            */
-          VoFSystem(const FiniteElement<dim> &finite_element);
-          VoFSystem(const VoFSystem &data);
+          VolumeOfFluidSystem(const FiniteElement<dim> &finite_element);
+          VolumeOfFluidSystem(const VolumeOfFluidSystem &data);
 
           /**
            * Local contributions to the global matrix and right hand side
@@ -114,7 +114,7 @@ namespace aspect
           Vector<double>              local_rhs;
           /**
            * Local contributions to the global rhs from the face terms in the
-           * discontinuous Galerkin interpretation of the VoF method.  The
+           * discontinuous Galerkin interpretation of the VolumeOfFluid method.  The
            * vector is of length GeometryInfo<dim>::max_children_per_face *
            * GeometryInfo<dim>::faces_per_cell so as to hold one matrix for
            * each possible face or subface of the cell.
@@ -150,7 +150,7 @@ namespace aspect
           /**
            * Indices of the degrees of freedom corresponding to the volume_of_fluid field
            * on all possible neighboring cells. This is used in the
-           * discontinuous Galerkin interpretation of the VoF method. The outer
+           * discontinuous Galerkin interpretation of the VolumeOfFluid method. The outer
            * std::vector has length GeometryInfo<dim>::max_children_per_face *
            * GeometryInfo<dim>::faces_per_cell.
            **/
@@ -166,44 +166,44 @@ namespace aspect
   {
 
     /**
-     * Class to hold VoF assembly logic, as analogous to that used in the main simulator.
+     * Class to hold VolumeOfFluid assembly logic, as analogous to that used in the main simulator.
      */
     template <int dim>
-    class VoFAssembler : public SimulatorAccess<dim>
+    class VolumeOfFluidAssembler : public SimulatorAccess<dim>
     {
       public:
         /**
          * Do setup and assembly on internal quadrature points and dispatch to
          * other functions for face assembly
          */
-        void local_assemble_volume_of_fluid_system (const VoFField<dim> field,
+        void local_assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
                                         const unsigned int calc_dir,
                                         const bool update_from_old,
                                         const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                        internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                        internal::Assembly::CopyData::VoFSystem<dim> &data) const;
+                                        internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                        internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
 
         /**
          * Do assembly for cell faces on the boundary
          */
-        void local_assemble_boundary_face_volume_of_fluid_system (const VoFField<dim> field,
+        void local_assemble_boundary_face_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
                                                       const unsigned int calc_dir,
                                                       const bool update_from_old,
                                                       const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                       const unsigned int face_no,
-                                                      internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                                      internal::Assembly::CopyData::VoFSystem<dim> &data) const;
+                                                      internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                      internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
 
         /**
-         * Function for assembling face fluxes for VoF system.
+         * Function for assembling face fluxes for VolumeOfFluid system.
          */
-        void local_assemble_internal_face_volume_of_fluid_system (const VoFField<dim> field,
+        void local_assemble_internal_face_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
                                                       const unsigned int calc_dir,
                                                       bool update_from_old,
                                                       const typename DoFHandler<dim>::active_cell_iterator &cell,
                                                       const unsigned int face_no,
-                                                      internal::Assembly::Scratch::VoFSystem<dim> &scratch,
-                                                      internal::Assembly::CopyData::VoFSystem<dim> &data) const;
+                                                      internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                      internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
 
         /**
          * Set volume fraction threshold for use in assembly

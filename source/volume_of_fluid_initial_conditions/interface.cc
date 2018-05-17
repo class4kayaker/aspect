@@ -30,7 +30,7 @@
 
 namespace aspect
 {
-  namespace VoFInitialConditions
+  namespace VolumeOfFluidInitialConditions
   {
     template <int dim>
     Interface<dim>::~Interface ()
@@ -109,7 +109,7 @@ namespace aspect
 
       Interface<dim> *plugin = std_cxx11::get<dim>(registered_plugins)
                                .create_plugin (model_name,
-                                               "VoF initial conditions::Model name");
+                                               "VolumeOfFluid initial conditions::Model name");
       return plugin;
     }
 
@@ -145,15 +145,15 @@ namespace aspect
     namespace Plugins
     {
       template <>
-      std::list<internal::Plugins::PluginList<VoFInitialConditions::Interface<2> >::PluginInfo> *
-      internal::Plugins::PluginList<VoFInitialConditions::Interface<2> >::plugins = 0;
+      std::list<internal::Plugins::PluginList<VolumeOfFluidInitialConditions::Interface<2> >::PluginInfo> *
+      internal::Plugins::PluginList<VolumeOfFluidInitialConditions::Interface<2> >::plugins = 0;
       template <>
-      std::list<internal::Plugins::PluginList<VoFInitialConditions::Interface<3> >::PluginInfo> *
-      internal::Plugins::PluginList<VoFInitialConditions::Interface<3> >::plugins = 0;
+      std::list<internal::Plugins::PluginList<VolumeOfFluidInitialConditions::Interface<3> >::PluginInfo> *
+      internal::Plugins::PluginList<VolumeOfFluidInitialConditions::Interface<3> >::plugins = 0;
     }
   }
 
-  namespace VoFInitialConditions
+  namespace VolumeOfFluidInitialConditions
   {
 #define INSTANTIATE(dim) \
   template class Interface<dim>; \

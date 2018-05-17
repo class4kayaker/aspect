@@ -29,7 +29,7 @@
 
 namespace aspect
 {
-  namespace VoFInitialConditions
+  namespace VolumeOfFluidInitialConditions
   {
     using namespace dealii;
 
@@ -37,7 +37,7 @@ namespace aspect
      * A class that implements initial conditions for the compositional fields
      * based on a functional description provided in the input file.
      *
-     * @ingroup VoFInitialConditionsModels
+     * @ingroup VolumeOfFluidInitialConditionsModels
      */
     template <int dim>
     class Function : public Interface<dim>,
@@ -60,7 +60,7 @@ namespace aspect
          * Return whether initialization is a signed distance level set function.
          */
         virtual
-        typename VoFInitType::Kind init_type() const;
+        typename VolumeOfFluidInitType::Kind init_type() const;
 
         /**
          * Return the initial composition as a function of position and number
@@ -94,7 +94,7 @@ namespace aspect
          * Required information on initialization method.
          */
 
-        typename VoFInitType::Kind function_init_type;
+        typename VolumeOfFluidInitType::Kind function_init_type;
         unsigned int n_init_samples;
 
         /**

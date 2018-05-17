@@ -76,7 +76,7 @@ subsection Postprocess
     set Number error samples = 16
     set Time between error estimates = 0.25
 
-    subsection Volume of Fluid
+    subsection True LS
         set Variable names = x,y,t
         set Function constants = x0=-1.0, y0=-1.0, xv=1.0, yv=1.0
         set Function expression = 0.5-sqrt((x-x0-xv*t)^2+(y-y0-yv*t)^2)
@@ -88,7 +88,7 @@ subsection Postprocess
 
     set List of output variables = volume of fluid values
 
-    subsection VoF values
+    subsection Volume of Fluid
       set Include internal reconstruction contour = false
     end
   end

@@ -36,7 +36,7 @@ namespace aspect
        * fluid interface tracking data for graphical output.
        */
       template <int dim>
-      class VoFValues
+      class VolumeOfFluidValues
         : public DataPostprocessor<dim>,
           public SimulatorAccess<dim>,
           public Interface<dim>
@@ -45,7 +45,7 @@ namespace aspect
           /**
            * Standard constructor
            */
-          VoFValues ();
+          VolumeOfFluidValues ();
 
           /**
            * Get the list of names for the components that will be produced by

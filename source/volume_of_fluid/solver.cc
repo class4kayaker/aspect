@@ -36,12 +36,12 @@
 namespace aspect
 {
   template <int dim>
-  void VoFHandler<dim>::solve_volume_of_fluid_system (const VoFField<dim> field)
+  void VolumeOfFluidHandler<dim>::solve_volume_of_fluid_system (const VolumeOfFluidField<dim> field)
   {
     unsigned int block_idx = field.volume_fraction.block_index;
 
-    sim.computing_timer.enter_section ("   Solve VoF system");
-    this->get_pcout() << "   Solving VoF system... " << std::flush;
+    sim.computing_timer.enter_section ("   Solve volume of fluid system");
+    this->get_pcout() << "   Solving volume of fluid system... " << std::flush;
 
     const double tolerance = std::max(1e-50,
                                       volume_of_fluid_solver_tolerance*sim.system_rhs.block(block_idx).l2_norm());
@@ -99,9 +99,9 @@ namespace aspect
     this->get_pcout() << solver_control.last_step()
                       << " iterations." << std::endl;
 
-    // Do not add VoF solver iterations to statistics, duplicaiton due to
+    // Do not add VolumeOfFluid solver iterations to statistics, duplicaiton due to
     // splitting messes with file format
-    // statistics.add_value("Iterations for VoF solver",
+    // statistics.add_value("Iterations for VolumeOfFluid solver",
     //                      solver_control.last_step());
 
     sim.computing_timer.exit_section();
@@ -111,7 +111,7 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template void VoFHandler<dim>::solve_volume_of_fluid_system (const VoFField<dim> field);
+  template void VolumeOfFluidHandler<dim>::solve_volume_of_fluid_system (const VolumeOfFluidField<dim> field);
 
 
   ASPECT_INSTANTIATE(INSTANTIATE)

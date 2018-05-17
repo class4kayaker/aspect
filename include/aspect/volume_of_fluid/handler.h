@@ -38,13 +38,13 @@ namespace aspect
    * all.
    */
   template <int dim>
-  class VoFHandler : public SimulatorAccess<dim>
+  class VolumeOfFluidHandler : public SimulatorAccess<dim>
   {
     public:
       /**
        * Standard initial constructor
        */
-      VoFHandler(Simulator<dim> &sim, ParameterHandler &prm);
+      VolumeOfFluidHandler(Simulator<dim> &sim, ParameterHandler &prm);
 
       /**
        * Add the Volume of Fluid field declaration to the list to be included
@@ -63,7 +63,6 @@ namespace aspect
        */
       void parse_parameters (ParameterHandler &prm);
 
-      // Get VoF data
       /**
        * Get number of Volume of Fluid fields in current model
        */
@@ -78,7 +77,7 @@ namespace aspect
        * Get the structure containing the variable locations for Volume of
        * Fluid field i.
        */
-      const VoFField<dim> &field_struct_for_field_index(unsigned int i) const;
+      const VolumeOfFluidField<dim> &field_struct_for_field_index(unsigned int i) const;
 
       /**
        * Get threshold for volume fraction
@@ -104,17 +103,17 @@ namespace aspect
       /**
        * Initialize specified field based on a composition field initial conditon
        */
-      void init_volume_of_fluid_compos (const VoFField<dim> field, const unsigned int f_ind);
+      void init_volume_of_fluid_compos (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
 
       /**
        * Initialize specified field based on a level set initial condition
        */
-      void init_volume_of_fluid_ls (const VoFField<dim> field, const unsigned int f_ind);
+      void init_volume_of_fluid_ls (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
 
       /**
        * Do interface reconstruction for specified field and cache result in solution vector
        */
-      void update_volume_of_fluid_normals (const VoFField<dim> field,
+      void update_volume_of_fluid_normals (const VolumeOfFluidField<dim> field,
                                LinearAlgebra::BlockVector &solution);
 
       /**
@@ -123,7 +122,7 @@ namespace aspect
        * to the specified AdvectionField
        */
       void update_volume_of_fluid_composition (const typename Simulator<dim>::AdvectionField composition_field,
-                                   const VoFField<dim> volume_of_fluid_field,
+                                   const VolumeOfFluidField<dim> volume_of_fluid_field,
                                    LinearAlgebra::BlockVector &solution);
 
       // Logic to handle dimensionally split update
@@ -140,7 +139,7 @@ namespace aspect
        * from the last timestep if necessary without requiring the overhead of
        * copying the data.
        */
-      void assemble_volume_of_fluid_system (const VoFField<dim> field,
+      void assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
                                 const unsigned int calculation_dim,
                                 const bool update_from_old_solution);
 
@@ -148,7 +147,7 @@ namespace aspect
        * Solve the diagnonal matrix assembled in assemble_volume_of_fluid_system for the
        * specified field.
        */
-      void solve_volume_of_fluid_system (const VoFField<dim> field);
+      void solve_volume_of_fluid_system (const VolumeOfFluidField<dim> field);
 
 
     private:
@@ -159,23 +158,23 @@ namespace aspect
        * Function to copy assembled data to final system. Requires access to
        * the full matrix, so must be in this class.
        */
-      void copy_local_to_global_volume_of_fluid_system (const internal::Assembly::CopyData::VoFSystem<dim> &data);
+      void copy_local_to_global_volume_of_fluid_system (const internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data);
 
       /**
        * Class with volume of fluid initial conditions
        */
-      const std_cxx11::unique_ptr<VoFInitialConditions::Interface<dim> >      volume_of_fluid_initial_conditions;
+      const std_cxx11::unique_ptr<VolumeOfFluidInitialConditions::Interface<dim> >      volume_of_fluid_initial_conditions;
 
       /**
        * Assembler object used for doing the matrix and RHS assembly
        */
-      Assemblers::VoFAssembler<dim> assembler;
+      Assemblers::VolumeOfFluidAssembler<dim> assembler;
 
       /**
        * Number of volume of fluid fields to calculate for
        */
       unsigned int n_volume_of_fluid_fields;
-      std::vector<VoFField<dim>> data;
+      std::vector<VolumeOfFluidField<dim>> data;
 
       /**
        * Volume fraction threshold for the reconstruction and advection

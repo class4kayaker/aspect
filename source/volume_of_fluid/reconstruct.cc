@@ -28,7 +28,7 @@ namespace aspect
   using namespace dealii;
 
   template <>
-  void VoFHandler<2>::update_volume_of_fluid_normals (const VoFField<2> field,
+  void VolumeOfFluidHandler<2>::update_volume_of_fluid_normals (const VolumeOfFluidField<2> field,
                                           LinearAlgebra::BlockVector &solution)
   {
     const int dim = 2;
@@ -36,7 +36,7 @@ namespace aspect
 
     LinearAlgebra::BlockVector initial_solution;
 
-    sim.computing_timer.enter_section("   Reconstruct VoF interfaces");
+    sim.computing_timer.enter_section("   Reconstruct VolumeOfFluid interfaces");
 
     initial_solution.reinit(sim.system_rhs, false);
 
@@ -391,22 +391,22 @@ namespace aspect
 
 
   template <>
-  void VoFHandler<3>::update_volume_of_fluid_normals (const VoFField<3> /*field*/,
+  void VolumeOfFluidHandler<3>::update_volume_of_fluid_normals (const VolumeOfFluidField<3> /*field*/,
                                           LinearAlgebra::BlockVector &/*solution*/)
   {
     Assert(false, ExcNotImplemented());
   }
 
   template <>
-  void VoFHandler<2>::update_volume_of_fluid_composition (const typename Simulator<2>::AdvectionField composition_field,
-                                              const VoFField<2> volume_of_fluid_field,
+  void VolumeOfFluidHandler<2>::update_volume_of_fluid_composition (const typename Simulator<2>::AdvectionField composition_field,
+                                              const VolumeOfFluidField<2> volume_of_fluid_field,
                                               LinearAlgebra::BlockVector &solution)
   {
     const int dim = 2;
 
     LinearAlgebra::BlockVector initial_solution;
 
-    sim.computing_timer.enter_section("  Compute VoF compositions");
+    sim.computing_timer.enter_section("  Compute VolumeOfFluid compositions");
 
     initial_solution.reinit(sim.system_rhs, false);
 
@@ -482,8 +482,8 @@ namespace aspect
   }
 
   template <>
-  void VoFHandler<3>::update_volume_of_fluid_composition (const typename Simulator<3>::AdvectionField composition_field,
-                                              const VoFField<3> volume_of_fluid_field,
+  void VolumeOfFluidHandler<3>::update_volume_of_fluid_composition (const typename Simulator<3>::AdvectionField composition_field,
+                                              const VolumeOfFluidField<3> volume_of_fluid_field,
                                               LinearAlgebra::BlockVector &solution)
   {
     Assert(false, ExcNotImplemented());

@@ -106,7 +106,7 @@ namespace aspect
   }
 
   template <int dim> class MeltHandler;
-  template <int dim> class VoFHandler;
+  template <int dim> class VolumeOfFluidHandler;
   template <int dim> class FreeSurfaceHandler;
 
   template <int dim> class NewtonHandler;
@@ -663,9 +663,9 @@ namespace aspect
       get_melt_handler () const;
 
       /**
-       * Return a pointer to the VoF handler.
+       * Return a pointer to the VolumeOfFluid handler.
        */
-      const VoFHandler<dim> &
+      const VolumeOfFluidHandler<dim> &
       get_volume_of_fluid_handler () const;
 
       /**

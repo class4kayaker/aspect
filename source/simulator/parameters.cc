@@ -968,8 +968,8 @@ namespace aspect
     }
     prm.leave_subsection ();
 
-    // declare the VoF parameters
-    VoFHandler<dim>::declare_parameters(prm);
+    // declare the VolumeOfFluid parameters
+    VolumeOfFluidHandler<dim>::declare_parameters(prm);
 
     // also declare the parameters that the FreeSurfaceHandler needs
     FreeSurfaceHandler<dim>::declare_parameters (prm);
@@ -1674,7 +1674,7 @@ namespace aspect
     GravityModel::declare_parameters<dim> (prm);
     InitialTemperature::Manager<dim>::declare_parameters (prm);
     InitialComposition::Manager<dim>::declare_parameters (prm);
-    VoFInitialConditions::declare_parameters<dim> (prm);
+    VolumeOfFluidInitialConditions::declare_parameters<dim> (prm);
     PrescribedStokesSolution::declare_parameters<dim> (prm);
     BoundaryTemperature::Manager<dim>::declare_parameters (prm);
     BoundaryComposition::Manager<dim>::declare_parameters (prm);

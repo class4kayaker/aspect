@@ -32,13 +32,13 @@ namespace aspect
    * location for access.
    */
   template<int dim>
-  struct VoFField
+  struct VolumeOfFluidField
   {
     /**
      * Initialize the structure with FEVariables to hold the required
      * information that must be available on all cells.
      */
-    VoFField(const FEVariable<dim> &volume_fraction,
+    VolumeOfFluidField(const FEVariable<dim> &volume_fraction,
              const FEVariable<dim> &reconstruction,
              const FEVariable<dim> &level_set);
 

@@ -137,7 +137,7 @@ namespace aspect
     parameters (prm, mpi_communicator_),
     melt_handler (parameters.include_melt_transport ? new MeltHandler<dim> (prm) : NULL),
     newton_handler (parameters.nonlinear_solver == NonlinearSolver::iterated_Advection_and_Newton_Stokes ? new NewtonHandler<dim> () : NULL),
-    volume_of_fluid_handler (parameters.volume_of_fluid_tracking_enabled ? new VoFHandler<dim> (*this, prm) : NULL),
+    volume_of_fluid_handler (parameters.volume_of_fluid_tracking_enabled ? new VolumeOfFluidHandler<dim> (*this, prm) : NULL),
     post_signal_creation(
       std_cxx11::bind (&internals::SimulatorSignals::call_connector_functions<dim>,
                        std_cxx11::ref(signals))),
@@ -864,7 +864,7 @@ namespace aspect
       if (have_fem_compositional_field)
         coupling[x.compositional_fields[0]][x.compositional_fields[0]] = DoFTools::always;
 
-      // If we are using VoF interface tracking, create a matrix block in the
+      // If we are using VolumeOfFluid interface tracking, create a matrix block in the
       // field corresponding to the volume fraction.
       if (parameters.volume_of_fluid_tracking_enabled)
         {

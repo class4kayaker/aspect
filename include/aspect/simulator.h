@@ -79,7 +79,7 @@ namespace aspect
   class FreeSurfaceHandler;
 
   template <int dim>
-  class VoFHandler;
+  class VolumeOfFluidHandler;
 
   namespace internal
   {
@@ -1478,11 +1478,11 @@ namespace aspect
       SimulatorSignals<dim>               signals;
 
       /**
-       * Shared pointer for an instance of the VoFHandler. This way,
+       * Shared pointer for an instance of the VolumeOfFluidHandler. This way,
        * if we do not need the machinery for doing volume_of_fluid stuff, we do
        * not even allocate it.
        */
-      std_cxx11::shared_ptr<VoFHandler<dim> > volume_of_fluid_handler;
+      std_cxx11::shared_ptr<VolumeOfFluidHandler<dim> > volume_of_fluid_handler;
 
       const IntermediaryConstructorAction post_signal_creation;
 
@@ -1719,8 +1719,8 @@ namespace aspect
 
       friend class boost::serialization::access;
       friend class SimulatorAccess<dim>;
-      friend class FreeSurfaceHandler<dim>;  // FreeSurfaceHandler needs access to the internals of the Simulator
-      friend class VoFHandler<dim>;          // VoFHandler needs access to the internals of the Simulator
+      friend class FreeSurfaceHandler<dim>;   // FreeSurfaceHandler needs access to the internals of the Simulator
+      friend class VolumeOfFluidHandler<dim>; // VolumeOfFluidHandler needs access to the internals of the Simulator
       friend struct Parameters<dim>;
   };
 }

@@ -6,277 +6,277 @@ Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
 
 *** Timestep 0:  t=0 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 0 iterations.
-   Solving VoF system... 0 iterations.
+   Solving volume of fluid system... 0 iterations.
+   Solving volume of fluid system... 0 iterations.
 
 Number of active cells: 208 (on 5 levels)
 Number of degrees of freedom: 4,632 (1,818+241+909+208+624+832)
 
 *** Timestep 0:  t=0 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 0 iterations.
-   Solving VoF system... 0 iterations.
+   Solving volume of fluid system... 0 iterations.
+   Solving volume of fluid system... 0 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3):       0.5
-     VoF Calculation(IEstL1/FEstL1): 1.59633523e-16/0.00000000e+00
+     Global volume of fluid volumes (m^3): 0.5
+     VoF Calculation(IEstL1/FEstL1):       1.59633523e-16/0.00000000e+00
 
 Number of active cells: 166 (on 5 levels)
 Number of degrees of freedom: 3,774 (1,498+199+749+166+498+664)
 
 *** Timestep 1:  t=0.0441942 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.478
+     Global volume of fluid volumes (m^3): 0.478
 
 Number of active cells: 178 (on 5 levels)
 Number of degrees of freedom: 4,014 (1,586+211+793+178+534+712)
 
 *** Timestep 2:  t=0.0883883 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.457
+     Global volume of fluid volumes (m^3): 0.457
 
 Number of active cells: 166 (on 5 levels)
 Number of degrees of freedom: 3,774 (1,498+199+749+166+498+664)
 
 *** Timestep 3:  t=0.132583 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.436
+     Global volume of fluid volumes (m^3): 0.436
 
 Number of active cells: 169 (on 5 levels)
 Number of degrees of freedom: 3,831 (1,518+202+759+169+507+676)
 
 *** Timestep 4:  t=0.176777 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.416
+     Global volume of fluid volumes (m^3): 0.416
 
 Number of active cells: 169 (on 5 levels)
 Number of degrees of freedom: 3,831 (1,518+202+759+169+507+676)
 
 *** Timestep 5:  t=0.220971 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.396
+     Global volume of fluid volumes (m^3): 0.396
 
 Number of active cells: 169 (on 5 levels)
 Number of degrees of freedom: 3,831 (1,518+202+759+169+507+676)
 
 *** Timestep 6:  t=0.265165 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3):       0.376
-     VoF Calculation(IEstL1/FEstL1): 2.44328880e-16/2.86879895e-16
+     Global volume of fluid volumes (m^3): 0.376
+     VoF Calculation(IEstL1/FEstL1):       2.44328880e-16/2.86879895e-16
 
 Number of active cells: 169 (on 5 levels)
 Number of degrees of freedom: 3,831 (1,518+202+759+169+507+676)
 
 *** Timestep 7:  t=0.309359 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.357
+     Global volume of fluid volumes (m^3): 0.357
 
 Number of active cells: 169 (on 5 levels)
 Number of degrees of freedom: 3,831 (1,518+202+759+169+507+676)
 
 *** Timestep 8:  t=0.353553 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.339
+     Global volume of fluid volumes (m^3): 0.339
 
 Number of active cells: 169 (on 5 levels)
 Number of degrees of freedom: 3,831 (1,518+202+759+169+507+676)
 
 *** Timestep 9:  t=0.397748 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.321
+     Global volume of fluid volumes (m^3): 0.321
 
 Number of active cells: 151 (on 5 levels)
 Number of degrees of freedom: 3,465 (1,382+184+691+151+453+604)
 
 *** Timestep 10:  t=0.441942 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.303
+     Global volume of fluid volumes (m^3): 0.303
 
 Number of active cells: 160 (on 5 levels)
 Number of degrees of freedom: 3,642 (1,446+193+723+160+480+640)
 
 *** Timestep 11:  t=0.486136 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.286
+     Global volume of fluid volumes (m^3): 0.286
 
 Number of active cells: 151 (on 5 levels)
 Number of degrees of freedom: 3,465 (1,382+184+691+151+453+604)
 
 *** Timestep 12:  t=0.53033 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3):       0.27
-     VoF Calculation(IEstL1/FEstL1): 1.59464931e-15/7.42678488e-16
+     Global volume of fluid volumes (m^3): 0.27
+     VoF Calculation(IEstL1/FEstL1):       1.59464931e-15/7.42678488e-16
 
 Number of active cells: 148 (on 5 levels)
 Number of degrees of freedom: 3,382 (1,346+179+673+148+444+592)
 
 *** Timestep 13:  t=0.574524 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.254
+     Global volume of fluid volumes (m^3): 0.254
 
 Number of active cells: 145 (on 5 levels)
 Number of degrees of freedom: 3,325 (1,326+176+663+145+435+580)
 
 *** Timestep 14:  t=0.618718 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.238
+     Global volume of fluid volumes (m^3): 0.238
 
 Number of active cells: 148 (on 5 levels)
 Number of degrees of freedom: 3,382 (1,346+179+673+148+444+592)
 
 *** Timestep 15:  t=0.662913 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.223
+     Global volume of fluid volumes (m^3): 0.223
 
 Number of active cells: 139 (on 5 levels)
 Number of degrees of freedom: 3,187 (1,270+170+635+139+417+556)
 
 *** Timestep 16:  t=0.707107 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.209
+     Global volume of fluid volumes (m^3): 0.209
 
 Number of active cells: 139 (on 5 levels)
 Number of degrees of freedom: 3,187 (1,270+170+635+139+417+556)
 
 *** Timestep 17:  t=0.751301 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3):       0.195
-     VoF Calculation(IEstL1/FEstL1): 2.07777097e-15/2.07407876e-15
+     Global volume of fluid volumes (m^3): 0.195
+     VoF Calculation(IEstL1/FEstL1):       2.07777097e-15/2.07407876e-15
 
 Number of active cells: 133 (on 5 levels)
 Number of degrees of freedom: 3,041 (1,210+162+605+133+399+532)
 
 *** Timestep 18:  t=0.795495 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.181
+     Global volume of fluid volumes (m^3): 0.181
 
 Number of active cells: 133 (on 5 levels)
 Number of degrees of freedom: 3,041 (1,210+162+605+133+399+532)
 
 *** Timestep 19:  t=0.839689 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.168
+     Global volume of fluid volumes (m^3): 0.168
 
 Number of active cells: 133 (on 5 levels)
 Number of degrees of freedom: 3,041 (1,210+162+605+133+399+532)
 
 *** Timestep 20:  t=0.883883 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.156
+     Global volume of fluid volumes (m^3): 0.156
 
 Number of active cells: 109 (on 5 levels)
 Number of degrees of freedom: 2,543 (1,022+138+511+109+327+436)
 
 *** Timestep 21:  t=0.928078 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.144
+     Global volume of fluid volumes (m^3): 0.144
 
 Number of active cells: 115 (on 5 levels)
 Number of degrees of freedom: 2,663 (1,066+144+533+115+345+460)
 
 *** Timestep 22:  t=0.972272 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3): 0.132
+     Global volume of fluid volumes (m^3): 0.132
 
 Number of active cells: 109 (on 5 levels)
 Number of degrees of freedom: 2,543 (1,022+138+511+109+327+436)
 
 *** Timestep 23:  t=1 seconds
    Skipping temperature solve because RHS is zero.
-   Solving VoF system... 1 iterations.
-   Solving VoF system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
+   Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global VoF volumes (m^3):       0.125
-     VoF Calculation(IEstL1/FEstL1): 3.13994267e-15/3.49727707e-15
+     Global volume of fluid volumes (m^3): 0.125
+     VoF Calculation(IEstL1/FEstL1):       3.13994267e-15/3.49727707e-15
 
 Number of active cells: 97 (on 5 levels)
 Number of degrees of freedom: 2,257 (906+122+453+97+291+388)
