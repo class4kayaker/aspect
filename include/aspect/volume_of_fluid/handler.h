@@ -27,6 +27,8 @@
 #include <aspect/volume_of_fluid/field.h>
 #include <aspect/volume_of_fluid/assembly.h>
 
+#include <boost/serialization/map.hpp>
+
 using namespace dealii;
 
 namespace aspect
@@ -149,6 +151,13 @@ namespace aspect
        */
       void solve_volume_of_fluid_system (const VolumeOfFluidField<dim> field);
 
+      /**
+       * Serialize the contents of this class.
+       */
+      template <class Archive>
+      void serialize (Archive &ar, const unsigned int version);
+
+
 
     private:
       // Parent simulator
@@ -212,6 +221,20 @@ namespace aspect
 
       friend class Simulator<dim>;
   };
+
+  /* -------------------------- inline and template functions ---------------------- */
+
+  template <int dim>
+  template <class Archive>
+  void VolumeOfFluidHandler<dim>::serialize (Archive &ar, const unsigned int)
+  {
+    // Note that we do not serialize the particle data itself. Instead we
+    // use the serialization functionality of the triangulation class, because
+    // this guarantees that data is immediately shipped to new processes if
+    // the domain is distributed differently after resuming from a checkpoint.
+    ar //&particles
+    &direction_order_descending;
+  }
 
 }
 
