@@ -114,7 +114,7 @@ namespace aspect
        * Do interface reconstruction for specified field and cache result in solution vector
        */
       void update_volume_of_fluid_normals (const VolumeOfFluidField<dim> field,
-                               LinearAlgebra::BlockVector &solution);
+                                           LinearAlgebra::BlockVector &solution);
 
       /**
        * Use current interface reconstruction to produce a composition field
@@ -122,8 +122,8 @@ namespace aspect
        * to the specified AdvectionField
        */
       void update_volume_of_fluid_composition (const typename Simulator<dim>::AdvectionField composition_field,
-                                   const VolumeOfFluidField<dim> volume_of_fluid_field,
-                                   LinearAlgebra::BlockVector &solution);
+                                               const VolumeOfFluidField<dim> volume_of_fluid_field,
+                                               LinearAlgebra::BlockVector &solution);
 
       // Logic to handle dimensionally split update
       /**
@@ -140,8 +140,8 @@ namespace aspect
        * copying the data.
        */
       void assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
-                                const unsigned int calculation_dim,
-                                const bool update_from_old_solution);
+                                            const unsigned int calculation_dim,
+                                            const bool update_from_old_solution);
 
       /**
        * Solve the diagnonal matrix assembled in assemble_volume_of_fluid_system for the

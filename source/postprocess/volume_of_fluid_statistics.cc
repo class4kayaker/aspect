@@ -56,7 +56,7 @@ namespace aspect
       for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
         {
           FEValuesExtractors::Scalar volume_of_fluid = this->get_volume_of_fluid_handler().field_struct_for_field_index(f)
-                                           .volume_fraction.extractor_scalar();
+                                                       .volume_fraction.extractor_scalar();
           double volume_of_fluid_vol_sum=0.0, volume_of_fluid_vol_corr=0.0;
 
           typename DoFHandler<dim>::active_cell_iterator
@@ -67,7 +67,7 @@ namespace aspect
               {
                 fe_values.reinit (cell);
                 fe_values[volume_of_fluid].get_function_values (this->get_solution(),
-                                                    volume_of_fluid_values);
+                                                                volume_of_fluid_values);
                 for (unsigned int q = 0; q < n_q_points; ++q)
                   {
                     //Use Kahan sum for improved consistency

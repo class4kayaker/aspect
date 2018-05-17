@@ -140,9 +140,9 @@ namespace aspect
      */
     template<int dim>
     double calc_volume_of_fluid_flux_edge (const unsigned int compute_direction,
-                               const double time_direction_derivative,
-                               const Tensor<1, dim, double> inteface_normal_in_cell,
-                               const double d_at_face_center);
+                                           const double time_direction_derivative,
+                                           const Tensor<1, dim, double> inteface_normal_in_cell,
+                                           const double d_at_face_center);
   }
 }
 

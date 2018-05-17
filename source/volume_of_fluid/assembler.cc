@@ -46,11 +46,11 @@ namespace aspect
 
     template <int dim>
     void VolumeOfFluidAssembler<dim>::local_assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
-                                                       const unsigned int calc_dir,
-                                                       const bool update_from_old,
-                                                       const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                                       internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
-                                                       internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
+                                                                             const unsigned int calc_dir,
+                                                                             const bool update_from_old,
+                                                                             const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                                             internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                                             internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
     {
       const unsigned int n_q_points    = scratch.finite_element_values.n_quadrature_points;
 
@@ -94,10 +94,10 @@ namespace aspect
                                                                              scratch.old_field_values);
 
           scratch.finite_element_values[volume_of_fluidN_n].get_function_values (this->get_old_solution(),
-                                                                     scratch.cell_i_n_values);
+                                                                                 scratch.cell_i_n_values);
 
           scratch.finite_element_values[volume_of_fluidN_d].get_function_values (this->get_old_solution(),
-                                                                     scratch.cell_i_d_values);
+                                                                                 scratch.cell_i_d_values);
         }
       else
         {
@@ -105,10 +105,10 @@ namespace aspect
                                                                              scratch.old_field_values);
 
           scratch.finite_element_values[volume_of_fluidN_n].get_function_values (this->get_solution(),
-                                                                     scratch.cell_i_n_values);
+                                                                                 scratch.cell_i_n_values);
 
           scratch.finite_element_values[volume_of_fluidN_d].get_function_values (this->get_solution(),
-                                                                     scratch.cell_i_d_values);
+                                                                                 scratch.cell_i_d_values);
         }
 
       // Obtain approximation to local interface
@@ -152,12 +152,12 @@ namespace aspect
 
     template <int dim>
     void VolumeOfFluidAssembler<dim>::local_assemble_boundary_face_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
-                                                                     const unsigned int calc_dir,
-                                                                     const bool update_from_old,
-                                                                     const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                                                     const unsigned int face_no,
-                                                                     internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
-                                                                     internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
+        const unsigned int calc_dir,
+        const bool update_from_old,
+        const typename DoFHandler<dim>::active_cell_iterator &cell,
+        const unsigned int face_no,
+        internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+        internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
     {
       const bool old_velocity_avail = (this->get_timestep_number() > 0);
 
@@ -251,9 +251,9 @@ namespace aspect
           else // Cell is upwind, outflow boundary
             {
               flux_volume_of_fluid = VolumeOfFluid::calc_volume_of_fluid_flux_edge<dim> (f_dim,
-                                                                 face_ls_time_grad,
-                                                                 cell_i_normal,
-                                                                 face_ls_d);
+                                                                                         face_ls_time_grad,
+                                                                                         cell_i_normal,
+                                                                                         face_ls_d);
             }
 
           //TODO: Handle non-zero inflow VolumeOfFluid boundary conditions
@@ -265,12 +265,12 @@ namespace aspect
 
     template <int dim>
     void VolumeOfFluidAssembler<dim>::local_assemble_internal_face_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
-                                                                     const unsigned int calc_dir,
-                                                                     bool update_from_old,
-                                                                     const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                                                     const unsigned int face_no,
-                                                                     internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
-                                                                     internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
+        const unsigned int calc_dir,
+        bool update_from_old,
+        const typename DoFHandler<dim>::active_cell_iterator &cell,
+        const unsigned int face_no,
+        internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+        internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
     {
       const bool old_velocity_avail = (this->get_timestep_number() > 0);
 
@@ -443,16 +443,16 @@ namespace aspect
               else if (face_flux < 0.0) // Neighbor is upwind
                 {
                   flux_volume_of_fluid = VolumeOfFluid::calc_volume_of_fluid_flux_edge<dim> (n_f_dim,
-                                                                     n_face_ls_time_grad,
-                                                                     neighbor_i_normal,
-                                                                     n_face_ls_d);
+                                                                                             n_face_ls_time_grad,
+                                                                                             neighbor_i_normal,
+                                                                                             n_face_ls_d);
                 }
               else // This cell is upwind
                 {
                   flux_volume_of_fluid = VolumeOfFluid::calc_volume_of_fluid_flux_edge<dim> (f_dim,
-                                                                     face_ls_time_grad,
-                                                                     cell_i_normal,
-                                                                     face_ls_d);
+                                                                                             face_ls_time_grad,
+                                                                                             cell_i_normal,
+                                                                                             face_ls_d);
                 }
 
               Assert (neighbor.state() == IteratorState::valid,

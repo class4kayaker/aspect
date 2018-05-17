@@ -871,7 +871,7 @@ namespace aspect
           for (unsigned int f=0; f<volume_of_fluid_handler->get_n_fields(); ++f)
             {
               const unsigned int volume_of_fluid_c_index = volume_of_fluid_handler->field_struct_for_field_index(f)
-                                               .volume_fraction.first_component_index;
+                                                           .volume_fraction.first_component_index;
               coupling[volume_of_fluid_c_index][volume_of_fluid_c_index] = DoFTools::always;
             }
         }
@@ -909,7 +909,7 @@ namespace aspect
             for (unsigned int f=0; f<volume_of_fluid_handler->get_n_fields(); ++f)
               {
                 const unsigned int volume_of_fluid_c_index = volume_of_fluid_handler->field_struct_for_field_index(f)
-                                                 .volume_fraction.first_component_index;
+                                                             .volume_fraction.first_component_index;
                 face_coupling[volume_of_fluid_c_index][volume_of_fluid_c_index] = DoFTools::always;
               }
           }

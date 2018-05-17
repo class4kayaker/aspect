@@ -64,7 +64,7 @@ namespace aspect
         {
 
           const FEValuesExtractors::Scalar volume_of_fluid_field = this->get_volume_of_fluid_handler().field_struct_for_field_index(f)
-                                                       .volume_fraction.extractor_scalar();
+                                                                   .volume_fraction.extractor_scalar();
           std::vector<double> volume_of_fluid_q_values(qMidC.size());
 
           const double voleps = this->get_volume_of_fluid_handler().get_volume_fraction_threshold();
@@ -82,7 +82,7 @@ namespace aspect
               // Get cell volume_of_fluid
               fe_values.reinit(cell);
               fe_values[volume_of_fluid_field].get_function_values(this->get_solution(),
-                                                       volume_of_fluid_q_values);
+                                                                   volume_of_fluid_q_values);
               double cell_volume_of_fluid = volume_of_fluid_q_values[0];
 
               // Handle overshoots
@@ -122,7 +122,7 @@ namespace aspect
                               if (neighbor==endc) continue;
                               fe_values.reinit(neighbor);
                               fe_values[volume_of_fluid_field].get_function_values(this->get_solution(),
-                                                                       volume_of_fluid_q_values);
+                                                                                   volume_of_fluid_q_values);
 
                               double neighbor_volume_of_fluid = volume_of_fluid_q_values[0];
 
@@ -157,7 +157,7 @@ namespace aspect
                               if (neighbor_sub==endc) continue;
                               fe_values.reinit(neighbor_sub);
                               fe_values[volume_of_fluid_field].get_function_values(this->get_solution(),
-                                                                       volume_of_fluid_q_values);
+                                                                                   volume_of_fluid_q_values);
 
                               double neighbor_volume_of_fluid = volume_of_fluid_q_values[0];
 

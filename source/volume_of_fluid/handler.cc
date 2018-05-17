@@ -33,8 +33,8 @@ namespace aspect
 
   template <int dim>
   VolumeOfFluidField<dim>::VolumeOfFluidField(const FEVariable<dim> &volume_fraction,
-                          const FEVariable<dim> &reconstruction,
-                          const FEVariable<dim> &level_set)
+                                              const FEVariable<dim> &reconstruction,
+                                              const FEVariable<dim> &level_set)
     : volume_fraction (volume_fraction),
       reconstruction (reconstruction),
       level_set (level_set)
@@ -42,7 +42,7 @@ namespace aspect
 
   template <int dim>
   VolumeOfFluidHandler<dim>::VolumeOfFluidHandler (Simulator<dim> &simulator,
-                               ParameterHandler &prm)
+                                                   ParameterHandler &prm)
     : sim (simulator),
       volume_of_fluid_initial_conditions (VolumeOfFluidInitialConditions::create_initial_conditions<dim>(prm)),
       assembler (),
@@ -143,8 +143,8 @@ namespace aspect
       for (unsigned int i=0; i<volume_of_fluid_field_names.size(); ++i)
         {
           Assert (volume_of_fluid_field_names[i].find_first_not_of("abcdefghijklmnopqrstuvwxyz"
-                                                       "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                                       "0123456789_") == std::string::npos,
+                                                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                                                   "0123456789_") == std::string::npos,
                   ExcMessage("Invalid character in field " + volume_of_fluid_field_names[i] + ". "
                              "Names of Volume of Fluid fields should consist of a "
                              "combination of letters, numbers and underscores."));
@@ -277,8 +277,8 @@ namespace aspect
     for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
         data.push_back(VolumeOfFluidField<dim>(this->introspection().variable("volume_fraction_"+volume_of_fluid_field_names[f]),
-                                     this->introspection().variable("volume_of_fluid_interface_reconstruction_"+volume_of_fluid_field_names[f]),
-                                     this->introspection().variable("volume_of_fluid_contour_"+volume_of_fluid_field_names[f])));
+                                               this->introspection().variable("volume_of_fluid_interface_reconstruction_"+volume_of_fluid_field_names[f]),
+                                               this->introspection().variable("volume_of_fluid_contour_"+volume_of_fluid_field_names[f])));
       }
 
     // Do initial conditions setup

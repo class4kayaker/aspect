@@ -256,9 +256,9 @@ namespace aspect
                             update_quadrature_points);
 
       const unsigned int volume_of_fluid_index = this->get_volume_of_fluid_handler().field_struct_for_field_index(f_ind)
-          .volume_fraction.first_component_index;
+                                                 .volume_fraction.first_component_index;
       const unsigned int volume_of_fluidN_c_index = this->get_volume_of_fluid_handler().field_struct_for_field_index(f_ind)
-          .reconstruction.first_component_index;
+                                                    .reconstruction.first_component_index;
 
       // Initialize state based on provided function
       for (auto cell : dof_handler.active_cell_iterators ())
@@ -324,7 +324,7 @@ namespace aspect
                 }
               double dot = normal * xU;
               double ptvolume_of_fluid_e = VolumeOfFluid::compute_fluid_fraction<dim> (h * normal,
-                                                                           (d - dot));
+                                                                                       (d - dot));
               double diff = abs (ptvolume_of_fluid_t - ptvolume_of_fluid_e);
               val += diff * fe_err.JxW (i);
             }

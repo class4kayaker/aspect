@@ -49,10 +49,10 @@ namespace aspect
         struct VolumeOfFluidSystem
         {
           VolumeOfFluidSystem (const FiniteElement<dim> &finite_element,
-                     const FiniteElement<dim> &volume_of_fluid_element,
-                     const Mapping<dim>       &mapping,
-                     const Quadrature<dim>    &quadrature,
-                     const Quadrature<dim-1>  &face_quadrature);
+                               const FiniteElement<dim> &volume_of_fluid_element,
+                               const Mapping<dim>       &mapping,
+                               const Quadrature<dim>    &quadrature,
+                               const Quadrature<dim-1>  &face_quadrature);
           VolumeOfFluidSystem (const VolumeOfFluidSystem &data);
 
           FEValues<dim>          finite_element_values;
@@ -177,33 +177,33 @@ namespace aspect
          * other functions for face assembly
          */
         void local_assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
-                                        const unsigned int calc_dir,
-                                        const bool update_from_old,
-                                        const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                        internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
-                                        internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
+                                                    const unsigned int calc_dir,
+                                                    const bool update_from_old,
+                                                    const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                    internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                    internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
 
         /**
          * Do assembly for cell faces on the boundary
          */
         void local_assemble_boundary_face_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
-                                                      const unsigned int calc_dir,
-                                                      const bool update_from_old,
-                                                      const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                                      const unsigned int face_no,
-                                                      internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
-                                                      internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
+                                                                  const unsigned int calc_dir,
+                                                                  const bool update_from_old,
+                                                                  const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                                  const unsigned int face_no,
+                                                                  internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                                  internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
 
         /**
          * Function for assembling face fluxes for VolumeOfFluid system.
          */
         void local_assemble_internal_face_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
-                                                      const unsigned int calc_dir,
-                                                      bool update_from_old,
-                                                      const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                                      const unsigned int face_no,
-                                                      internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
-                                                      internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
+                                                                  const unsigned int calc_dir,
+                                                                  bool update_from_old,
+                                                                  const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                                  const unsigned int face_no,
+                                                                  internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
+                                                                  internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const;
 
         /**
          * Set volume fraction threshold for use in assembly

@@ -638,9 +638,9 @@ namespace aspect
 
     template<int dim>
     double calc_volume_of_fluid_flux_edge (const unsigned int dir,
-                               const double timeGrad,
-                               const Tensor<1, dim, double> normal,
-                               const double d_face)
+                                           const double timeGrad,
+                                           const Tensor<1, dim, double> normal,
+                                           const double d_face)
     {
       Tensor<1, dim, double> i_normal;
       double i_d;
@@ -660,9 +660,9 @@ namespace aspect
   {
 #define INSTANTIATE(dim) \
   template double calc_volume_of_fluid_flux_edge<dim>(unsigned int dir, \
-                                          double timeGrad, \
-                                          Tensor<1, dim, double> normal, \
-                                          double d); \
+                                                      double timeGrad, \
+                                                      Tensor<1, dim, double> normal, \
+                                                      double d); \
   template double compute_interface_location_newton<dim>(const int degree, \
                                                          const Tensor<1, dim, double> normal, \
                                                          const double vol_frac, \

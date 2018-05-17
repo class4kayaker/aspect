@@ -46,10 +46,10 @@ namespace aspect
       {
         template <int dim>
         VolumeOfFluidSystem<dim>::VolumeOfFluidSystem (const FiniteElement<dim> &finite_element,
-                                   const FiniteElement<dim> &volume_of_fluid_element,
-                                   const Mapping<dim>       &mapping,
-                                   const Quadrature<dim>    &quadrature,
-                                   const Quadrature<dim-1>  &face_quadrature)
+                                                       const FiniteElement<dim> &volume_of_fluid_element,
+                                                       const Mapping<dim>       &mapping,
+                                                       const Quadrature<dim>    &quadrature,
+                                                       const Quadrature<dim-1>  &face_quadrature)
           :
           finite_element_values (mapping,
                                  finite_element, quadrature,
@@ -184,8 +184,8 @@ namespace aspect
 
   template <int dim>
   void VolumeOfFluidHandler<dim>::assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
-                                             const unsigned int dir,
-                                             const bool update_from_old)
+                                                                   const unsigned int dir,
+                                                                   const bool update_from_old)
   {
     sim.computing_timer.enter_section ("   Assemble volume of fluid system");
     const unsigned int block_idx = field.volume_fraction.block_index;
@@ -234,10 +234,10 @@ namespace aspect
          // field index.)
          internal::Assembly::Scratch::
          VolumeOfFluidSystem<dim> (this->get_fe(),
-                         volume_of_fluid_fe,
-                         this->get_mapping(),
-                         QGauss<dim>((this->get_parameters().stokes_velocity_degree+1)/2),
-                         QGauss<dim-1>((this->get_parameters().stokes_velocity_degree+1)/2)),
+                                   volume_of_fluid_fe,
+                                   this->get_mapping(),
+                                   QGauss<dim>((this->get_parameters().stokes_velocity_degree+1)/2),
+                                   QGauss<dim-1>((this->get_parameters().stokes_velocity_degree+1)/2)),
          internal::Assembly::CopyData::
          VolumeOfFluidSystem<dim> (volume_of_fluid_fe));
 
@@ -285,8 +285,8 @@ namespace aspect
 {
 #define INSTANTIATE(dim) \
   template void VolumeOfFluidHandler<dim>::assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field, \
-                                                      unsigned int dir, \
-                                                      bool update_from_old); \
+                                                                            unsigned int dir, \
+                                                                            bool update_from_old); \
   template void VolumeOfFluidHandler<dim>::copy_local_to_global_volume_of_fluid_system (const internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data);
 
 

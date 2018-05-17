@@ -39,8 +39,8 @@ namespace aspect
      * information that must be available on all cells.
      */
     VolumeOfFluidField(const FEVariable<dim> &volume_fraction,
-             const FEVariable<dim> &reconstruction,
-             const FEVariable<dim> &level_set);
+                       const FEVariable<dim> &reconstruction,
+                       const FEVariable<dim> &level_set);
 
     /**
      * Field to hold the current volume fraction.
