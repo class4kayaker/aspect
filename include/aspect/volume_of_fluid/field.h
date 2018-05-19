@@ -40,7 +40,8 @@ namespace aspect
      */
     VolumeOfFluidField(const FEVariable<dim> &volume_fraction,
                        const FEVariable<dim> &reconstruction,
-                       const FEVariable<dim> &level_set);
+                       const FEVariable<dim> &level_set,
+                       const unsigned int composition_index);
 
     /**
      * Field to hold the current volume fraction.
@@ -57,6 +58,11 @@ namespace aspect
      * visualization plugin.
      */
     const FEVariable<dim> &level_set;
+
+    /**
+     * Field to hold the index of the associated composition field
+     */
+    const unsigned int composition_index;
 
   };
 }

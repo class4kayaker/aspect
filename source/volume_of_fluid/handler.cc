@@ -35,10 +35,12 @@ namespace aspect
   template <int dim>
   VolumeOfFluidField<dim>::VolumeOfFluidField(const FEVariable<dim> &volume_fraction,
                                               const FEVariable<dim> &reconstruction,
-                                              const FEVariable<dim> &level_set)
+                                              const FEVariable<dim> &level_set,
+                                              const unsigned int composition_index)
     : volume_fraction (volume_fraction),
       reconstruction (reconstruction),
-      level_set (level_set)
+      level_set (level_set),
+      composition_index(composition_index)
   {}
 
   template <int dim>
@@ -194,7 +196,8 @@ namespace aspect
       {
         data.push_back(VolumeOfFluidField<dim>(this->introspection().variable("volume_fraction_"+volume_of_fluid_field_names[f]),
                                                this->introspection().variable("volume_of_fluid_interface_reconstruction_"+volume_of_fluid_field_names[f]),
-                                               this->introspection().variable("volume_of_fluid_contour_"+volume_of_fluid_field_names[f])));
+                                               this->introspection().variable("volume_of_fluid_contour_"+volume_of_fluid_field_names[f]),
+                                               this->introspection().compositional_index_for_name(volume_of_fluid_field_names[f])));
       }
 
     // Do initial conditions setup
