@@ -64,6 +64,7 @@ namespace aspect
           face_finite_element_values (mapping,
                                       finite_element, face_quadrature,
                                       update_values |
+                                      update_quadrature_points |
                                       update_gradients |
                                       update_normal_vectors |
                                       update_JxW_values),

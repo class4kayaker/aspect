@@ -161,6 +161,8 @@ namespace aspect
     {
       const bool old_velocity_avail = (this->get_timestep_number() > 0);
 
+      const typename DoFHandler<dim>::face_iterator face = cell->face(face_no);
+
       const unsigned int f_dim = face_no/2; // Obtain dimension
       const bool f_dir_pos = (face_no%2==1);
 
@@ -202,27 +204,65 @@ namespace aspect
           double face_flux = 0;
           double face_ls_d = 0;
           double face_ls_time_grad = 0;
+          double boundary_fluid_flux = 0;
 
           // Using VolumeOfFluid so need to accumulate flux through face
-          for (unsigned int q=0; q<n_f_q_points; ++q)
+          if ( this->get_fixed_composition_boundary_indicators().find(
+                 face->boundary_id()
+               )
+               != this->get_fixed_composition_boundary_indicators().end())
             {
+              for (unsigned int q=0; q<n_f_q_points; ++q)
+                {
 
-              Tensor<1,dim> current_u = scratch.face_current_velocity_values[q];
+                  Tensor<1,dim> current_u = scratch.face_current_velocity_values[q];
 
-              //If old velocity available average to half timestep
-              if (old_velocity_avail)
-                current_u += 0.5*(scratch.face_old_velocity_values[q] -
-                                  scratch.face_current_velocity_values[q]);
+                  //If old velocity available average to half timestep
+                  if (old_velocity_avail)
+                    current_u += 0.5*(scratch.face_old_velocity_values[q] -
+                                      scratch.face_current_velocity_values[q]);
 
-              //Subtract off the mesh velocity for ALE corrections if necessary
-              if (this->get_parameters().free_surface_enabled)
-                current_u -= scratch.face_mesh_velocity_values[q];
+                  //Subtract off the mesh velocity for ALE corrections if necessary
+                  if (this->get_parameters().free_surface_enabled)
+                    current_u -= scratch.face_mesh_velocity_values[q];
 
-              face_flux += this->get_timestep() *
-                           current_u *
-                           scratch.face_finite_element_values.normal_vector(q) *
-                           scratch.face_finite_element_values.JxW(q);
+                  face_flux += this->get_timestep() *
+                               current_u *
+                               scratch.face_finite_element_values.normal_vector(q) *
+                               scratch.face_finite_element_values.JxW(q);
 
+                }
+            }
+          else
+            {
+              for (unsigned int q=0; q<n_f_q_points; ++q)
+                {
+
+                  Tensor<1,dim> current_u = scratch.face_current_velocity_values[q];
+
+                  //If old velocity available average to half timestep
+                  if (old_velocity_avail)
+                    current_u += 0.5*(scratch.face_old_velocity_values[q] -
+                                      scratch.face_current_velocity_values[q]);
+
+                  //Subtract off the mesh velocity for ALE corrections if necessary
+                  if (this->get_parameters().free_surface_enabled)
+                    current_u -= scratch.face_mesh_velocity_values[q];
+
+                  face_flux += this->get_timestep() *
+                               current_u *
+                               scratch.face_finite_element_values.normal_vector(q) *
+                               scratch.face_finite_element_values.JxW(q);
+
+                  boundary_fluid_flux += this->get_boundary_composition_manager().boundary_composition(
+                                           face->boundary_id(),
+                                           scratch.face_finite_element_values.quadrature_point(q),
+                                           field.composition_index) *
+                                         current_u *
+                                         scratch.face_finite_element_values.normal_vector(q) *
+                                         scratch.face_finite_element_values.JxW(q);
+
+                }
             }
 
           // Due to inability to reference this cell's values at the interface,
@@ -246,7 +286,7 @@ namespace aspect
             }
           else if (face_flux < 0.0) // edge is upwind, currently assume zero inflow
             {
-              flux_volume_of_fluid = 0.0;
+              flux_volume_of_fluid = boundary_fluid_flux/face_flux;
             }
           else // Cell is upwind, outflow boundary
             {
@@ -255,8 +295,6 @@ namespace aspect
                                                                                          cell_i_normal,
                                                                                          face_ls_d);
             }
-
-          //TODO: Handle non-zero inflow VolumeOfFluid boundary conditions
 
           // Add fluxes to RHS
           data.local_rhs[0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
