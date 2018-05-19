@@ -194,6 +194,12 @@ namespace aspect
       double volume_of_fluid_solver_tolerance;
 
       /**
+       * Number of samples in each dimension to use during the Volume of Fluid
+       * initialization, for a total of $n_init_samples^dim$ points sampled
+       */
+      unsigned int n_init_samples;
+
+      /**
        * Vector of human readable names for the volume of fluid fields,
        * obtained from the associated composition field name
        */

@@ -66,10 +66,6 @@ namespace aspect
                             "When set to true, initialization will be assumed to be a"
                             "signed distance level set function.");
 
-          prm.declare_entry ("Number initialization samples", "3",
-                             Patterns::Integer (1),
-                             "Number of sampled points per dimension when initializing from VOF");
-
           Functions::ParsedFunction<dim>::declare_parameters (prm, 1);
         }
         prm.leave_subsection();
@@ -91,8 +87,6 @@ namespace aspect
           function_init_type = VolumeOfFluidInitType::signed_distance_level_set;
         else
           function_init_type = VolumeOfFluidInitType::composition;
-
-        n_init_samples = prm.get_integer ("Number initialization samples");
 
         try
           {

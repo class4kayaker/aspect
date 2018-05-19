@@ -65,13 +65,11 @@ namespace aspect
   template <int dim>
   void VolumeOfFluidHandler<dim>::init_volume_of_fluid_compos (const VolumeOfFluidField<dim> field, const unsigned int f_ind)
   {
-    unsigned int n_samples = volume_of_fluid_initial_conditions->n_samples ();
-
     LinearAlgebra::BlockVector initial_solution;
 
     initial_solution.reinit(sim.system_rhs, false);
 
-    const QIterated<dim> quadrature (QMidpoint<1>(), n_samples);
+    const QIterated<dim> quadrature (QMidpoint<1>(), n_init_samples);
     FEValues<dim, dim> fe_init (this->get_mapping(), this->get_fe(), quadrature,
                                 update_JxW_values | update_quadrature_points);
 
@@ -121,19 +119,17 @@ namespace aspect
   template <int dim>
   void VolumeOfFluidHandler<dim>::init_volume_of_fluid_ls (const VolumeOfFluidField<dim> field, const unsigned int f_ind)
   {
-    unsigned int n_samples = volume_of_fluid_initial_conditions->n_samples ();
-
     LinearAlgebra::BlockVector initial_solution;
 
     initial_solution.reinit(sim.system_rhs, false);
 
-    const QIterated<dim> quadrature (QMidpoint<1>(), n_samples);
+    const QIterated<dim> quadrature (QMidpoint<1>(), n_init_samples);
     FEValues<dim, dim> fe_init (this->get_mapping(),
                                 this->get_fe(),
                                 quadrature,
                                 update_JxW_values | update_quadrature_points);
 
-    double h = 1.0/n_samples;
+    double h = 1.0/n_init_samples;
 
     std::vector<types::global_dof_index>
     local_dof_indicies (this->get_fe().dofs_per_cell);

@@ -104,6 +104,10 @@ namespace aspect
                          "for the Volume of Fluid system gets solved. See"
                          "'Solver parameters/Composition solver tolerance'"
                          "for more details.");
+
+      prm.declare_entry ("Number initialization samples", "3",
+                         Patterns::Integer (1),
+                         "Number of sampled points per dimension when initializing from VOF");
     }
     prm.leave_subsection ();
   }
@@ -133,6 +137,8 @@ namespace aspect
       volume_fraction_threshold = prm.get_double("Volume fraction threshold");
 
       volume_of_fluid_solver_tolerance = prm.get_double("Volume of Fluid solver tolerance");
+
+      n_init_samples = prm.get_integer ("Number initialization samples");
     }
     prm.leave_subsection ();
   }
