@@ -46,6 +46,10 @@ subsection Initial temperature model
   set Model name = function
 end
 
+subsection Initial composition model
+  set Volume of fluid intialization type = F_1:level set, F_2:level set
+end
+
 subsection Prescribed Stokes solution
   set Model name = function
   subsection Velocity function
@@ -62,7 +66,6 @@ subsection Initial Volume of Fluid model
   set Model name = function
 
   subsection Function
-    set Signed distance init = true
     set Variable names = x,y,t
     set Function constants = init=1.25, x0_0=1.0, y0_0=0.0, x0_1=0.75, y0_1=0.0, xv=-0.25, yv=-0.25
     set Function expression = cos(init*pi)*(x-x0_0-xv*t)+sin(init*pi)*(y-y0_0-yv*t);cos(init*pi)*(x-x0_1-xv*t)+sin(init*pi)*(y-y0_1-yv*t)
