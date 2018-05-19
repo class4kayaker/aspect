@@ -51,18 +51,6 @@ namespace aspect
         Function ();
 
         /**
-         * Return number of sample points to use for initialization.
-         */
-        virtual
-        unsigned int n_samples () const;
-
-        /**
-         * Return whether initialization is a signed distance level set function.
-         */
-        virtual
-        typename VolumeOfFluidInitType::Kind init_type() const;
-
-        /**
          * Return the initial composition as a function of position and number
          * of compositional field.
          */
@@ -90,13 +78,6 @@ namespace aspect
         parse_parameters (ParameterHandler &prm);
 
       private:
-        /**
-         * Required information on initialization method.
-         */
-
-        typename VolumeOfFluidInitType::Kind function_init_type;
-        unsigned int n_init_samples;
-
         /**
          * A function object representing the compositional fields.
          */

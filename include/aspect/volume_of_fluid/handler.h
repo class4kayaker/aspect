@@ -175,6 +175,11 @@ namespace aspect
        * Number of volume of fluid fields to calculate for
        */
       unsigned int n_volume_of_fluid_fields;
+
+      /**
+       * Structures containing the locations of the associated state data for
+       * each volume of fluid field.
+       */
       std::vector<VolumeOfFluidField<dim>> data;
 
       /**
@@ -210,6 +215,13 @@ namespace aspect
        * fluid field to the correct field by the index of the correct field.
        */
       std::map<unsigned int, unsigned int> volume_of_fluid_composition_map_index;
+
+      /**
+       * Methods to use when initializing the volume of fluid fields.  Must be
+       * held here as all access to the actual methods for composition
+       * initialization is handled by the manager.
+       */
+      std::vector<typename VolumeOfFluid::VolumeOfFluidInputType::Kind> initialization_data_type;
 
       friend class Simulator<dim>;
   };

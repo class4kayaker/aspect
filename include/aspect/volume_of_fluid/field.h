@@ -27,6 +27,31 @@ using namespace dealii;
 
 namespace aspect
 {
+  namespace VolumeOfFluid
+  {
+    /**
+     * A structure that contains enum values that identify type of input data
+     * to allow robust use of sub-mesh scale input that remain valid over
+     * multiple mesh sizes.
+     */
+    struct VolumeOfFluidInputType
+    {
+      enum Kind
+      {
+        /**
+         * Input data is a value between 0 and 1 at all points.
+         */
+        composition,
+        /**
+         * Input data is an interface defined by a level set with positive
+         * value indicating fluid presence, and gradient of equal magnitude
+         * everywhere.
+         */
+        level_set
+      };
+    };
+  }
+
   /**
    * Structure to package the relevant data (both state and cached) in a single
    * location for access.

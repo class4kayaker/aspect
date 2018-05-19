@@ -1414,6 +1414,11 @@ namespace aspect
             AssertThrow(false,ExcNotImplemented());
         }
 
+      // Enable Volume of Fluid field tracking if any compositional_field_methods are volume_of_fluid
+      volume_of_fluid_tracking_enabled =
+        (std::count(compositional_field_methods.begin(),compositional_field_methods.end(),AdvectionFieldMethod::volume_of_fluid)
+         > 0);
+
 
       const std::vector<std::string> x_mapped_particle_properties
         = Utilities::split_string_list
@@ -1426,11 +1431,6 @@ namespace aspect
                    || (x_mapped_particle_properties.size() == 0),
                    ExcMessage ("The list of names for the mapped particle property fields needs to either be empty or have a length equal to "
                                "the number of compositional fields that are interpolated from particle properties."));
-
-      // Enable Volume of Fluid field tracking if any compositional_field_methods are volume_of_fluid
-      volume_of_fluid_tracking_enabled =
-        (std::count(compositional_field_methods.begin(),compositional_field_methods.end(),AdvectionFieldMethod::volume_of_fluid)
-         > 0);
 
       for (std::vector<std::string>::const_iterator p = x_mapped_particle_properties.begin();
            p != x_mapped_particle_properties.end(); ++p)
@@ -1533,9 +1533,9 @@ namespace aspect
       // Check that volume of fluid interface tracking has been enabled explicitly if used
       AssertThrow(explicit_volume_of_fluid_tracking_enabled || !volume_of_fluid_tracking_enabled,
                   ExcMessage("Volume of Fluid interface tracking must be enabled "
-                             "(Volume of Fluid.Enable interface tracking) to use the "
+                             "(Volume of Fluid/Enable interface tracking) to use the "
                              "``volume of fluid`` interface tracking advection "
-                             "method(Compositional fields.Compositional field methods)."));
+                             "method(Compositional fields/Compositional field methods)."));
     }
     prm.leave_subsection ();
 

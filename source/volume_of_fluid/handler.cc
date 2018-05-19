@@ -112,6 +112,30 @@ namespace aspect
                          "Number of sampled points per dimension when initializing from VOF");
     }
     prm.leave_subsection ();
+
+    prm.enter_subsection("Initial composition model");
+    {
+      prm.declare_entry("Volume of fluid intialization type", "",
+                        Patterns::Map (Patterns::Anything(),
+                                       Patterns::Selection("composition|level set")),
+                        "A comma separated list denoting the method to be used to "
+                        "initialize a composition field specified to be advected using "
+                        "the volume of fluid method.\n\n"
+                        "The format of valid entries for this parameter is that "
+                        "of a map given as ``key1:value1, key2:value2`` where "
+                        "each key must be the name of a compositional field "
+                        "using the volume of fluid advection method, and the "
+                        "value is one of ``composition`` or ``level "
+                        "set``. ``composition`` is the default\n\n"
+                        "When ``composition is specified, the initial model is "
+                        "treated as a standard composition field. If ``level "
+                        "set`` is specified, the intial data will be assumed to "
+                        "be in the form of a function which is positive when in "
+                        "the fluid, negative outside, and zero on the interface "
+                        "with the gradient being of the same magnitude "
+                        "everywhere.");
+    }
+    prm.leave_subsection();
   }
 
   template <int dim>
@@ -143,6 +167,74 @@ namespace aspect
       n_init_samples = prm.get_integer ("Number initialization samples");
     }
     prm.leave_subsection ();
+
+    prm.enter_subsection("Initial composition model");
+    {
+      const std::vector<std::string> x_initialization_type = Utilities::split_string_list(prm.get("Volume of fluid intialization type"));
+
+      initialization_data_type = std::vector<VolumeOfFluid::VolumeOfFluidInputType::Kind> (n_volume_of_fluid_fields,
+                                 VolumeOfFluid::VolumeOfFluidInputType::composition);
+
+      for (std::vector<std::string>::const_iterator p = x_initialization_type.begin();
+           p != x_initialization_type.end(); ++p)
+        {
+          // each entry has the format (white space is optional):
+          // <name> : <value (might have spaces)>
+          //
+          // first tease apart the two halves
+          const std::vector<std::string> split_parts = Utilities::split_string_list (*p, ':');
+          AssertThrow (split_parts.size() == 2,
+                       ExcMessage ("The format for "
+                                   "<Initial composition model/Volume of Fluid intialization method> "
+                                   "volume of fluid initialization met "
+                                   "requires that each entry " "has the form "
+                                   "`<name of field> : <method>', but this "
+                                   "does not match the number of colons in the "
+                                   "entry <" + *p + ">."));
+
+          // get the name of the compositional field
+          const std::string key = split_parts[0];
+
+          // check that the names used are actually names of fields,
+          // are solved by particles, and are unique in this list
+          std::vector<std::string>::iterator field_name_iterator = std::find(names_of_compositional_fields.begin(),
+                                                                             names_of_compositional_fields.end(), key);
+          AssertThrow (field_name_iterator
+                       != names_of_compositional_fields.end(),
+                       ExcMessage ("Name of field <" + key +
+                                   "> appears in the parameter "
+                                   "<Initial composition model/Volume of Fluid intialization method>, but "
+                                   "there is no field with this name."));
+
+          const unsigned int compositional_field_index = std::distance(names_of_compositional_fields.begin(),
+                                                                       field_name_iterator);
+
+          AssertThrow (compositional_field_methods[compositional_field_index]
+                       == Parameters<dim>::AdvectionFieldMethod::volume_of_fluid,
+                       ExcMessage ("The field <" + key + "> appears in the parameter "
+                                   "<Initial composition model/Volume of Fluid intialization method>, "
+                                   "but is not advected by a particle method."));
+
+          AssertThrow (std::count(names_of_compositional_fields.begin(),
+                                  names_of_compositional_fields.end(), key) == 1,
+                       ExcMessage ("Name of field <" + key + "> appears more "
+                                   "than once in the parameter "
+                                   "<Initial composition model/Volume of Fluid intialization type>."));
+
+          // Get the type of  to use for initializing
+          const std::string value = split_parts[1];
+
+          if (value == "composition")
+            initialization_data_type[volume_of_fluid_composition_map_index[compositional_field_index]]
+              = VolumeOfFluid::VolumeOfFluidInputType::composition;
+          else if (value == "level set")
+            initialization_data_type[volume_of_fluid_composition_map_index[compositional_field_index]]
+              = VolumeOfFluid::VolumeOfFluidInputType::level_set;
+          else
+            AssertThrow(false,ExcNotImplemented());
+        }
+    }
+    prm.leave_subsection();
   }
 
   template <int dim>

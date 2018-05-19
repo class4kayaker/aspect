@@ -41,28 +41,6 @@ namespace aspect
     using namespace dealii;
 
     /**
-     * A structure that contains enum values that identify type of
-     * initialization. Interpolation approach has less resolution than desired,
-     * and the nature of the data allows a more accurate approximation.
-     */
-    struct VolumeOfFluidInitType
-    {
-      enum Kind
-      {
-        /**
-         * Initialization data is a composition value between 0 and 1 at all
-         * points and should be accumulated by integration.
-         */
-        composition,
-        /**
-         * Initialization data is an interface defined by a signed distance
-         * level set with positive value indicating fluid presence.
-         */
-        signed_distance_level_set
-      };
-    };
-
-    /**
      * A base class for parameterizations of volume-of-fluid initial
      * conditions.
      *
@@ -86,22 +64,6 @@ namespace aspect
         virtual
         void
         initialize ();
-
-        /**
-         * Return number of sample points to use for initialization.
-         * Initialization is done by iterated midpoint quadrature integration
-         * with a geometrically justified smoothing chosen to handle linear
-         * interfaces well for the signed distance function initialization
-         * data.
-         */
-        virtual
-        unsigned int n_samples () const = 0;
-
-        /**
-         * Return which type of initialization data is being used.
-         */
-        virtual
-        typename VolumeOfFluidInitType::Kind init_type() const = 0;
 
         /**
          * Return the initial value as a function of position.

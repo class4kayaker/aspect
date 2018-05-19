@@ -29,21 +29,7 @@ namespace aspect
   {
     template <int dim>
     Function<dim>::Function ()
-      :
-      n_init_samples (3)
     {}
-
-    template <int dim>
-    unsigned int Function<dim>::n_samples () const
-    {
-      return n_init_samples;
-    }
-
-    template <int dim>
-    typename VolumeOfFluidInitType::Kind Function<dim>::init_type () const
-    {
-      return function_init_type;
-    }
 
     template <int dim>
     double
@@ -61,11 +47,6 @@ namespace aspect
       {
         prm.enter_subsection("Function");
         {
-          prm.declare_entry("Signed distance init", "false",
-                            Patterns::Bool (),
-                            "When set to true, initialization will be assumed to be a"
-                            "signed distance level set function.");
-
           Functions::ParsedFunction<dim>::declare_parameters (prm, 1);
         }
         prm.leave_subsection();
@@ -81,29 +62,23 @@ namespace aspect
       prm.enter_subsection("Initial Volume of Fluid model");
       {
         prm.enter_subsection("Function");
-        bool is_dist_init = prm.get_bool("Signed distance init");
-
-        if (is_dist_init)
-          function_init_type = VolumeOfFluidInitType::signed_distance_level_set;
-        else
-          function_init_type = VolumeOfFluidInitType::composition;
-
-        try
-          {
-            function.reset(new Functions::ParsedFunction<dim>(this->get_volume_of_fluid_handler().get_n_fields()));
-            function->parse_parameters (prm);
-          }
-        catch (...)
-          {
-            std::cerr << "ERROR: FunctionParser failed to parse\n"
-                      << "\t'VolumeOfFluid initial conditions.Function'\n"
-                      << "with expression\n"
-                      << "\t'" << prm.get("Function expression") << "'\n"
-                      << "More information about the cause of the parse error \n"
-                      << "is shown below.\n";
-            throw;
-          }
-
+        {
+          try
+            {
+              function.reset(new Functions::ParsedFunction<dim>(this->get_volume_of_fluid_handler().get_n_fields()));
+              function->parse_parameters (prm);
+            }
+          catch (...)
+            {
+              std::cerr << "ERROR: FunctionParser failed to parse\n"
+                        << "\t'VolumeOfFluid initial conditions.Function'\n"
+                        << "with expression\n"
+                        << "\t'" << prm.get("Function expression") << "'\n"
+                        << "More information about the cause of the parse error \n"
+                        << "is shown below.\n";
+              throw;
+            }
+        }
         prm.leave_subsection();
       }
       prm.leave_subsection();

@@ -36,18 +36,14 @@ namespace aspect
   {
     for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
-        switch (volume_of_fluid_initial_conditions->init_type())
+        switch (initialization_data_type[f])
           {
-            case VolumeOfFluidInitialConditions::VolumeOfFluidInitType::composition:
-            {
+            case VolumeOfFluid::VolumeOfFluidInputType::composition:
               init_volume_of_fluid_compos (data[f], f);
               break;
-            }
-            case VolumeOfFluidInitialConditions::VolumeOfFluidInitType::signed_distance_level_set:
-            {
+            case VolumeOfFluid::VolumeOfFluidInputType::level_set:
               init_volume_of_fluid_ls (data[f], f);
               break;
-            }
             default:
               Assert(false, ExcNotImplemented ());
           }
