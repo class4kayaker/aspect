@@ -2,7 +2,7 @@
 Loading shared library <./libvof_linear_periodic.so>
 
 Number of active cells: 64 (on 4 levels)
-Number of degrees of freedom: 1,460 (578+81+289+64+192+256)
+Number of degrees of freedom: 1,749 (578+81+289+289+64+192+256)
 
 *** Timestep 0:  t=0 seconds
    Skipping temperature solve because RHS is zero.

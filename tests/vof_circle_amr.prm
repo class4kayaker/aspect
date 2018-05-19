@@ -11,6 +11,12 @@ subsection Volume of Fluid
     set Enable interface tracking = true
 end
 
+subsection Compositional fields
+    set Number of fields = 1
+    set Names of fields = F_1
+    set Compositional field methods = volume of fluid
+end
+
 subsection Mesh refinement
   set Minimum refinement level           = 2
   set Initial global refinement          = 3

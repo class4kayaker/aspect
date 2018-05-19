@@ -10,13 +10,12 @@ set Output directory                       = output
 
 subsection Volume of Fluid
     set Enable interface tracking = true
-    set Volume of Fluid field names = F_1
-    set Volume of Fluid composition mapping = C_1:F_1
 end
 
 subsection Compositional fields
-  set Number of fields = 1
-  set Names of fields  = C_1
+    set Number of fields = 1
+    set Names of fields = C_1
+    set Compositional field methods = volume of fluid
 end
 
 subsection Mesh refinement
