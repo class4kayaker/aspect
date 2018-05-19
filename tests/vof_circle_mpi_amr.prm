@@ -53,7 +53,14 @@ subsection Initial temperature model
 end
 
 subsection Initial composition model
+  set List of model names = function
   set Volume of fluid intialization type = F_1:level set
+
+  subsection Function
+    set Variable names = x,y,t
+    set Function constants = x0=-1.0, y0=-1.0, xv=1.0, yv=1.0
+    set Function expression = 0.5-sqrt((x-x0-xv*t)^2+(y-y0-yv*t)^2)
+  end
 end
 
 subsection Prescribed Stokes solution
@@ -67,16 +74,6 @@ subsection Prescribed Stokes solution
 end
 
 set Nonlinear solver scheme                   = Advection only
-
-subsection Initial Volume of Fluid model
-  set Model name = function
-
-  subsection Function
-    set Variable names = x,y,t
-    set Function constants = x0=-1.0, y0=-1.0, xv=1.0, yv=1.0
-    set Function expression = 0.5-sqrt((x-x0-xv*t)^2+(y-y0-yv*t)^2)
-  end
-end
 
 subsection Postprocess
   set List of postprocessors = volume of fluid statistics, volume of fluid mms

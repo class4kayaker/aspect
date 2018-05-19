@@ -47,7 +47,14 @@ subsection Initial temperature model
 end
 
 subsection Initial composition model
+  set List of model names = function
   set Volume of fluid intialization type = F_1:level set, F_2:level set
+
+  subsection Function
+    set Variable names = x,y,t
+    set Function constants = init=1.25, x0_0=1.0, y0_0=0.0, x0_1=0.75, y0_1=0.0, xv=-0.25, yv=-0.25
+    set Function expression = cos(init*pi)*(x-x0_0-xv*t)+sin(init*pi)*(y-y0_0-yv*t);cos(init*pi)*(x-x0_1-xv*t)+sin(init*pi)*(y-y0_1-yv*t)
+  end
 end
 
 subsection Prescribed Stokes solution
@@ -61,16 +68,6 @@ subsection Prescribed Stokes solution
 end
 
 set Nonlinear solver scheme                   = Advection only
-
-subsection Initial Volume of Fluid model
-  set Model name = function
-
-  subsection Function
-    set Variable names = x,y,t
-    set Function constants = init=1.25, x0_0=1.0, y0_0=0.0, x0_1=0.75, y0_1=0.0, xv=-0.25, yv=-0.25
-    set Function expression = cos(init*pi)*(x-x0_0-xv*t)+sin(init*pi)*(y-y0_0-yv*t);cos(init*pi)*(x-x0_1-xv*t)+sin(init*pi)*(y-y0_1-yv*t)
-  end
-end
 
 subsection Postprocess
   set List of postprocessors = volume of fluid statistics, volume of fluid mms
