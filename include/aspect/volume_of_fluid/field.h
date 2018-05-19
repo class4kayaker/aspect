@@ -43,9 +43,10 @@ namespace aspect
          */
         composition,
         /**
-         * Input data is an interface defined by a level set with positive
-         * value indicating fluid presence, and gradient of equal magnitude
-         * everywhere.
+         * Input data is an interface defined by a signed distance level set
+         * with positive value indicating fluid presence. IE the function has
+         * gradient 1 almost everywhere, is positive where the fluid is, and is
+         * zero on the fluid interface
          */
         level_set
       };

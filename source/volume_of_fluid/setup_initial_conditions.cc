@@ -102,7 +102,7 @@ namespace aspect
 
         for (unsigned int i = 0; i < fe_init.n_quadrature_points; ++i)
           {
-            double ptvolume_of_fluid = volume_of_fluid_initial_conditions->initial_value (fe_init.quadrature_point(i), f_ind);
+            double ptvolume_of_fluid = this->get_initial_composition_manager().initial_composition(fe_init.quadrature_point(i), f_ind);
             volume_of_fluid_val += ptvolume_of_fluid * (fe_init.JxW (i) / cell_vol);
           }
 
@@ -155,7 +155,7 @@ namespace aspect
 
         cell_vol = cell->measure ();
         cell_diam = cell->diameter();
-        d_func = volume_of_fluid_initial_conditions->initial_value (cell->barycenter(), f_ind);
+        d_func = this->get_initial_composition_manager().initial_composition(cell->barycenter(), f_ind);
         fe_init.reinit (cell);
 
         double volume_of_fluid_val = 0.0;
@@ -185,10 +185,8 @@ namespace aspect
                         xL = xU;
                         xH[di] += 0.5*h;
                         xL[di] -= 0.5*h;
-                        double dH = volume_of_fluid_initial_conditions
-                                    ->initial_value (cell->intermediate_point(xH), f_ind);
-                        double dL = volume_of_fluid_initial_conditions
-                                    ->initial_value (cell->intermediate_point(xL), f_ind);
+                        double dH = this->get_initial_composition_manager().initial_composition(cell->intermediate_point(xH), f_ind);
+                        double dL = this->get_initial_composition_manager().initial_composition(cell->intermediate_point(xL), f_ind);
                         grad[di] = (dL-dH);
                         d += (0.5/dim)*(dH+dL);
                       }

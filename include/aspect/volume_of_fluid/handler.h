@@ -23,7 +23,6 @@
 
 #include <aspect/simulator.h>
 #include <aspect/simulator_access.h>
-#include <aspect/volume_of_fluid_initial_conditions/interface.h>
 #include <aspect/volume_of_fluid/field.h>
 #include <aspect/volume_of_fluid/assembly.h>
 
@@ -160,11 +159,6 @@ namespace aspect
        * the full matrix, so must be in this class.
        */
       void copy_local_to_global_volume_of_fluid_system (const internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data);
-
-      /**
-       * Class with volume of fluid initial conditions
-       */
-      const std_cxx11::unique_ptr<VolumeOfFluidInitialConditions::Interface<dim> >      volume_of_fluid_initial_conditions;
 
       /**
        * Assembler object used for doing the matrix and RHS assembly

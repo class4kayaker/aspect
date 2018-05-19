@@ -47,7 +47,6 @@ namespace aspect
   VolumeOfFluidHandler<dim>::VolumeOfFluidHandler (Simulator<dim> &simulator,
                                                    ParameterHandler &prm)
     : sim (simulator),
-      volume_of_fluid_initial_conditions (VolumeOfFluidInitialConditions::create_initial_conditions<dim>(prm)),
       assembler ()
   {
     this->initialize_simulator(sim);
@@ -291,13 +290,6 @@ namespace aspect
                                                this->introspection().variable("volume_of_fluid_contour_"+volume_of_fluid_field_names[f]),
                                                this->introspection().compositional_index_for_name(volume_of_fluid_field_names[f])));
       }
-
-    // Do initial conditions setup
-    if (SimulatorAccess<dim> *sim_a = dynamic_cast<SimulatorAccess<dim>*>(volume_of_fluid_initial_conditions.get()))
-      sim_a->initialize_simulator (sim);
-    volume_of_fluid_initial_conditions->parse_parameters (prm);
-    volume_of_fluid_initial_conditions->initialize ();
-
   }
 
   template <int dim>
