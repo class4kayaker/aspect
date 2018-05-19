@@ -66,18 +66,18 @@ namespace aspect
       void parse_parameters (ParameterHandler &prm);
 
       /**
-       * Get number of Volume of Fluid fields in current model
+       * Get the number of volume of fluid fields in current model
        */
       unsigned int get_n_fields() const;
 
       /**
-       * Get the name of Volume of Fluid field i
+       * Get the name of volume of fluid field with index i
        */
       const std::string name_for_field_index(unsigned int i) const;
 
       /**
-       * Get the structure containing the variable locations for Volume of
-       * Fluid field i.
+       * Get the structure containing the variable locations for the volume of
+       * fluid field with index i.
        */
       const VolumeOfFluidField<dim> &field_struct_for_field_index(unsigned int i) const;
 
@@ -87,9 +87,9 @@ namespace aspect
       double get_volume_fraction_threshold() const;
 
       /**
-       * Get the index for the named volume of fluid field
+       * Get the index for the named composition/volume of fluid field
        */
-      unsigned int field_index_for_name(std::string volume_of_fluid_fieldname) const;
+      unsigned int field_index_for_name(std::string fieldname) const;
 
       /**
        * Do necessary internal initialization that is dependent on having the
@@ -127,11 +127,10 @@ namespace aspect
                                                const VolumeOfFluidField<dim> volume_of_fluid_field,
                                                LinearAlgebra::BlockVector &solution);
 
-      // Logic to handle dimensionally split update
       /**
        * Do single timestep update, includes logic for doing Strang split update
        */
-      void do_volume_of_fluid_update ();
+      void do_volume_of_fluid_update (const typename Simulator<dim>::AdvectionField advection_field);
 
       /**
        * Assemble matrix and RHS for the specified field and dimension
@@ -150,13 +149,6 @@ namespace aspect
        * specified field.
        */
       void solve_volume_of_fluid_system (const VolumeOfFluidField<dim> field);
-
-      /**
-       * Serialize the contents of this class.
-       */
-      template <class Archive>
-      void serialize (Archive &ar, const unsigned int version);
-
 
 
     private:
@@ -202,39 +194,19 @@ namespace aspect
       double volume_of_fluid_solver_tolerance;
 
       /**
-       * Vector of human readable names for the volume of fluid fields
+       * Vector of human readable names for the volume of fluid fields,
+       * obtained from the associated composition field name
        */
       std::vector<std::string> volume_of_fluid_field_names;
 
       /**
-       * Map relating the name of the composition field based on a volume of
+       * Map relating the index of the composition field based on a volume of
        * fluid field to the correct field by the index of the correct field.
        */
-      std::map<std::string, unsigned int> volume_of_fluid_composition_map_index;
-
-      /**
-       * Order to do the dimensionally split volume of fluid update the next
-       * iteration. False is ascending order, True is descending order.
-       * Used to alternate the direction of the update
-       */
-      bool direction_order_descending;
+      std::map<unsigned int, unsigned int> volume_of_fluid_composition_map_index;
 
       friend class Simulator<dim>;
   };
-
-  /* -------------------------- inline and template functions ---------------------- */
-
-  template <int dim>
-  template <class Archive>
-  void VolumeOfFluidHandler<dim>::serialize (Archive &ar, const unsigned int)
-  {
-    // Note that we do not serialize the particle data itself. Instead we
-    // use the serialization functionality of the triangulation class, because
-    // this guarantees that data is immediately shipped to new processes if
-    // the domain is distributed differently after resuming from a checkpoint.
-    ar //&particles
-    &direction_order_descending;
-  }
 
 }
 

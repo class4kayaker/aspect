@@ -20,6 +20,7 @@
 
 #include <aspect/simulator.h>
 #include <aspect/global.h>
+#include <aspect/parameters.h>
 #include <aspect/volume_of_fluid/handler.h>
 #include <aspect/volume_of_fluid/assembly.h>
 
@@ -45,8 +46,7 @@ namespace aspect
                                                    ParameterHandler &prm)
     : sim (simulator),
       volume_of_fluid_initial_conditions (VolumeOfFluidInitialConditions::create_initial_conditions<dim>(prm)),
-      assembler (),
-      direction_order_descending(false)
+      assembler ()
   {
     this->initialize_simulator(sim);
     assembler.initialize_simulator(sim);
@@ -94,10 +94,6 @@ namespace aspect
   {
     prm.enter_subsection ("Volume of Fluid");
     {
-      prm.declare_entry ("Number of fields", "1",
-                         Patterns::Integer(0),
-                         "The number of fields to be handled using Volume of Fluid interface tracking.");
-
       prm.declare_entry ("Volume fraction threshold", "1e-6",
                          Patterns::Double (0, 1),
                          "Minimum significant volume. VOFs below this considered to be zero.");
@@ -108,14 +104,6 @@ namespace aspect
                          "for the Volume of Fluid system gets solved. See"
                          "'Solver parameters/Composition solver tolerance'"
                          "for more details.");
-
-      prm.declare_entry ("Volume of Fluid field names", "",
-                         Patterns::List(Patterns::Anything()),
-                         "User-defined names for Volume of Fluid fields.");
-
-      prm.declare_entry ("Volume of Fluid composition mapping", "",
-                         Patterns::Map(Patterns::Anything(), Patterns::Anything()),
-                         "Links between composition and Volume of Fluid fields in composition:VolumeOfFluid form");
     }
     prm.leave_subsection ();
   }
@@ -124,105 +112,27 @@ namespace aspect
   void
   VolumeOfFluidHandler<dim>::parse_parameters (ParameterHandler &prm)
   {
+    // Get parameter data
+    n_volume_of_fluid_fields = 0;
+    std::vector<std::string> names_of_compositional_fields = this->get_parameters().names_of_compositional_fields;
+    std::vector<typename Parameters<dim>::AdvectionFieldMethod::Kind> compositional_field_methods = this->get_parameters().compositional_field_methods;
+
+    for (unsigned int i=0; i<names_of_compositional_fields.size(); ++i)
+      {
+        if (compositional_field_methods[i] == Parameters<dim>::AdvectionFieldMethod::volume_of_fluid)
+          {
+            // Add this field as the next volume of fluid field
+            volume_of_fluid_field_names.push_back(names_of_compositional_fields[i]);
+            volume_of_fluid_composition_map_index[i] = n_volume_of_fluid_fields;
+            ++n_volume_of_fluid_fields;
+          }
+      }
+
     prm.enter_subsection ("Volume of Fluid");
     {
       volume_fraction_threshold = prm.get_double("Volume fraction threshold");
 
       volume_of_fluid_solver_tolerance = prm.get_double("Volume of Fluid solver tolerance");
-
-      n_volume_of_fluid_fields = prm.get_integer("Number of fields");
-
-      volume_of_fluid_field_names = Utilities::split_string_list (prm.get("Volume of Fluid field names"));
-      AssertThrow((volume_of_fluid_field_names.size() == 0) ||
-                  (volume_of_fluid_field_names.size() == n_volume_of_fluid_fields),
-                  ExcMessage("The length of the list of names for the Volume of Fluid fields "
-                             "needs to either be empty or have length equal to the "
-                             "number of compositional fields."));
-
-      // check that names use only allowed characters, are not empty strings, and are unique
-      for (unsigned int i=0; i<volume_of_fluid_field_names.size(); ++i)
-        {
-          Assert (volume_of_fluid_field_names[i].find_first_not_of("abcdefghijklmnopqrstuvwxyz"
-                                                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                                                   "0123456789_") == std::string::npos,
-                  ExcMessage("Invalid character in field " + volume_of_fluid_field_names[i] + ". "
-                             "Names of Volume of Fluid fields should consist of a "
-                             "combination of letters, numbers and underscores."));
-          Assert (volume_of_fluid_field_names[i].size() > 0,
-                  ExcMessage("Invalid name of field " + volume_of_fluid_field_names[i] + ". "
-                             "Names of Volume of Fluid fields need to be non-empty."));
-          for (unsigned int j=0; j<i; ++j)
-            Assert (volume_of_fluid_field_names[i] != volume_of_fluid_field_names[j],
-                    ExcMessage("Names of Volume of Fluid fields have to be unique! " + volume_of_fluid_field_names[i] +
-                               " is used more than once."));
-        }
-
-      // default names if not empty
-      if (volume_of_fluid_field_names.size()==0)
-        {
-          for (unsigned int i=0; i<n_volume_of_fluid_fields; ++i)
-            volume_of_fluid_field_names.push_back("F_" + Utilities::int_to_string(i+1));
-        }
-
-      const std::vector<std::string> x_volume_of_fluid_composition_vars =
-        Utilities::split_string_list
-        (prm.get ("Volume of Fluid composition mapping"));
-
-      if (x_volume_of_fluid_composition_vars.size()>0 && !this->get_parameters().use_discontinuous_composition_discretization)
-        {
-          AssertThrow(false, ExcMessage("Volume of Fluid composition field not implemented for continuous composition."));
-        }
-
-      for (std::vector<std::string>::const_iterator p = x_volume_of_fluid_composition_vars.begin();
-           p != x_volume_of_fluid_composition_vars.end(); ++p)
-        {
-          const std::vector<std::string> split_parts = Utilities::split_string_list(*p, ':');
-          AssertThrow (split_parts.size() == 2,
-                       ExcMessage("The format for Volume of Fluid composition mappings requires that each entry has the form"
-                                  "`composition:Vof field', but there does not appear to be a colon in the entry <" + *p + ">."));
-
-          const std::string composition_field = split_parts[0];
-          const std::string volume_of_fluid_field = split_parts[1];
-
-          // Check composition_field exists
-          bool field_exists=false;
-
-          for (unsigned int i=0; i<this->get_parameters().n_compositional_fields; ++i)
-            {
-              field_exists = field_exists ||
-                             (composition_field==this->get_parameters().names_of_compositional_fields[i]);
-            }
-
-          Assert(field_exists, ExcMessage("Composition field variable " +
-                                          composition_field +
-                                          " does not exist."));
-
-          // Check volume_of_fluid_field exists
-          field_exists=false;
-          unsigned int volume_of_fluid_field_index = n_volume_of_fluid_fields;
-
-          for (unsigned int i=0; i<n_volume_of_fluid_fields; ++i)
-            {
-              if (volume_of_fluid_field == volume_of_fluid_field_names[i])
-                {
-                  field_exists = true;
-                  volume_of_fluid_field_index = i;
-                  break;
-                }
-            }
-
-          Assert(field_exists, ExcMessage("Volume of Fluid field variable " +
-                                          volume_of_fluid_field +
-                                          " does not exist."));
-
-          // Ensure no duplicate mapping to a composition field
-          Assert (volume_of_fluid_composition_map_index.count(composition_field) == 0,
-                  ExcMessage("Volume of Fluid composition field mappings have to be unique! " + composition_field +
-                             " is used more than once."));
-
-          // Add to mappings
-          volume_of_fluid_composition_map_index[composition_field] = volume_of_fluid_field_index;
-        }
     }
     prm.leave_subsection ();
   }
@@ -320,54 +230,46 @@ namespace aspect
   template <int dim>
   unsigned int VolumeOfFluidHandler<dim>::field_index_for_name(std::string composition_fieldname) const
   {
-    if (volume_of_fluid_composition_map_index.count(composition_fieldname) ==0)
+    const unsigned int composition_index = this->introspection().compositional_index_for_name(composition_fieldname);
+    if (volume_of_fluid_composition_map_index.count(composition_index) ==0)
       return n_volume_of_fluid_fields;
-    return volume_of_fluid_composition_map_index.at(composition_fieldname);
+    return volume_of_fluid_composition_map_index.at(composition_index);
   }
 
   template <int dim>
-  void VolumeOfFluidHandler<dim>::do_volume_of_fluid_update ()
+  void VolumeOfFluidHandler<dim>::do_volume_of_fluid_update (const typename Simulator<dim>::AdvectionField advection_field)
   {
-    for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
-      {
-        const unsigned int volume_of_fluid_block_idx = data[f].volume_fraction.block_index;
-        const unsigned int volume_of_fluidN_block_idx = data[f].reconstruction.block_index;
+    const bool direction_order_descending = (this->get_timestep_number() % 2) == 1;
+    const VolumeOfFluidField<dim> volume_of_fluid_field = data[volume_of_fluid_composition_map_index[advection_field.field_index()]];
 
-        // Due to dimensionally split formulation, use Strang (second-order dimensional) splitting
-        for (unsigned int direction = 0; direction < dim; ++direction)
+    const unsigned int volume_of_fluid_block_idx = volume_of_fluid_field.volume_fraction.block_index;
+    const unsigned int volume_of_fluidN_block_idx = volume_of_fluid_field.reconstruction.block_index;
+
+    // Due to dimensionally split formulation, use Strang (second-order dimensional) splitting
+    for (unsigned int direction = 0; direction < dim; ++direction)
+      {
+        // Only reference old_solution for data from prior substep if this is the first
+        // substep for dimensional splitting
+        bool update_from_old = (direction == 0);
+        // Update base to intermediate solution
+        if (!direction_order_descending)
           {
-            // Only reference old_solution for data from prior substep if this is the first
-            // substep for dimensional splitting
-            bool update_from_old = (direction == 0);
-            // Update base to intermediate solution
-            if (!direction_order_descending)
-              {
-                assemble_volume_of_fluid_system(data[f], direction, update_from_old);
-              }
-            else
-              {
-                assemble_volume_of_fluid_system(data[f], dim-direction-1, update_from_old);
-              }
-            solve_volume_of_fluid_system (data[f]);
-            // Copy current candidate normals.
-            // primarily useful for exact linear translation
-            sim.solution.block(volume_of_fluidN_block_idx) = sim.old_solution.block(volume_of_fluidN_block_idx);
-            update_volume_of_fluid_normals (data[f], sim.solution);
-
-            sim.current_linearization_point.block(volume_of_fluid_block_idx) = sim.solution.block(volume_of_fluid_block_idx);
-            sim.current_linearization_point.block(volume_of_fluidN_block_idx) = sim.solution.block(volume_of_fluidN_block_idx);
+            assemble_volume_of_fluid_system(volume_of_fluid_field, direction, update_from_old);
           }
+        else
+          {
+            assemble_volume_of_fluid_system(volume_of_fluid_field, dim-direction-1, update_from_old);
+          }
+        solve_volume_of_fluid_system (volume_of_fluid_field);
+        // Copy current candidate normals.
+        // primarily useful for exact linear translation
+        sim.solution.block(volume_of_fluidN_block_idx) = sim.old_solution.block(volume_of_fluidN_block_idx);
+        update_volume_of_fluid_normals (volume_of_fluid_field, sim.solution);
+
+        sim.current_linearization_point.block(volume_of_fluid_block_idx) = sim.solution.block(volume_of_fluid_block_idx);
+        sim.current_linearization_point.block(volume_of_fluidN_block_idx) = sim.solution.block(volume_of_fluidN_block_idx);
       }
-    for (std::map<std::string, unsigned int>::const_iterator iter=volume_of_fluid_composition_map_index.begin();
-         iter!=volume_of_fluid_composition_map_index.end(); ++iter)
-      {
-        const unsigned int composition_index = this->introspection().compositional_index_for_name(iter->first);
-        const typename Simulator<dim>::AdvectionField advection_field = Simulator<dim>::AdvectionField::composition(composition_index);
-        const VolumeOfFluidField<dim> volume_of_fluid_f= field_struct_for_field_index(iter->second);
-        update_volume_of_fluid_composition(advection_field, volume_of_fluid_f, sim.solution);
-      }
-    // change dimension iteration order
-    direction_order_descending = !direction_order_descending;
+    update_volume_of_fluid_composition(advection_field, volume_of_fluid_field, sim.solution);
   }
 }
 

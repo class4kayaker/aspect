@@ -105,6 +105,7 @@ namespace aspect
       {
         fem_field,
         particles,
+        volume_of_fluid,
         static_field
       };
     };

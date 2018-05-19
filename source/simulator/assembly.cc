@@ -1042,14 +1042,6 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::assemble_advection_system (const AdvectionField &advection_field)
   {
-    // TODO: Modify to more robust method
-    // Skip if this composition field is being set from the volume_of_fluid handler
-    if (!advection_field.is_temperature() &&
-        parameters.volume_of_fluid_tracking_enabled)
-      if (volume_of_fluid_handler->field_index_for_name(introspection.name_for_compositional_index(advection_field.compositional_variable))
-          != volume_of_fluid_handler->get_n_fields())
-        return;
-
     TimerOutput::Scope timer (computing_timer, (advection_field.is_temperature() ?
                                                 "   Assemble temperature system" :
                                                 "   Assemble composition system"));

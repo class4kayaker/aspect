@@ -379,14 +379,6 @@ namespace aspect
   template <int dim>
   double Simulator<dim>::solve_advection (const AdvectionField &advection_field)
   {
-    // TODO: Modify to more robust method
-    // Skip if this composition field is being set from the volume_of_fluid handler
-    if (!advection_field.is_temperature() &&
-        parameters.volume_of_fluid_tracking_enabled)
-      if (volume_of_fluid_handler->field_index_for_name(introspection.name_for_compositional_index(advection_field.compositional_variable))
-          != volume_of_fluid_handler->get_n_fields())
-        return 0.0;
-
     double advection_solver_tolerance = -1;
     unsigned int block_idx = advection_field.block_index(introspection);
 

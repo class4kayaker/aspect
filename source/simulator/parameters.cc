@@ -873,7 +873,7 @@ namespace aspect
                          Patterns::List(Patterns::Anything()),
                          "A user-defined name for each of the compositional fields requested.");
       prm.declare_entry ("Compositional field methods", "",
-                         Patterns::List (Patterns::Selection("field|particles|static")),
+                         Patterns::List (Patterns::Selection("field|particles|volume of fluid|static")),
                          "A comma separated list denoting the solution method of each "
                          "compositional field. Each entry of the list must be "
                          "one of the currently implemented field types: "
@@ -897,6 +897,13 @@ namespace aspect
                          "and particle properties can react with each other as well. "
                          "See Section~\\ref{sec:particles} for more information about "
                          "how particles behave."
+                         "\n"
+                         "\\item ``volume of fluid``: If a compositional field "
+                         "is marked with this method, then its values are "
+                         "obtained in each timestep by reconstructing a "
+                         "polynomial finite element approximation on each cell "
+                         "from a volume of fluid interface tracking method, "
+                         "which is used to compute the advection updates."
                          "\n"
                          "\\item ``static'': If a compositional field is marked "
                          "this way, then it does not evolve at all. Its values are "
@@ -1399,6 +1406,8 @@ namespace aspect
             compositional_field_methods[i] = AdvectionFieldMethod::fem_field;
           else if (x_compositional_field_methods[i] == "particles")
             compositional_field_methods[i] = AdvectionFieldMethod::particles;
+          else if (x_compositional_field_methods[i] == "volume of fluid")
+            compositional_field_methods[i] = AdvectionFieldMethod::volume_of_fluid;
           else if (x_compositional_field_methods[i] == "static")
             compositional_field_methods[i] = AdvectionFieldMethod::static_field;
           else
@@ -1417,6 +1426,11 @@ namespace aspect
                    || (x_mapped_particle_properties.size() == 0),
                    ExcMessage ("The list of names for the mapped particle property fields needs to either be empty or have a length equal to "
                                "the number of compositional fields that are interpolated from particle properties."));
+
+      // Enable Volume of Fluid field tracking if any compositional_field_methods are volume_of_fluid
+      volume_of_fluid_tracking_enabled =
+        (std::count(compositional_field_methods.begin(),compositional_field_methods.end(),AdvectionFieldMethod::volume_of_fluid)
+         > 0);
 
       for (std::vector<std::string>::const_iterator p = x_mapped_particle_properties.begin();
            p != x_mapped_particle_properties.end(); ++p)
@@ -1514,7 +1528,14 @@ namespace aspect
 
     prm.enter_subsection ("Volume of Fluid");
     {
-      volume_of_fluid_tracking_enabled = prm.get_bool("Enable interface tracking");
+      const bool explicit_volume_of_fluid_tracking_enabled = prm.get_bool("Enable interface tracking");
+
+      // Check that volume of fluid interface tracking has been enabled explicitly if used
+      AssertThrow(explicit_volume_of_fluid_tracking_enabled || !volume_of_fluid_tracking_enabled,
+                  ExcMessage("Volume of Fluid interface tracking must be enabled "
+                             "(Volume of Fluid.Enable interface tracking) to use the "
+                             "``volume of fluid`` interface tracking advection "
+                             "method(Compositional fields.Compositional field methods)."));
     }
     prm.leave_subsection ();
 

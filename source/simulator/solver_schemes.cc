@@ -163,9 +163,6 @@ namespace aspect
   std::vector<double> Simulator<dim>::assemble_and_solve_composition (const bool compute_initial_residual,
                                                                       std::vector<double> *initial_residual)
   {
-    if (parameters.volume_of_fluid_tracking_enabled)
-      volume_of_fluid_handler->do_volume_of_fluid_update ();
-
     std::vector<double> current_residual(introspection.n_compositional_fields,0.0);
 
     if (compute_initial_residual)
@@ -198,6 +195,10 @@ namespace aspect
 
             case Parameters<dim>::AdvectionFieldMethod::particles:
               interpolate_particle_properties(adv_field);
+              break;
+
+            case Parameters<dim>::AdvectionFieldMethod::volume_of_fluid:
+              volume_of_fluid_handler->do_volume_of_fluid_update(adv_field);
               break;
 
             case Parameters<dim>::AdvectionFieldMethod::static_field:
