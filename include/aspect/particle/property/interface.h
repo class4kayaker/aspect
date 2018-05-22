@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2018 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -284,13 +284,13 @@ namespace aspect
       };
 
       /**
-        * Interface provides an example of how to extend the Particle
-        * class to include related particle data. This allows users to attach
-        * scalars/vectors/tensors/etc to particles and ensure they are
-        * transmitted correctly over MPI and written to output files.
-        *
-        * @ingroup ParticleProperties
-        */
+       * Interface provides an example of how to extend the Particle class to
+       * include related particle data. This allows users to attach
+       * scalars/vectors/tensors/etc to particles and ensure they are
+       * transmitted correctly over MPI and written to output files.
+       *
+       * @ingroup ParticleProperties
+       */
       template <int dim>
       class Interface
       {
@@ -569,8 +569,9 @@ namespace aspect
            * @deprecated This function will be replaced by
            * ParticlePropertyInformation::get_position_by_fieldname(name)
            */
+          DEAL_II_DEPRECATED
           unsigned int
-          get_property_component_by_name(const std::string &name) const DEAL_II_DEPRECATED;
+          get_property_component_by_name(const std::string &name) const;
 
           /**
            * A function that is used to register particle property

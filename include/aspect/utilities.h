@@ -506,6 +506,14 @@ namespace aspect
         get_column_names() const;
 
         /**
+         * Returns whether the stored coordinates are equidistant. If
+         * coordinates are equidistant the lookup is more efficient. Returns
+         * false if no coordinates are loaded at the moment.
+         */
+        bool
+        has_equidistant_coordinates() const;
+
+        /**
          * Returns the column index of a column with the given name
          * @p column_name. Throws an exception if no such
          * column exists or no names were provided in the file.
@@ -571,6 +579,12 @@ namespace aspect
          * to transform the unit of the data.
          */
         const double scale_factor;
+
+        /**
+         * Stores whether the coordinate values are equidistant or not,
+         * this determines the type of data function stored.
+         */
+        bool coordinate_values_are_equidistant;
 
         /**
          * Computes the table indices of each entry in the input data file.
@@ -644,9 +658,9 @@ namespace aspect
         AsciiDataBoundary();
 
         /**
-          * Initialization function. This function is called once at the
-          * beginning of the program. Checks preconditions.
-          */
+         * Initialization function. This function is called once at the
+         * beginning of the program. Checks preconditions.
+         */
         virtual
         void
         initialize (const std::set<types::boundary_id> &boundary_ids,
@@ -1071,23 +1085,27 @@ namespace aspect
                           const GeometryModel::Interface<dim> &geometry_model);
 
         /**
-        * Returns the coordinates in the given coordinate system, which may not be Cartesian.
-        */
+         * Returns the coordinates in the given coordinate system, which may
+         * not be Cartesian.
+         */
         std_cxx11::array<double,dim> &get_coordinates();
 
         /**
-        * The coordinate that represents the 'surface' directions in the chosen coordinate system.
-        **/
+         * The coordinate that represents the 'surface' directions in the
+         * chosen coordinate system.
+         */
         std_cxx11::array<double,dim-1> get_surface_coordinates() const;
 
         /**
-        * The coordinate that represents the 'depth' direction in the chosen coordinate system.
-        **/
+         * The coordinate that represents the 'depth' direction in the chosen
+         * coordinate system.
+         */
         double get_depth_coordinate() const;
 
       private:
         /**
-         * An enum which stores the the coordinate system of this natural point
+         * An enum which stores the the coordinate system of this natural
+         * point
          */
         Utilities::Coordinates::CoordinateSystem coordinate_system;
 

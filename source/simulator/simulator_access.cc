@@ -298,6 +298,12 @@ namespace aspect
     return simulator->old_old_solution;
   }
 
+  template <int dim>
+  const LinearAlgebra::BlockVector &
+  SimulatorAccess<dim>::get_reaction_vector () const
+  {
+    return simulator->operator_split_reaction_vector;
+  }
 
   template <int dim>
   const LinearAlgebra::BlockVector &
@@ -572,6 +578,13 @@ namespace aspect
   SimulatorAccess<dim>::get_heating_model_manager () const
   {
     return simulator->heating_model_manager;
+  }
+
+  template <int dim>
+  const MeshRefinement::Manager<dim> &
+  SimulatorAccess<dim>::get_mesh_refinement_manager () const
+  {
+    return simulator->mesh_refinement_manager;
   }
 
   template <int dim>

@@ -1230,12 +1230,13 @@ namespace aspect
       get_extrapolated_advection_field_range (const AdvectionField &advection_field) const;
 
       /**
-       * Check if timing output should be written in this timestep, and if
-       * so write it.
+       * Check if timing output should be written in this timestep, and if so
+       * write it.
        *
        * This function is implemented in
        * <code>source/simulator/helper_functions.cc</code>.
-       * */
+       *
+       */
       void maybe_write_timing_output () const;
 
       /**
@@ -1692,6 +1693,9 @@ namespace aspect
 
       // only used if is_compressible()
       LinearAlgebra::BlockVector                                pressure_shape_function_integrals;
+
+      // only used if operator split is enabled
+      LinearAlgebra::BlockVector                                operator_split_reaction_vector;
 
 
 

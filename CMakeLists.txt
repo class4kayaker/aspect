@@ -139,7 +139,7 @@ CONFIGURE_FILE(
 
 SET(ASPECT_RUN_ALL_TESTS OFF CACHE BOOL "Set up complete test suite to run.")
 SET(ASPECT_COMPARE_TEST_RESULTS ON CACHE BOOL "Compare test results with high accuracy.")
- 
+
 CONFIGURE_FILE(
   ${CMAKE_SOURCE_DIR}/tests/cmake/CTestCustom.ctest.in
   ${CMAKE_BINARY_DIR}/CTestCustom.ctest
@@ -303,6 +303,12 @@ ENDIF()
 # exceptions. This is done here:
 SET(ASPECT_USE_FP_EXCEPTIONS ON CACHE BOOL "If ON, floating point exception are raised in debug mode.")
 
+# Clang 6.0 throws random floating point exceptions, which we could not
+# track down. Disable the exceptions for now.
+IF("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0.0)
+  SET(ASPECT_USE_FP_EXCEPTIONS OFF CACHE BOOL "" FORCE)
+ENDIF()
+
 IF (ASPECT_USE_FP_EXCEPTIONS)
   INCLUDE(${CMAKE_SOURCE_DIR}/cmake/fpe_check.cmake)
 
@@ -326,10 +332,10 @@ IF (ASPECT_PRECOMPILE_HEADERS)
   # and unity build to pass. We need to exclude some headers that
   # frequently cause problems, and undefine some macros between source 
   # files that would otherwise interfere with each other.
-  set_target_properties (aspect PROPERTIES
+  SET_TARGET_PROPERTIES (aspect PROPERTIES
       COTIRE_PREFIX_HEADER_IGNORE_PATH
       "/usr/include/;${CMAKE_SOURCE_DIR};${CMAKE_BINARY_DIR}")
-  set_source_files_properties (${TARGET_SRC} PROPERTIES
+  SET_SOURCE_FILES_PROPERTIES (${TARGET_SRC} PROPERTIES
       COTIRE_UNITY_SOURCE_POST_UNDEFS "INSTANTIATE")
 
   # This line activates the cotire module for the aspect target, 
@@ -395,4 +401,3 @@ INSTALL(FILES ${CMAKE_BINARY_DIR}/include/aspect/revision.h DESTINATION "include
 
 MESSAGE(STATUS "Writing config into detailed.log...")
 INCLUDE(cmake/write_config)
-

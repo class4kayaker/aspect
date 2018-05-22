@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2014 - 2017 by the authors of the ASPECT code.
+  Copyright (C) 2014 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -45,6 +45,19 @@ namespace aspect
     class DepthDependent : public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
     {
       public:
+        /**
+         * Initialize the base model at the beginning of the run.
+         */
+        virtual
+        void initialize();
+
+        /**
+         * Update the base model and viscosity function at the beginning of
+         * each timestep.
+         */
+        virtual
+        void update();
+
         /**
          * Function to compute the material properties in @p out given the
          * inputs in @p in.
@@ -93,7 +106,7 @@ namespace aspect
 
         /**
          * Currently chosen source for the viscosity.
-         **/
+         */
         ViscositySource viscosity_source;
 
         /**

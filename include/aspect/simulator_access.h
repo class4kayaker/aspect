@@ -95,6 +95,11 @@ namespace aspect
     template <int dim> class Interface;
   }
 
+  namespace MeshRefinement
+  {
+    template <int dim> class Manager;
+  }
+
   namespace AdiabaticConditions
   {
     template <int dim> class Interface;
@@ -426,6 +431,16 @@ namespace aspect
       get_old_old_solution () const;
 
       /**
+       * Return a reference to the vector that has the reactions computed by the
+       * operator splitting scheme in the current time step.
+       *
+       * @note In general the vector is a distributed vector; however, it
+       * contains ghost elements for all locally relevant degrees of freedom.
+       */
+      const LinearAlgebra::BlockVector &
+      get_reaction_vector () const;
+
+      /**
        * Return a reference to the vector that has the mesh velocity for
        * simulations with a free surface.
        *
@@ -531,8 +546,9 @@ namespace aspect
        *
        * @deprecated: Use get_boundary_temperature_manager() instead.
        */
+      DEAL_II_DEPRECATED
       const BoundaryTemperature::Interface<dim> &
-      get_boundary_temperature () const DEAL_II_DEPRECATED;
+      get_boundary_temperature () const;
 
       /**
        * Return an reference to the manager of the boundary temperature models.
@@ -558,8 +574,9 @@ namespace aspect
        *
        * @deprecated: Use get_boundary_composition_manager() instead.
        */
+      DEAL_II_DEPRECATED
       const BoundaryComposition::Interface<dim> &
-      get_boundary_composition () const DEAL_II_DEPRECATED;
+      get_boundary_composition () const;
 
       /**
        * Return an reference to the manager of the boundary composition models.
@@ -583,8 +600,9 @@ namespace aspect
        *
        * @deprecated Use <code> get_initial_temperature_manager </code> instead.
        */
+      DEAL_II_DEPRECATED
       const InitialTemperature::Interface<dim> &
-      get_initial_temperature () const DEAL_II_DEPRECATED;
+      get_initial_temperature () const;
 
       /**
        * Return a reference to the manager of the initial temperature models.
@@ -599,8 +617,9 @@ namespace aspect
        * Return a pointer to the object that describes the composition initial
        * values.
        */
+      DEAL_II_DEPRECATED
       const InitialComposition::Interface<dim> &
-      get_initial_composition () const DEAL_II_DEPRECATED;
+      get_initial_composition () const;
 
       /**
        * Return a pointer to the manager of the initial composition model.
@@ -636,8 +655,9 @@ namespace aspect
        *
        * @deprecated: Use get_boundary_velocity_manager() instead.
        */
+      DEAL_II_DEPRECATED
       const std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >
-      get_prescribed_boundary_velocity () const DEAL_II_DEPRECATED;
+      get_prescribed_boundary_velocity () const;
 
       /**
        * Return an reference to the manager of the boundary velocity models.
@@ -655,6 +675,15 @@ namespace aspect
        */
       const HeatingModel::Manager<dim> &
       get_heating_model_manager () const;
+
+      /**
+       * Return a reference to the manager of the mesh refinement strategies.
+       * this can then i.e. be used to get the names of the active refinement
+       * strategies for such purposes as confirming that a particular one has
+       * been included.
+       */
+      const MeshRefinement::Manager<dim> &
+      get_mesh_refinement_manager () const;
 
       /**
        * Return a reference to the melt handler.
@@ -764,8 +793,9 @@ namespace aspect
        * and get_postprocess_manager().get_matching_postprocessor() instead.
        */
       template <typename PostprocessorType>
+      DEAL_II_DEPRECATED
       PostprocessorType *
-      find_postprocessor () const DEAL_II_DEPRECATED;
+      find_postprocessor () const;
 
       /**
        * Return a reference to the melt handler.
