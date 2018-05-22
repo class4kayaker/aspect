@@ -23,6 +23,7 @@
 #include <aspect/parameters.h>
 #include <aspect/volume_of_fluid/handler.h>
 #include <aspect/volume_of_fluid/assembly.h>
+#include <aspect/mesh_refinement/volume_of_fluid_interface.h>
 
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/mapping_cartesian.h>
@@ -262,20 +263,8 @@ namespace aspect
     if ( this->get_parameters().initial_adaptive_refinement > 0 ||
          this->get_parameters().adaptive_refinement_interval > 0 )
       {
-        prm.enter_subsection("Mesh refinement");
-        {
-          std::vector<std::string> plugin_names
-            = Utilities::split_string_list(prm.get("Strategy"));
-
-          bool has_volume_of_fluid_strategy = false;
-          for (unsigned int name=0; name<plugin_names.size(); ++name)
-            {
-              has_volume_of_fluid_strategy = (plugin_names[name] == "volume of fluid interface") || has_volume_of_fluid_strategy;
-            }
-          AssertThrow(has_volume_of_fluid_strategy,
-                      ExcMessage("Volume of Fluid Interface Tracking requires that the 'volume of fluid interface' strategy be used for AMR"));
-        }
-        prm.leave_subsection();
+        AssertThrow(this->get_mesh_refinement_manager().template has_matching_mesh_refinement_strategy<MeshRefinement::VolumeOfFluidInterface<dim> >(),
+                    ExcMessage("Volume of Fluid Interface Tracking requires that the 'volume of fluid interface' strategy be used for AMR"));
 
         AssertThrow(this->get_parameters().adaptive_refinement_interval <(1/this->get_parameters().CFL_number),
                     ExcMessage("Volume of Fluid Interface Tracking requires that the AMR interval be less than 1/CFL_number"));
