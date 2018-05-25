@@ -99,17 +99,17 @@ namespace aspect
       /**
        * Do initialization routine for all volume of fluid fields
        */
-      void set_initial_volume_of_fluids ();
+      void set_initial_volume_fractions ();
 
       /**
        * Initialize specified field based on a composition field initial conditon
        */
-      void init_volume_of_fluid_compos (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
+      void initialize_from_composition_field (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
 
       /**
        * Initialize specified field based on a level set initial condition
        */
-      void init_volume_of_fluid_ls (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
+      void initialize_from_level_set (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
 
       /**
        * Do interface reconstruction for specified field and cache result in solution vector

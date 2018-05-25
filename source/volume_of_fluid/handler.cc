@@ -58,7 +58,7 @@ namespace aspect
     this->get_signals().edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VolumeOfFluidHandler<dim>::edit_finite_element_variables,
                                                                               std_cxx11::ref(*this),
                                                                               std_cxx11::_1));
-    this->get_signals().post_set_initial_state.connect(std_cxx11::bind(&aspect::VolumeOfFluidHandler<dim>::set_initial_volume_of_fluids,
+    this->get_signals().post_set_initial_state.connect(std_cxx11::bind(&aspect::VolumeOfFluidHandler<dim>::set_initial_volume_fractions,
                                                                        std_cxx11::ref(*this)));
   }
 

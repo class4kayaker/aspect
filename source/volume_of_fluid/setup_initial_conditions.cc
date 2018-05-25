@@ -32,17 +32,17 @@ namespace aspect
   using namespace dealii;
 
   template <int dim>
-  void VolumeOfFluidHandler<dim>::set_initial_volume_of_fluids ()
+  void VolumeOfFluidHandler<dim>::set_initial_volume_fractions ()
   {
     for (unsigned int f=0; f<n_volume_of_fluid_fields; ++f)
       {
         switch (initialization_data_type[f])
           {
             case VolumeOfFluid::VolumeOfFluidInputType::composition:
-              init_volume_of_fluid_compos (data[f], f);
+              initialize_from_composition_field (data[f], f);
               break;
             case VolumeOfFluid::VolumeOfFluidInputType::level_set:
-              init_volume_of_fluid_ls (data[f], f);
+              initialize_from_level_set (data[f], f);
               break;
             default:
               Assert(false, ExcNotImplemented ());
@@ -66,7 +66,7 @@ namespace aspect
   }
 
   template <int dim>
-  void VolumeOfFluidHandler<dim>::init_volume_of_fluid_compos (const VolumeOfFluidField<dim> field, const unsigned int f_ind)
+  void VolumeOfFluidHandler<dim>::initialize_from_composition_field (const VolumeOfFluidField<dim> field, const unsigned int f_ind)
   {
     LinearAlgebra::BlockVector initial_solution;
 
@@ -120,7 +120,7 @@ namespace aspect
   }
 
   template <int dim>
-  void VolumeOfFluidHandler<dim>::init_volume_of_fluid_ls (const VolumeOfFluidField<dim> field, const unsigned int f_ind)
+  void VolumeOfFluidHandler<dim>::initialize_from_level_set (const VolumeOfFluidField<dim> field, const unsigned int f_ind)
   {
     LinearAlgebra::BlockVector initial_solution;
 
@@ -213,9 +213,9 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template void VolumeOfFluidHandler<dim>::set_initial_volume_of_fluids ();\
-  template void VolumeOfFluidHandler<dim>::init_volume_of_fluid_ls (const VolumeOfFluidField<dim> field, const unsigned int f_ind); \
-  template void VolumeOfFluidHandler<dim>::init_volume_of_fluid_compos (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
+  template void VolumeOfFluidHandler<dim>::set_initial_volume_fractions ();\
+  template void VolumeOfFluidHandler<dim>::initialize_from_composition_field (const VolumeOfFluidField<dim> field, const unsigned int f_ind); \
+  template void VolumeOfFluidHandler<dim>::initialize_from_level_set (const VolumeOfFluidField<dim> field, const unsigned int f_ind);
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 }
