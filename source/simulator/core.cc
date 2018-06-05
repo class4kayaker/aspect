@@ -335,16 +335,18 @@ namespace aspect
         newton_handler->parameters.parse_parameters(prm);
       }
 
-    if (parameters.volume_of_fluid_tracking_enabled)
-      {
-        volume_of_fluid_handler->initialize (prm);
-      }
-
     postprocess_manager.initialize_simulator (*this);
     postprocess_manager.parse_parameters (prm);
 
     mesh_refinement_manager.initialize_simulator (*this);
     mesh_refinement_manager.parse_parameters (prm);
+
+    // VoF Must be initialized after mesh_refinement_manager, due to needing to check
+    // for a mesh refinement strategy
+    if (parameters.volume_of_fluid_tracking_enabled)
+      {
+        volume_of_fluid_handler->initialize (prm);
+      }
 
     termination_manager.initialize_simulator (*this);
     termination_manager.parse_parameters (prm);
