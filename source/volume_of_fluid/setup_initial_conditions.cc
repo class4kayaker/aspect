@@ -92,21 +92,21 @@ namespace aspect
           continue;
 
         // Calculate approximation for volume
-        double cell_vol;
         cell->get_dof_indices (local_dof_indicies);
 
-        cell_vol = cell->measure ();
         fe_init.reinit (cell);
 
         double volume_of_fluid_val = 0.0;
+        double cell_vol = 0.0;
 
         for (unsigned int i = 0; i < fe_init.n_quadrature_points; ++i)
           {
             double ptvolume_of_fluid = this->get_initial_composition_manager().initial_composition(fe_init.quadrature_point(i), f_ind);
-            volume_of_fluid_val += ptvolume_of_fluid * (fe_init.JxW (i) / cell_vol);
+            volume_of_fluid_val += ptvolume_of_fluid * fe_init.JxW (i);
+            cell_vol += fe_init.JxW(i);
           }
 
-        initial_solution (local_dof_indicies[volume_of_fluid_ind]) = volume_of_fluid_val;
+        initial_solution (local_dof_indicies[volume_of_fluid_ind]) = volume_of_fluid_val/cell_vol;
       }
 
     initial_solution.compress(VectorOperation::insert);
@@ -150,15 +150,15 @@ namespace aspect
           continue;
 
         // Calculate approximation for volume
-        double cell_vol, cell_diam, d_func;
+        double cell_diam, d_func;
         cell->get_dof_indices (local_dof_indicies);
 
-        cell_vol = cell->measure ();
         cell_diam = cell->diameter();
         d_func = this->get_initial_composition_manager().initial_composition(cell->barycenter(), f_ind);
         fe_init.reinit (cell);
 
         double volume_of_fluid_val = 0.0;
+        double cell_vol = 0.0;
 
         if (d_func <=-0.5*cell_diam)
           {
@@ -191,12 +191,13 @@ namespace aspect
                         d += (0.5/dim)*(dH+dL);
                       }
                     double ptvolume_of_fluid = VolumeOfFluid::compute_fluid_fraction<dim> (grad, d);
-                    volume_of_fluid_val += ptvolume_of_fluid * (fe_init.JxW (i) / cell_vol);
+                    volume_of_fluid_val += ptvolume_of_fluid * fe_init.JxW (i);
+                    cell_vol += fe_init.JxW (i);
                   }
               }
           }
 
-        initial_solution (local_dof_indicies[volume_of_fluid_ind]) = volume_of_fluid_val;
+        initial_solution (local_dof_indicies[volume_of_fluid_ind]) = volume_of_fluid_val/cell_vol;
       }
 
     initial_solution.compress(VectorOperation::insert);
