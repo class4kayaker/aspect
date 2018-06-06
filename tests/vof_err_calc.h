@@ -158,10 +158,10 @@ namespace aspect
                   err_str << std::scientific << std::setprecision (8)
                           << global_err_vals[f*n_err+i];
                   if (i+1<n_err)
-                    err_str << "/";
+                    err_str << " / ";
                 }
               if (f+1<n_volume_of_fluid_fields)
-                err_str << "//";
+                err_str << " // ";
             }
           result_string = err_str.str ();
           next_err_t = get_next_t (this->get_time (), err_interval);

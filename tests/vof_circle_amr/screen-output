@@ -11,7 +11,7 @@ Number of degrees of freedom: 1,749 (578+81+289+289+64+192+256)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       5.49126816e-02/0.00000000e+00
+     VoF Calculation(IEstL1/FEstL1):       5.49126816e-02 / 0.00000000e+00
 
 Number of active cells: 115 (on 5 levels)
 Number of degrees of freedom: 3,160 (1,050+140+525+525+115+345+460)
@@ -166,7 +166,7 @@ Number of degrees of freedom: 6,473 (2,146+277+1,073+1,073+238+714+952)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       7.35923266e-03/5.09043195e-03
+     VoF Calculation(IEstL1/FEstL1):       7.35923266e-03 / 5.09043195e-03
 
 Number of active cells: 247 (on 6 levels)
 Number of degrees of freedom: 6,698 (2,218+286+1,109+1,109+247+741+988)
@@ -288,7 +288,7 @@ Number of degrees of freedom: 6,627 (2,196+283+1,098+1,098+244+732+976)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       1.01165645e-02/8.20287200e-03
+     VoF Calculation(IEstL1/FEstL1):       1.01165645e-02 / 8.20287200e-03
 
 Number of active cells: 244 (on 6 levels)
 Number of degrees of freedom: 6,657 (2,210+285+1,105+1,105+244+732+976)
@@ -410,7 +410,7 @@ Number of degrees of freedom: 7,332 (2,426+312+1,213+1,213+271+813+1,084)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       1.25347142e-02/1.13765203e-02
+     VoF Calculation(IEstL1/FEstL1):       1.25347142e-02 / 1.13765203e-02
 
 Number of active cells: 271 (on 6 levels)
 Number of degrees of freedom: 7,366 (2,442+314+1,221+1,221+271+813+1,084)
@@ -543,7 +543,7 @@ Number of degrees of freedom: 7,475 (2,482+319+1,241+1,241+274+822+1,096)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       1.61145824e-02/1.51878869e-02
+     VoF Calculation(IEstL1/FEstL1):       1.61145824e-02 / 1.51878869e-02
 
 Number of active cells: 256 (on 6 levels)
 Number of degrees of freedom: 6,957 (2,306+297+1,153+1,153+256+768+1,024)
@@ -665,7 +665,7 @@ Number of degrees of freedom: 7,332 (2,426+312+1,213+1,213+271+813+1,084)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       1.81954154e-02/1.74628247e-02
+     VoF Calculation(IEstL1/FEstL1):       1.81954154e-02 / 1.74628247e-02
 
 Number of active cells: 277 (on 6 levels)
 Number of degrees of freedom: 7,516 (2,490+320+1,245+1,245+277+831+1,108)
@@ -787,7 +787,7 @@ Number of degrees of freedom: 7,257 (2,402+309+1,201+1,201+268+804+1,072)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       2.03944816e-02/1.95693738e-02
+     VoF Calculation(IEstL1/FEstL1):       2.03944816e-02 / 1.95693738e-02
 
 Number of active cells: 283 (on 6 levels)
 Number of degrees of freedom: 7,660 (2,534+328+1,267+1,267+283+849+1,132)
@@ -920,7 +920,7 @@ Number of degrees of freedom: 6,882 (2,282+294+1,141+1,141+253+759+1,012)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       2.27724214e-02/2.21553580e-02
+     VoF Calculation(IEstL1/FEstL1):       2.27724214e-02 / 2.21553580e-02
 
 Number of active cells: 244 (on 6 levels)
 Number of degrees of freedom: 6,623 (2,194+283+1,097+1,097+244+732+976)
@@ -1042,7 +1042,7 @@ Number of degrees of freedom: 6,698 (2,218+286+1,109+1,109+247+741+988)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.785
-     VoF Calculation(IEstL1/FEstL1):       2.45543910e-02/2.38849526e-02
+     VoF Calculation(IEstL1/FEstL1):       2.45543910e-02 / 2.38849526e-02
 
 Number of active cells: 268 (on 6 levels)
 Number of degrees of freedom: 7,205 (2,376+309+1,188+1,188+268+804+1,072)

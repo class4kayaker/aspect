@@ -19,7 +19,7 @@ Number of degrees of freedom: 5,541 (1,818+241+909+909+208+624+832)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.5
-     VoF Calculation(IEstL1/FEstL1):       1.59633523e-16/0.00000000e+00
+     VoF Calculation(IEstL1/FEstL1):       1.59633523e-16 / 0.00000000e+00
 
 Number of active cells: 166 (on 5 levels)
 Number of degrees of freedom: 4,523 (1,498+199+749+749+166+498+664)
@@ -86,7 +86,7 @@ Number of degrees of freedom: 4,590 (1,518+202+759+759+169+507+676)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.376
-     VoF Calculation(IEstL1/FEstL1):       2.47758633e-16/2.89915661e-16
+     VoF Calculation(IEstL1/FEstL1):       2.47758633e-16 / 2.89915661e-16
 
 Number of active cells: 169 (on 5 levels)
 Number of degrees of freedom: 4,590 (1,518+202+759+759+169+507+676)
@@ -153,7 +153,7 @@ Number of degrees of freedom: 4,156 (1,382+184+691+691+151+453+604)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.27
-     VoF Calculation(IEstL1/FEstL1):       1.59962756e-15/7.46364776e-16
+     VoF Calculation(IEstL1/FEstL1):       1.59962756e-15 / 7.46364776e-16
 
 Number of active cells: 148 (on 5 levels)
 Number of degrees of freedom: 4,055 (1,346+179+673+673+148+444+592)
@@ -209,7 +209,7 @@ Number of degrees of freedom: 3,822 (1,270+170+635+635+139+417+556)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.195
-     VoF Calculation(IEstL1/FEstL1):       2.08709935e-15/2.08275237e-15
+     VoF Calculation(IEstL1/FEstL1):       2.08709935e-15 / 2.08275237e-15
 
 Number of active cells: 133 (on 5 levels)
 Number of degrees of freedom: 3,646 (1,210+162+605+605+133+399+532)
@@ -276,7 +276,7 @@ Number of degrees of freedom: 3,054 (1,022+138+511+511+109+327+436)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.125
-     VoF Calculation(IEstL1/FEstL1):       3.16032567e-15/3.51720945e-15
+     VoF Calculation(IEstL1/FEstL1):       3.16032567e-15 / 3.51720945e-15
 
 Number of active cells: 97 (on 5 levels)
 Number of degrees of freedom: 2,710 (906+122+453+453+97+291+388)
