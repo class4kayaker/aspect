@@ -18,8 +18,8 @@
   <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __aspect_volume_of_fluid_handler_h
-#define __aspect_volume_of_fluid_handler_h
+#ifndef _aspect_volume_of_fluid_handler_h
+#define _aspect_volume_of_fluid_handler_h
 
 #include <aspect/simulator.h>
 #include <aspect/simulator_access.h>

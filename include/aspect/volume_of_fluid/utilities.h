@@ -18,8 +18,8 @@
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__volume_of_fluid_utilities_h
-#define __aspect__volume_of_fluid_utilities_h
+#ifndef _aspect__volume_of_fluid_utilities_h
+#define _aspect__volume_of_fluid_utilities_h
 
 #include <aspect/global.h>
 
