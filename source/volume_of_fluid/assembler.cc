@@ -22,28 +22,15 @@
 #include <aspect/utilities.h>
 #include <aspect/free_surface.h>
 #include <aspect/volume_of_fluid/utilities.h>
+#include <aspect/volume_of_fluid/handler.h>
 #include <aspect/volume_of_fluid/field.h>
 #include <aspect/volume_of_fluid/assembly.h>
 
-//#include <deal.II/base/quadrature_lib.h>
-//#include <deal.II/lac/full_matrix.h>
-//#include <deal.II/lac/constraint_matrix.h>
-//#include <deal.II/grid/tria_iterator.h>
-//#include <deal.II/grid/filtered_iterator.h>
-//#include <deal.II/dofs/dof_accessor.h>
-//#include <deal.II/dofs/dof_tools.h>
-//#include <deal.II/fe/fe_values.h>
 
 namespace aspect
 {
   namespace Assemblers
   {
-    template <int dim>
-    void VolumeOfFluidAssembler<dim>::set_volume_fraction_threshold(const double value)
-    {
-      volume_fraction_threshold = value;
-    }
-
     template <int dim>
     void VolumeOfFluidAssembler<dim>::local_assemble_volume_of_fluid_system (const VolumeOfFluidField<dim> field,
                                                                              const unsigned int calc_dir,
@@ -61,6 +48,8 @@ namespace aspect
       Assert (volume_of_fluid_dofs_per_cell < scratch.finite_element_values.get_fe().dofs_per_cell, ExcInternalError());
       Assert (volume_of_fluid_dofs_per_cell < scratch.face_finite_element_values.get_fe().dofs_per_cell, ExcInternalError());
       Assert (scratch.phi_field.size() == volume_of_fluid_dofs_per_cell, ExcInternalError());
+
+      // Need to have MappingCartesioan for current cell volume implementation to be correct
 
       const FiniteElement<dim> &main_fe = scratch.finite_element_values.get_fe();
 
@@ -159,6 +148,8 @@ namespace aspect
         internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
         internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
     {
+      const double volume_fraction_threshold = this->get_volume_of_fluid_handler().get_volume_fraction_threshold();
+
       const bool old_velocity_avail = (this->get_timestep_number() > 0);
 
       const typename DoFHandler<dim>::face_iterator face = cell->face(face_no);
@@ -310,6 +301,7 @@ namespace aspect
         internal::Assembly::Scratch::VolumeOfFluidSystem<dim> &scratch,
         internal::Assembly::CopyData::VolumeOfFluidSystem<dim> &data) const
     {
+      const double volume_fraction_threshold = this->get_volume_of_fluid_handler().get_volume_fraction_threshold();
       const bool old_velocity_avail = (this->get_timestep_number() > 0);
 
       const unsigned int f_dim = face_no/2; // Obtain dimension

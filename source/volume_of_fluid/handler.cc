@@ -53,7 +53,6 @@ namespace aspect
     this->initialize_simulator(sim);
     assembler.initialize_simulator(sim);
     parse_parameters (prm);
-    assembler.set_volume_fraction_threshold(volume_fraction_threshold);
 
     this->get_signals().edit_finite_element_variables.connect(std_cxx11::bind(&aspect::VolumeOfFluidHandler<dim>::edit_finite_element_variables,
                                                                               std_cxx11::ref(*this),

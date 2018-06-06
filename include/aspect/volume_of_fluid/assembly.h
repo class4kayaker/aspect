@@ -209,9 +209,6 @@ namespace aspect
          * Set volume fraction threshold for use in assembly
          */
         void set_volume_fraction_threshold(const double value);
-
-      private:
-        double volume_fraction_threshold;
     };
   }
 }

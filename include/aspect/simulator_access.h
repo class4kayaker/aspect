@@ -692,7 +692,7 @@ namespace aspect
       get_melt_handler () const;
 
       /**
-       * Return a pointer to the VolumeOfFluid handler.
+       * Return a reference to the VolumeOfFluid handler.
        */
       const VolumeOfFluidHandler<dim> &
       get_volume_of_fluid_handler () const;

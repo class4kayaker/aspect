@@ -24,8 +24,6 @@
 #include <aspect/melt.h>
 #include <aspect/volume_of_fluid/handler.h>
 
-#include <deal.II/base/signaling_nan.h>
-#include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/constraint_matrix.h>
 
 #ifdef ASPECT_USE_PETSC

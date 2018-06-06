@@ -32,8 +32,8 @@ namespace aspect
     namespace VisualizationPostprocessors
     {
       /**
-       * A class derived that implements a function that provides volume of
-       * fluid interface tracking data for graphical output.
+       * Plugin to output volume fractions and reconstructed interface data
+       * from the Volume of Fluid Interface Tracking data. 
        */
       template <int dim>
       class VolumeOfFluidValues
