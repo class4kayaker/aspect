@@ -87,10 +87,10 @@ namespace aspect
      */
     template<int dim>
     void xFEM_Heaviside_derivative_d(const int degree,
-                            const Tensor<1, dim, double> normal,
-                            const double d,
-                            const std::vector<Point<dim>> &points,
-                            std::vector<double> &values);
+                                     const Tensor<1, dim, double> normal,
+                                     const double d,
+                                     const std::vector<Point<dim>> &points,
+                                     std::vector<double> &values);
 
 
     /**
