@@ -29,89 +29,14 @@ Number of degrees of freedom: 1,749 (578+81+289+289+64+192+256)
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.416
 
-*** Timestep 3:  t=0.265165 seconds
+*** Timestep 3:  t=0.25 seconds
    Skipping temperature solve because RHS is zero.
    Solving volume of fluid system... 1 iterations.
    Solving volume of fluid system... 1 iterations.
 
    Postprocessing:
-     Global volume of fluid volumes (m^3): 0.376
-     VoF Calculation(IEstL1/FEstL1):       3.11998240e-16 / 2.92300906e-16
-
-*** Timestep 4:  t=0.353553 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.339
-
-*** Timestep 5:  t=0.441942 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.303
-
-*** Timestep 6:  t=0.53033 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.27
-     VoF Calculation(IEstL1/FEstL1):       4.20566853e-16 / 4.73579509e-16
-
-*** Timestep 7:  t=0.618718 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.238
-
-*** Timestep 8:  t=0.707107 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.209
-
-*** Timestep 9:  t=0.795495 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.181
-     VoF Calculation(IEstL1/FEstL1):       4.78020450e-16 / 4.62303806e-16
-
-*** Timestep 10:  t=0.883883 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.156
-
-*** Timestep 11:  t=0.972272 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.132
-
-*** Timestep 12:  t=1 seconds
-   Skipping temperature solve because RHS is zero.
-   Solving volume of fluid system... 1 iterations.
-   Solving volume of fluid system... 1 iterations.
-
-   Postprocessing:
-     Global volume of fluid volumes (m^3): 0.125
-     VoF Calculation(IEstL1/FEstL1):       1.19712183e-15 / 7.78101406e-16
+     Global volume of fluid volumes (m^3): 0.383
+     VoF Calculation(IEstL1/FEstL1):       1.29006506e-16 / 1.17093835e-17
 
 Termination requested by criterion: end time
 
