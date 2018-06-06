@@ -160,8 +160,12 @@ namespace aspect
 
       const unsigned int n_f_q_points    = scratch.face_finite_element_values.n_quadrature_points;
 
-      // volume fraction and interface values are constants, so can set from first value
+      // Currently assuming cartesian mapping, so cell->measure()
+      // works, and the neighbor volume cannot be computed easily using
+      // a sum in this call.
       const double cell_vol = cell->measure();
+
+      // volume fraction and interface values are constants, so can set from first value
       const double cell_volume_of_fluid = scratch.old_field_values[0];
       const Tensor<1, dim, double> cell_i_normal = scratch.cell_i_n_values[0];
       const double cell_i_d = scratch.cell_i_d_values[0];
@@ -569,6 +573,9 @@ namespace aspect
                                        scratch.neighbor_i_d_values);
                 }
 
+              // Currently assuming cartesian mapping, so cell->measure()
+              // works, and the neighbor volume cannot be computed easily using
+              // a sum in this call.
               const double neighbor_vol = neighbor->measure();
               const double neighbor_volume_of_fluid = scratch.neighbor_old_values[0];
               // Unneeded neighbor data
