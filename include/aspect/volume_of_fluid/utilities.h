@@ -29,7 +29,7 @@ namespace aspect
   {
     using namespace dealii;
 
-    // Utilitiess
+    // Utilities
 
     /**
      * Function to calculate volume fraction contained by indicator function
@@ -51,7 +51,7 @@ namespace aspect
      */
     template<int dim>
     double compute_interface_location (const Tensor<1, dim, double> normal,
-                                       const double vol);
+                                       const double volume_fraction);
 
     /**
      * Obtain values at points for a polynomial function that is equivalent to
@@ -86,7 +86,7 @@ namespace aspect
      * @param values Values of the constructed polynomial at the specified points
      */
     template<int dim>
-    void xFEM_Heaviside_d_d(const int degree,
+    void xFEM_Heaviside_derivative_d(const int degree,
                             const Tensor<1, dim, double> normal,
                             const double d,
                             const std::vector<Point<dim>> &points,
@@ -94,7 +94,7 @@ namespace aspect
 
 
     /**
-     * Function to do newton iteration calculation of correct d for a given
+     * Function to do Newton iteration calculation of correct d for a given
      * normal to get vol_frac from xFEM_Heaviside integrated against the given
      * weights.
      *
@@ -117,12 +117,13 @@ namespace aspect
 
     /**
      * Function to calculate volume fraction contained by indicator function
-     * H(d-normal*(x'-x_{cen}')) on the [0, 1]^dim unit cell where x_{cen} is
-     * the unit cell center, using a polynomial mapping of degree up to "degree".
+     * $H(d-normal*(x'-x_{cen}'))$ on the $[0, 1]^dim$ unit cell where
+     * $x_{cen}$ is the unit cell center, using a polynomial mapping of degree
+     * up to "degree".
      *
      * @param degree Maximum degree for exact integration
      * @param normal Interface normal vector, pointed away from the included region
-     * @param d Interface parameter specifying location of interface in unit cell
+     * @param d Interface parameter specifying location of interface in unit cell by distance from cell center
      * @param points Quadrature points to use for update
      * @param weights JxW values to use for quadrature
      */
@@ -141,7 +142,7 @@ namespace aspect
     template<int dim>
     double calc_volume_of_fluid_flux_edge (const unsigned int compute_direction,
                                            const double time_direction_derivative,
-                                           const Tensor<1, dim, double> inteface_normal_in_cell,
+                                           const Tensor<1, dim, double> interface_normal_in_cell,
                                            const double d_at_face_center);
   }
 }

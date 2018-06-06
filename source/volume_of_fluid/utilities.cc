@@ -27,8 +27,8 @@ namespace aspect
     using namespace dealii;
 
     template<>
-    double compute_fluid_fraction<2> (Tensor<1, 2, double> normal,
-                                      double d)
+    double compute_fluid_fraction<2> (const Tensor<1, 2, double> normal,
+                                      const double d)
     {
       const int dim = 2;
       double norm1, max, mpos, dtest;
@@ -448,15 +448,15 @@ namespace aspect
                            const std::vector<Point<3>> &points,
                            std::vector<double> &values)
     {
-      Assert(false, ExcNotImplemented());
+      AssertThrow(false, ExcNotImplemented());
     }
 
     template<>
-    void xFEM_Heaviside_d_d<2>(const int degree,
-                               const Tensor<1, 2, double> normal,
-                               const double d,
-                               const std::vector<Point<2>> &points,
-                               std::vector<double> &values)
+    void xFEM_Heaviside_derivative_d<2>(const int degree,
+                                        const Tensor<1, 2, double> normal,
+                                        const double d,
+                                        const std::vector<Point<2>> &points,
+                                        std::vector<double> &values)
     {
       const int basis_count=4;
       std::vector<double> coeffs(basis_count);
@@ -540,13 +540,13 @@ namespace aspect
     }
 
     template<>
-    void xFEM_Heaviside_d_d<3>(const int degree,
-                               const Tensor<1, 3, double> normal,
-                               const double d,
-                               const std::vector<Point<3>> &points,
-                               std::vector<double> &values)
+    void xFEM_Heaviside_derivative_d<3>(const int degree,
+                                        const Tensor<1, 3, double> normal,
+                                        const double d,
+                                        const std::vector<Point<3>> &points,
+                                        std::vector<double> &values)
     {
-      Assert(false, ExcNotImplemented());
+      AssertThrow(false, ExcNotImplemented());
     }
 
 
@@ -572,7 +572,7 @@ namespace aspect
       for (int iter=0; iter<40; ++iter)
         {
           xFEM_Heaviside(degree, normal, d_guess, points, f_values);
-          xFEM_Heaviside_d_d(degree, normal, d_guess, points, df_values);
+          xFEM_Heaviside_derivative_d(degree, normal, d_guess, points, df_values);
 
           f_guess=0.0;
           df_guess=0.0;

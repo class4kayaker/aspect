@@ -129,10 +129,11 @@ namespace aspect
                         "When ``composition is specified, the initial model is "
                         "treated as a standard composition field. If ``level "
                         "set`` is specified, the intial data will be assumed to "
-                        "be in the form of a function which is positive when in "
-                        "the fluid, negative outside, and zero on the interface "
-                        "with the gradient being of the same magnitude "
-                        "everywhere.");
+                        "be in the form of a signed distance level set function "
+                        "(i.e. a function which is positive when in the "
+                        "fluid, negative outside, and zero on the interface "
+                        "and the magnitude is always the distance to the "
+                        "interface so the gradient is one everywhere).");
     }
     prm.leave_subsection();
   }

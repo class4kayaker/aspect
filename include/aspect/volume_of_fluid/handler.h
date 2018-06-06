@@ -151,7 +151,9 @@ namespace aspect
 
 
     private:
-      // Parent simulator
+      /**
+       * Parent simulator
+       */
       Simulator<dim> &sim;
 
       /**

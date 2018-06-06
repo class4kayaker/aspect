@@ -107,7 +107,6 @@ namespace aspect
           for (unsigned int k=0; k<volume_of_fluid_dofs_per_cell; ++k)
             scratch.phi_field[k] = scratch.finite_element_values[solution_field].value(main_fe.component_to_system_index(solution_component, k), q);
 
-          // Init required local time
           for (unsigned int i = 0; i<volume_of_fluid_dofs_per_cell; ++i)
             {
               data.local_rhs[i] += scratch.old_field_values[q] *
@@ -121,9 +120,11 @@ namespace aspect
 
       for (unsigned int face_no = 0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no)
         {
-          const unsigned int f_dim = face_no/2; // Obtain dimension
+          // Obtain the normal direction for the face in question
+          // Deall.II orders faces as dim*2+(face_direction_is_positive?1:0)
+          const unsigned int face_normal_direction = face_no/2;
 
-          if (f_dim != calc_dir)
+          if (face_normal_direction != calc_dir)
             continue;
 
           typename DoFHandler<dim>::face_iterator face = cell->face (face_no);
@@ -309,8 +310,12 @@ namespace aspect
 
       const unsigned int n_f_q_points    = scratch.face_finite_element_values.n_quadrature_points;
 
-      // vol fraction and interface values are constants, so can set from first value
+      // Currently assuming cartesian mapping, so cell->measure() works, we
+      // also will need neighbor volume, which cannot be computed easily using
+      // a sum in this call.
       const double cell_vol = cell->measure();
+
+      // vol fraction and interface values are constants, so can set from first value
       const double cell_volume_of_fluid = scratch.old_field_values[0];
       const Tensor<1, dim, double> cell_i_normal = scratch.cell_i_n_values[0];
       const double cell_i_d = scratch.cell_i_d_values[0];
@@ -407,6 +412,9 @@ namespace aspect
                                        scratch.neighbor_i_d_values);
                 }
 
+              // Currently assuming cartesian mapping, so cell->measure()
+              // works, and the neighbor volume cannot be computed easily using
+              // a sum in this call.
               const double neighbor_vol = neighbor->measure();
               const double neighbor_volume_of_fluid = scratch.neighbor_old_values[0];
               const Tensor<1, dim, double> neighbor_i_normal = scratch.neighbor_i_n_values[0];
@@ -440,8 +448,10 @@ namespace aspect
 
                 }
 
-              // Due to inability to reference this cell's values at the interface,
-              // need to do explicit calculation
+              // Because the level set data is stored implicitly as a set of
+              // generating data, the calculation for the relevant normal time
+              // gradient and value of d at the face center must be computed
+              // here
               if (f_dir_pos)
                 {
                   face_ls_d = cell_i_d - 0.5*cell_i_normal[f_dim];
