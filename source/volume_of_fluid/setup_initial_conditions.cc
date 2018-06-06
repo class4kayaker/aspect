@@ -194,10 +194,11 @@ namespace aspect
                     volume_of_fluid_val += ptvolume_of_fluid * fe_init.JxW (i);
                     cell_vol += fe_init.JxW (i);
                   }
+                volume_of_fluid_val /= cell_vol;
               }
           }
 
-        initial_solution (local_dof_indicies[volume_of_fluid_ind]) = volume_of_fluid_val/cell_vol;
+        initial_solution (local_dof_indicies[volume_of_fluid_ind]) = volume_of_fluid_val;
       }
 
     initial_solution.compress(VectorOperation::insert);
