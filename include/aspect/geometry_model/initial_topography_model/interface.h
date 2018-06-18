@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2014, 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__geometry_model__initial_topography_model_interface_h
-#define __aspect__geometry_model__initial_topography_model_interface_h
+#ifndef _aspect_geometry_model__initial_topography_model_interface_h
+#define _aspect_geometry_model__initial_topography_model_interface_h
 
 #include <aspect/plugins.h>
 #include <deal.II/base/parameter_handler.h>
@@ -71,6 +71,12 @@ namespace aspect
          */
         virtual
         double value (const Point<dim-1> &p) const = 0;
+
+        /**
+         * Return the maximum value of the elevation.
+         */
+        virtual
+        double max_topography () const = 0;
 
         /**
          * Declare the parameters this class takes through input files. The
@@ -142,6 +148,20 @@ namespace aspect
     template <int dim>
     void
     declare_parameters (ParameterHandler &prm);
+
+
+    /**
+     * For the current plugin subsystem, write a connection graph of all of the
+     * plugins we know about, in the format that the
+     * programs dot and neato understand. This allows for a visualization of
+     * how all of the plugins that ASPECT knows about are interconnected, and
+     * connect to other parts of the ASPECT code.
+     *
+     * @param output_stream The stream to write the output to.
+     */
+    template <int dim>
+    void
+    write_plugin_graph (std::ostream &output_stream);
 
 
     /**

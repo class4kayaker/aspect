@@ -3,11 +3,10 @@
 #include <aspect/material_model/simple.h>
 #include <aspect/simulator_access.h>
 #include <aspect/melt.h>
-#include <aspect/assembly.h>
+#include <aspect/simulator/assemblers/interface.h>
 
 #include <deal.II/fe/fe_dgq.h>
 #include <iostream>
-#include <typeinfo>
 
 using namespace dealii;
 
@@ -42,7 +41,7 @@ namespace aspect
 
   template <int dim>
   class MeltMaterial:
-    public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>
   {
       virtual bool is_compressible () const
       {
@@ -54,10 +53,13 @@ namespace aspect
         return 1.0;
       }
 
-      virtual double reference_density () const
+      virtual double reference_darcy_coefficient () const
       {
-        return 1.0;
+        const double porosity = 0.01;
+        const double permeability = 1.0 * std::pow(porosity, 3) * std::pow(1.0-porosity, 2);
+        return permeability / 0.1;
       }
+
       virtual void evaluate(const typename MaterialModel::Interface<dim>::MaterialModelInputs &in,
                             typename MaterialModel::Interface<dim>::MaterialModelOutputs &out) const
       {

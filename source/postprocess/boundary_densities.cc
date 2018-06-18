@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/boundary_densities.h>
+#include <aspect/geometry_model/interface.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -67,7 +68,7 @@ namespace aspect
                 bool cell_at_top = false;
                 bool cell_at_bottom = false;
 
-                //Test for top or bottom surface cell faces
+                // Test for top or bottom surface cell faces
                 if (cell->at_boundary(f) && this->get_geometry_model().depth (cell->face(f)->center())
                     < cell->face(f)->minimum_vertex_distance()/3.)
                   cell_at_top = true;
@@ -77,7 +78,7 @@ namespace aspect
 
                 if ( cell_at_top || cell_at_bottom )
                   {
-                    //handle surface cells
+                    // handle surface cells
                     fe_face_values.reinit (cell, f);
                     fe_face_values[this->introspection().extractors.temperature]
                     .get_function_values (this->get_solution(), in.temperature);
@@ -100,7 +101,7 @@ namespace aspect
 
                     this->get_material_model().evaluate(in, out);
 
-                    //calculate the top/bottom properties
+                    // calculate the top/bottom properties
                     if (cell_at_top)
                       for ( unsigned int q = 0; q < fe_face_values.n_quadrature_points; ++q)
                         {
@@ -116,13 +117,13 @@ namespace aspect
                   }
               }
 
-      //vector for packing local values before mpi summing them
+      // vector for packing local values before MPI summing them
       double values[4] = {local_bottom_area, local_top_area, local_bottom_density, local_top_density};
 
       Utilities::MPI::sum<double, 4>( values, this->get_mpi_communicator(), values );
 
-      top_density = values[3] / values[1]; //density over area
-      bottom_density = values[2] / values[0]; //density over area
+      top_density = values[3] / values[1]; // density over area
+      bottom_density = values[2] / values[0]; // density over area
 
       statistics.add_value ("Density at top (kg/m^3)",
                             top_density);
@@ -145,7 +146,7 @@ namespace aspect
       std::ostringstream output;
       output.precision(4);
       output << top_density << " kg/m^3, "
-             << bottom_density << " kg/m^3, ";
+             << bottom_density << " kg/m^3";
 
       return std::pair<std::string, std::string> ("Density at top/bottom of domain:",
                                                   output.str());

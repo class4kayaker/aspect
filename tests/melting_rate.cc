@@ -1,6 +1,6 @@
 #include <aspect/material_model/interface.h>
 #include <aspect/melt.h>
-#include <aspect/velocity_boundary_conditions/interface.h>
+#include <aspect/boundary_velocity/interface.h>
 #include <aspect/simulator_access.h>
 #include <aspect/global.h>
 #include <aspect/melt.h>
@@ -19,7 +19,7 @@ namespace aspect
 {
   template <int dim>
   class MeltingRate:
-    public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>
   {
       virtual bool is_compressible () const
       {
@@ -31,10 +31,11 @@ namespace aspect
         return 5e20;
       }
 
-      virtual double reference_density () const
+      virtual double reference_darcy_coefficient () const
       {
-        return 3000;
+        return 1e-8 * std::pow(0.01, 3.0) / 10.0;
       }
+
       virtual void evaluate(const typename MaterialModel::Interface<dim>::MaterialModelInputs &in,
                             typename MaterialModel::Interface<dim>::MaterialModelOutputs &out) const
       {

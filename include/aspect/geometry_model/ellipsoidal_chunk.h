@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,21 +14,22 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__geometry_model_ellipsoidal_chunk_h
-#define __aspect__geometry_model_ellipsoidal_chunk_h
+#ifndef _aspect_geometry_model_ellipsoidal_chunk_h
+#define _aspect_geometry_model_ellipsoidal_chunk_h
 
 #include <aspect/geometry_model/interface.h>
+#include <aspect/geometry_model/initial_topography_model/interface.h>
 #include <aspect/simulator_access.h>
 #include <deal.II/grid/manifold.h>
 
 /**
  * This geometry model implements an (3d) ellipsoidal chunk geometry where two of the axis have
- * the same length. The ellipsoidal chunk can be non-coordinate parallel part of the ellipsoid.
+ * the same length. The ellipsoidal chunk can be a non-coordinate parallel part of the ellipsoid.
  * @author This plugin is a joined effort of Menno Fraters, D Sarah Stamps and Wolfgang Bangerth
  */
 
@@ -51,8 +52,26 @@ namespace aspect
         class EllipsoidalChunkGeometry : public ChartManifold<dim,3,3>
         {
           public:
+            /**
+             * Constructor
+             */
             EllipsoidalChunkGeometry();
 
+            /**
+             * Copy constructor
+             */
+            EllipsoidalChunkGeometry(const EllipsoidalChunkGeometry &other);
+
+            /**
+             * An initialization function necessary to make sure that the
+             * manifold has access to the topography plugins.
+             */
+            void
+            initialize(const InitialTopographyModel::Interface<dim> *topography);
+
+            /**
+             * Sets several parameters for the ellipsoidal manifold object.
+             */
             void
             set_manifold_parameters(const double para_semi_major_axis_a,
                                     const double para_eccentricity,
@@ -60,28 +79,83 @@ namespace aspect
                                     const double para_bottom_depth,
                                     const std::vector<Point<2> > &para_corners);
 
+            /**
+             * The deal.ii pull back function in 3d. This function receives
+             * cartesian points x,y and z and returns spherical/ellipsoidal
+             * coordinates phi, theta and depth, also accounting for the
+             * topography.
+             */
             virtual
             Point<3>
             pull_back(const Point<3> &space_point) const;
 
+            /**
+             * The deal.ii pull back function in 2d. This function should
+             * not be used, until the TODO in the cc file has been fixed.
+             */
             virtual
             Point<2>
             pull_back(const Point<2> &space_point) const;
 
+            /**
+             * The deal.ii push forward function in 3d. This function receives
+             * spherical/ellipsoidal coordinates phi, theta and depth and
+             * returns cartesian points x,y and z, also accounting for the
+             * topography.
+             */
             virtual
             Point<3>
             push_forward(const Point<3> &chart_point) const;
 
+#if DEAL_II_VERSION_GTE(9,0,0)
+            /**
+             * Return a copy of this manifold.
+             */
+            virtual
+            std::unique_ptr<Manifold<dim,3> >
+            clone() const;
+#endif
+
           private:
+            /**
+             * This function does the actual push forward to the ellipsoid.
+             * For the equation details, please see deal.ii step 53.
+             */
+            Point<3> push_forward_ellipsoid (const Point<3> &phi_theta_d, const double semi_major_axis_a, const double eccentricity) const;
+
+            /**
+             * This function does the actual pull back from the ellipsoid.
+             * For the equation details, please see deal.ii step 53.
+             */
+            Point<3> pull_back_ellipsoid (const Point<3> &x, const double semi_major_axis_a, const double eccentricity) const;
+
+            /**
+             * This function adds topography to the cartesian coordinates.
+             * For the equation details, please see deal.ii step 53.
+             */
+            Point<3> push_forward_topography (const Point<3> &phi_theta_d_hat) const;
+
+            /**
+             * This function removes topography from the cartesian coordinates.
+             * For the equation details, please see deal.ii step 53.
+             */
+            Point<3> pull_back_topography (const Point<3> &phi_theta_d) const;
+
+
             double semi_major_axis_a;
             double eccentricity;
             double semi_minor_axis_b;
             double bottom_depth;
             std::vector<Point<2> > corners;
-
-            Point<3> push_forward_ellipsoid (const Point<3> &phi_theta_d, const double semi_major_axis_a, const double eccentricity) const;
-            Point<3> pull_back_ellipsoid (const Point<3> &x, const double semi_major_axis_a, const double eccentricity) const;
+            const InitialTopographyModel::Interface<dim> *topography;
         };
+
+        /**
+         * Initialize function
+         */
+        virtual
+        void
+        initialize ();
 
 
         /**
@@ -94,8 +168,6 @@ namespace aspect
         /**
          * Return the typical length scale one would expect of features in this geometry,
          * assuming realistic parameters.
-         *
-         * We return 1/20th of the distance from the two endpoints (vertex_0 and vertex_7) of the cell.
          */
         virtual
         double
@@ -117,6 +189,14 @@ namespace aspect
         virtual
         double
         depth(const Point<dim> &position) const;
+
+        /**
+         * Placeholder for a function returning the height of the given
+         * position relative to the reference model surface.
+         */
+        virtual
+        double
+        height_above_reference_surface(const Point<dim> &position) const;
 
         /**
          * Returns a point in the center of the domain.
@@ -154,10 +234,35 @@ namespace aspect
         get_used_boundary_indicators() const;
 
         /*
-        *Set symbolic names for boudaries (mrtf)
+        *Set symbolic names for boundaries (mrtf)
         */
         virtual std::map<std::string,types::boundary_id>
         get_symbolic_boundary_names_map() const;
+
+        /*
+         * Returns what the natural coordinate system for this geometry model is,
+         * which for a Ellipsoidal chunk is Ellisoidal.
+         */
+        virtual
+        aspect::Utilities::Coordinates::CoordinateSystem natural_coordinate_system() const;
+
+        /**
+         * Takes the Cartesian points (x,z or x,y,z) and returns standardized
+         * coordinates which are most 'natural' to the geometry model. For a
+         * ellispoidal chunk this is (radius, longitude) in 2d and (radius,
+         * longitude, latitude) in 3d. Note that internally the coordinates are
+         * stored in longitude, latitude, depth.
+         */
+        virtual
+        std_cxx11::array<double,dim> cartesian_to_natural_coordinates(const Point<dim> &position) const;
+
+        /**
+         * Undoes the action of cartesian_to_natural_coordinates, and turns the
+         * coordinate system which is most 'natural' to the geometry model into
+         * Cartesian coordinates.
+         */
+        virtual
+        Point<dim> natural_to_cartesian_coordinates(const std_cxx11::array<double,dim> &position) const;
 
         /**
          * Declare the parameters this class takes through input files.

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
-
+#include <deal.II/base/signaling_nan.h>
 #include <aspect/boundary_composition/spherical_constant.h>
+#include <aspect/geometry_model/sphere.h>
 #include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/geometry_model/chunk.h>
 #include <aspect/geometry_model/ellipsoidal_chunk.h>
@@ -41,28 +42,21 @@ namespace aspect
                           const Point<dim> &/*position*/,
                           const unsigned int /*compositional_field*/) const
     {
-      // verify that the geometry is a spherical shell, a chunk, or an
-      // ellipsoidal chunk since only for geometries based on spherical shells
-      // do we know which boundary indicators are used and what they mean
       const GeometryModel::Interface<dim> *geometry_model = &this->get_geometry_model();
-      Assert ((dynamic_cast<const GeometryModel::SphericalShell<dim>*>(geometry_model) != 0
-               || dynamic_cast<const GeometryModel::Chunk<dim>*>(geometry_model) != 0
-               || dynamic_cast<const GeometryModel::EllipsoidalChunk<dim>*>(geometry_model) != 0),
-              ExcMessage ("This boundary model is only implemented if the geometry "
-                          "is a spherical shell or chunk."));
-
       const std::string boundary_name = geometry_model->translate_id_to_symbol_name(boundary_indicator);
 
-      if (boundary_name == "inner")
+      if (boundary_name == "bottom")
         return inner_composition;
-      else if (boundary_name =="outer")
+      else if (boundary_name =="top")
         return outer_composition;
       else
         {
-          Assert (false, ExcMessage ("Unknown boundary indicator. The given boundary should be ``inner'' or ``outer''."));
-          return std::numeric_limits<double>::quiet_NaN();
+          Assert (false, ExcMessage ("Unknown boundary indicator for geometry model. "
+                                     "The given boundary should be ``top'' or ``bottom''."));
+          return numbers::signaling_nan<double>();
         }
     }
+
 
 
     template <int dim>
@@ -70,7 +64,11 @@ namespace aspect
     SphericalConstant<dim>::
     minimal_composition (const std::set<types::boundary_id> &) const
     {
-      return std::min (inner_composition, outer_composition);
+      const GeometryModel::Interface<dim> *geometry_model = &this->get_geometry_model();
+      if (dynamic_cast<const GeometryModel::Sphere<dim>*>(geometry_model) != 0)
+        return outer_composition;
+      else
+        return std::min (inner_composition, outer_composition);
     }
 
 
@@ -80,7 +78,11 @@ namespace aspect
     SphericalConstant<dim>::
     maximal_composition (const std::set<types::boundary_id> &) const
     {
-      return std::max (inner_composition, outer_composition);
+      const GeometryModel::Interface<dim> *geometry_model = &this->get_geometry_model();
+      if (dynamic_cast<const GeometryModel::Sphere<dim>*>(geometry_model) != 0)
+        return outer_composition;
+      else
+        return std::max (inner_composition, outer_composition);
     }
 
 
@@ -95,7 +97,9 @@ namespace aspect
         {
           prm.declare_entry ("Outer composition", "0",
                              Patterns::Double (),
-                             "Composition at the outer boundary (lithosphere water/air). Units: none.");
+                             "Composition at the outer boundary (lithosphere water/air). "
+                             "For a spherical geometry model, this is the only boundary. "
+                             "Units: none.");
           prm.declare_entry ("Inner composition", "1",
                              Patterns::Double (),
                              "Composition at the inner boundary (core mantle boundary). Units: none.");
@@ -132,7 +136,8 @@ namespace aspect
     ASPECT_REGISTER_BOUNDARY_COMPOSITION_MODEL(SphericalConstant,
                                                "spherical constant",
                                                "A model in which the composition is chosen constant on "
-                                               "the inner and outer boundaries of a spherical shell or chunk. "
+                                               "the inner and outer boundaries of a surface, spherical "
+                                               "shell, chunk or ellipsoidal chunk. "
                                                "Parameters are read from subsection 'Spherical constant'.")
   }
 }

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016 by the authors of the ASPECT code.
+  Copyright (C) 2016 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,15 +14,16 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
 #include <aspect/particle/interpolator/cell_average.h>
-#include <aspect/postprocess/tracers.h>
+#include <aspect/postprocess/particles.h>
 #include <aspect/simulator.h>
 
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/base/signaling_nan.h>
 
 namespace aspect
 {
@@ -32,15 +33,11 @@ namespace aspect
     {
       template <int dim>
       std::vector<std::vector<double> >
-      CellAverage<dim>::properties_at_points(const std::multimap<types::LevelInd, Particle<dim> > &particles,
+      CellAverage<dim>::properties_at_points(const ParticleHandler<dim> &particle_handler,
                                              const std::vector<Point<dim> > &positions,
+                                             const ComponentMask &selected_properties,
                                              const typename parallel::distributed::Triangulation<dim>::active_cell_iterator &cell) const
       {
-        const Postprocess::Tracers<dim> *tracer_postprocessor = this->template find_postprocessor<Postprocess::Tracers<dim> >();
-
-        const std::multimap<aspect::Particle::types::LevelInd, aspect::Particle::Particle<dim> > &ghost_particles =
-          tracer_postprocessor->get_particle_world().get_ghost_particles();
-
         typename parallel::distributed::Triangulation<dim>::active_cell_iterator found_cell;
 
         if (cell == typename parallel::distributed::Triangulation<dim>::active_cell_iterator())
@@ -63,33 +60,33 @@ namespace aspect
         else
           found_cell = cell;
 
-        const types::LevelInd cell_index = std::make_pair(found_cell->level(),found_cell->index());
+        const typename ParticleHandler<dim>::particle_iterator_range particle_range =
+          particle_handler.particles_in_cell(found_cell);
 
-        const std::pair<typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator,
-              typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator> particle_range =
-                (cell->is_locally_owned())
-                ?
-                particles.equal_range(cell_index)
-                :
-                ghost_particles.equal_range(cell_index);
+        const unsigned int n_particles = std::distance(particle_range.begin(),particle_range.end());
+        const unsigned int n_particle_properties = particle_handler.n_properties_per_particle();
 
-        const unsigned int n_particles = std::distance(particle_range.first,particle_range.second);
-        const unsigned int n_properties = particles.begin()->second.get_properties().size();
-        std::vector<double> cell_properties (n_properties,0.0);
+        std::vector<double> cell_properties (n_particle_properties,numbers::signaling_nan<double>());
+
+        for (unsigned int i = 0; i < n_particle_properties; ++i)
+          if (selected_properties[i])
+            cell_properties[i] = 0.0;
 
         if (n_particles > 0)
           {
-            for (typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator particle = particle_range.first;
-                 particle != particle_range.second; ++particle)
+            for (typename ParticleHandler<dim>::particle_iterator particle = particle_range.begin();
+                 particle != particle_range.end(); ++particle)
               {
-                const std::vector<double> &particle_properties = particle->second.get_properties();
+                const ArrayView<const double> &particle_properties = particle->get_properties();
 
-                for (unsigned int i = 0; i < n_properties; ++i)
-                  cell_properties[i] += particle_properties[i];
+                for (unsigned int i = 0; i < particle_properties.size(); ++i)
+                  if (selected_properties[i])
+                    cell_properties[i] += particle_properties[i];
               }
 
-            for (unsigned int i = 0; i < n_properties; ++i)
-              cell_properties[i] /= n_particles;
+            for (unsigned int i = 0; i < n_particle_properties; ++i)
+              if (selected_properties[i])
+                cell_properties[i] /= n_particles;
           }
         // If there are no particles in this cell use the average of the
         // neighboring cells.
@@ -103,29 +100,28 @@ namespace aspect
               {
                 // Only recursively call this function if the neighbor cell contains
                 // particles (else we end up in an endless recursion)
-                if ((neighbors[i]->is_locally_owned())
-                    && (particles.count(std::make_pair(neighbors[i]->level(),neighbors[i]->index())) == 0))
-                  continue;
-                else if ((!neighbors[i]->is_locally_owned())
-                         && (ghost_particles.count(std::make_pair(neighbors[i]->level(),neighbors[i]->index())) == 0))
+                if (particle_handler.n_particles_in_cell(neighbors[i]) == 0)
                   continue;
 
-                std::vector<double> neighbor_properties = properties_at_points(particles,
-                                                                               std::vector<Point<dim> > (1,neighbors[i]->center(true,false)),
-                                                                               neighbors[i])[0];
+                const std::vector<double> neighbor_properties = properties_at_points(particle_handler,
+                                                                                     std::vector<Point<dim> > (1,neighbors[i]->center(true,false)),
+                                                                                     selected_properties,
+                                                                                     neighbors[i])[0];
 
-                for (unsigned int i = 0; i < n_properties; ++i)
-                  cell_properties[i] += neighbor_properties[i];
+                for (unsigned int i = 0; i < n_particle_properties; ++i)
+                  if (selected_properties[i])
+                    cell_properties[i] += neighbor_properties[i];
 
                 ++non_empty_neighbors;
               }
 
             AssertThrow(non_empty_neighbors != 0,
                         ExcMessage("A cell and all of its neighbors do not contain any particles. "
-                                   "The 'cell average' interpolation scheme does not support this case."));
+                                   "The `cell average' interpolation scheme does not support this case."));
 
-            for (unsigned int i = 0; i < n_properties; ++i)
-              cell_properties[i] /= non_empty_neighbors;
+            for (unsigned int i = 0; i < n_particle_properties; ++i)
+              if (selected_properties[i])
+                cell_properties[i] /= non_empty_neighbors;
           }
 
         return std::vector<std::vector<double> > (positions.size(),cell_properties);
@@ -144,7 +140,7 @@ namespace aspect
     {
       ASPECT_REGISTER_PARTICLE_INTERPOLATOR(CellAverage,
                                             "cell average",
-                                            "Return the average of all tracer properties in the given cell.")
+                                            "Return the average of all particle properties in the given cell.")
     }
   }
 }

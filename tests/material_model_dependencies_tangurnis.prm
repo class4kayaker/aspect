@@ -4,19 +4,20 @@ subsection Material model
   set Model name = Tan Gurnis
 
   subsection Tan Gurnis model
-    set Thermal expansion coefficient = 1
     set Di                            = 0.5
     set gamma                         = 1
-
     set a                             = 0
-
     set wavenumber                    = 1
   end
 end
+
 subsection Postprocess
   set List of postprocessors = material model dependencies
 end
 
+subsection Formulation
+  set Formulation = anelastic liquid approximation
+end
 
 #############################
 # Otherwise use the setup of SolCX
@@ -29,10 +30,10 @@ set Start time                             = 0
 set Adiabatic surface temperature          = 0
 set Surface pressure                       = 0
 set Use years in output instead of seconds = false  # default: true
-set Nonlinear solver scheme                = Stokes only
+set Nonlinear solver scheme                = no Advection, iterated Stokes
 
 subsection Boundary temperature model
-  set Model name = box
+  set List of model names = box
 end
 
 
@@ -73,7 +74,7 @@ subsection Gravity model
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = perturbed box
 
 end
@@ -87,18 +88,24 @@ subsection Mesh refinement
 end
 
 
-subsection Model settings
-  set Include adiabatic heating               = false
-  set Include shear heating                   = false # default: true
+subsection Heating model
+  set List of model names = shear heating, adiabatic heating
+  subsection Adiabatic heating
+    set Use simplified adiabatic heating = true
+  end
+end
 
 
+# The parameters below this comment were created by the update script
+# as replacement for the old 'Model settings' subsection. They can be
+# safely merged with any existing subsections with the same name.
+
+subsection Boundary temperature model
   set Fixed temperature boundary indicators   = 0, 1
+end
 
-  set Prescribed velocity boundary indicators =
-
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = 0,1,2,3
-
-  set Zero velocity boundary indicators       =
 end
 
 

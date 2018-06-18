@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/boundary_composition/initial_composition.h>
+#include <aspect/initial_composition/interface.h>
+
 
 namespace aspect
 {
@@ -34,7 +36,7 @@ namespace aspect
                           const Point<dim> &position,
                           const unsigned int compositional_field) const
     {
-      return this->get_compositional_initial_conditions().initial_composition(position, compositional_field);
+      return this->get_initial_composition_manager().initial_composition(position, compositional_field);
     }
 
 
@@ -113,7 +115,7 @@ namespace aspect
                                                "know certain pieces of information such as the "
                                                "minimal and maximal composition on the boundary. "
                                                "For operations that require this, for example in "
-                                               "postprocessing, this boundary composition model "
+                                               "post-processing, this boundary composition model "
                                                "must therefore be told what the minimal and "
                                                "maximal values on the boundary are. This is done "
                                                "using parameters set in section ``Boundary composition model/Initial composition''.")

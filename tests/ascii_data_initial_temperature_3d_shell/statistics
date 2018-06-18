@@ -13,10 +13,10 @@
 # 13: Minimal temperature (K)
 # 14: Average temperature (K)
 # 15: Maximal temperature (K)
-# 16: Outward heat flux through boundary with indicator 0 ("inner") (W)
-# 17: Outward heat flux through boundary with indicator 1 ("outer") (W)
+# 16: Outward heat flux through boundary with indicator 0 ("bottom") (W)
+# 17: Outward heat flux through boundary with indicator 1 ("top") (W)
 # 18: Outward heat flux through boundary with indicator 2 ("east") (W)
 # 19: Outward heat flux through boundary with indicator 3 ("west") (W)
 # 20: Outward heat flux through boundary with indicator 4 ("south") (W)
-0 0.000000000000e+00 0.000000000000e+00 24 972 305 0 64 105 104 1.41731288e+00 3.60480561e+00 0.00000000e+00 7.26055921e+01 1.00000000e+02 4.90550565e+09 1.00240621e+10 9.76781418e+08 9.76624837e+08 -3.63312717e+08 
-1 1.000000000000e+05 1.000000000000e+05 24 972 305 8 56  81  79 1.41653737e+00 3.59983307e+00 7.32345536e+00 7.20783487e+01 9.94898890e+01 3.59236416e+09 8.44990697e+09 6.27216533e+08 6.51702905e+08 -2.63315396e+08 
+0 0.000000000000e+00 0.000000000000e+00 24 972 305 0 98 100 203 1.15181853e+00 2.09648778e+00 0.00000000e+00 7.30551963e+01 1.00000000e+02 4.47882493e+09 9.56776459e+09 1.03938262e+09 1.03922861e+09 -3.07892561e+08 
+1 1.000000000000e+05 1.000000000000e+05 24 972 305 9 82  84 168 1.15165583e+00 2.09734272e+00 1.47704371e+00 7.28623411e+01 9.98085185e+01 3.89072666e+09 8.63941548e+09 9.47335643e+08 9.03358694e+08 -2.77791520e+08 

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/global.h>
 #include <aspect/gravity_model/interface.h>
+#include <aspect/simulator_access.h>
 
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/std_cxx11/tuple.h>
@@ -67,8 +68,8 @@ namespace aspect
       std_cxx11::tuple
       <void *,
       void *,
-      internal::Plugins::PluginList<Interface<2> >,
-      internal::Plugins::PluginList<Interface<3> > > registered_plugins;
+      aspect::internal::Plugins::PluginList<Interface<2> >,
+      aspect::internal::Plugins::PluginList<Interface<3> > > registered_plugins;
     }
 
 
@@ -106,7 +107,7 @@ namespace aspect
       // errors because the value obviously does not conform to the Pattern.
       AssertThrow(model_name != "unspecified",
                   ExcMessage("You need to select a Gravity model "
-                             "('set Model name' in 'subsection Gravity model')."));
+                             "(`set Model name' in `subsection Gravity model')."));
 
       return std_cxx11::get<dim>(registered_plugins).create_plugin (model_name,
                                                                     "Gravity model::Model name");
@@ -134,6 +135,15 @@ namespace aspect
       std_cxx11::get<dim>(registered_plugins).declare_parameters (prm);
     }
 
+
+
+    template <int dim>
+    void
+    write_plugin_graph (std::ostream &out)
+    {
+      std_cxx11::get<dim>(registered_plugins).write_plugin_graph ("Gravity model interface",
+                                                                  out);
+    }
   }
 }
 
@@ -168,6 +178,10 @@ namespace aspect
   template  \
   void \
   declare_parameters<dim> (ParameterHandler &); \
+  \
+  template \
+  void \
+  write_plugin_graph<dim> (std::ostream &); \
   \
   template \
   Interface<dim> * \

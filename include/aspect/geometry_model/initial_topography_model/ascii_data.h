@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016 by the authors of the ASPECT code.
+  Copyright (C) 2016 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__geometry_model__initial_topography_model_ascii_data_h
-#define __aspect__geometry_model__initial_topography_model_ascii_data_h
+#ifndef _aspect_geometry_model__initial_topography_model_ascii_data_h
+#define _aspect_geometry_model__initial_topography_model_ascii_data_h
 
 #include <aspect/geometry_model/initial_topography_model/interface.h>
 #include <aspect/simulator_access.h>
@@ -67,6 +67,12 @@ namespace aspect
          */
         double
         value (const Point<dim-1> &p) const;
+
+        /**
+         * Return the maximum value of the elevation.
+         */
+        virtual
+        double max_topography () const;
 
 
         /**

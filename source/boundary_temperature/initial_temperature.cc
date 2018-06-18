@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/boundary_temperature/initial_temperature.h>
+#include <aspect/initial_temperature/interface.h>
 
 
 namespace aspect
@@ -34,7 +35,7 @@ namespace aspect
     boundary_temperature (const types::boundary_id,
                           const Point<dim> &position) const
     {
-      return this->get_initial_conditions().initial_temperature(position);
+      return this->get_initial_temperature_manager().initial_temperature(position);
     }
 
 
@@ -113,7 +114,7 @@ namespace aspect
                                                "know certain pieces of information such as the "
                                                "minimal and maximal temperature on the boundary. "
                                                "For operations that require this, for example in "
-                                               "postprocessing, this boundary temperature model "
+                                               "post-processing, this boundary temperature model "
                                                "must therefore be told what the minimal and "
                                                "maximal values on the boundary are. This is done "
                                                "using parameters set in section ``Boundary temperature model/Initial temperature''.")

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -48,7 +48,7 @@ namespace aspect
                                quadrature,
                                update_quadrature_points | update_values);
 
-      // the values of the compositional fields are stored as blockvectors for each field
+      // the values of the compositional fields are stored as block vectors for each field
       // we have to extract them in this structure
       std::vector<double> composition_values (quadrature.size());
 

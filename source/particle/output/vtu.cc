@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -45,7 +45,7 @@ namespace aspect
 
       template <int dim>
       std::string
-      VTUOutput<dim>::output_particle_data(const std::multimap<types::LevelInd, Particle<dim> > &particles,
+      VTUOutput<dim>::output_particle_data(const ParticleHandler<dim> &particle_handler,
                                            const Property::ParticlePropertyInformation &property_information,
                                            const double current_time)
       {
@@ -65,7 +65,7 @@ namespace aspect
         std::ofstream output (full_filename.c_str());
         AssertThrow (output, ExcIO());
 
-        const unsigned int n_particles = particles.size();
+        const unsigned int n_particles = particle_handler.n_locally_owned_particles();
 
         // Write VTU file XML
         output << "<?xml version=\"1.0\"?>\n";
@@ -76,10 +76,10 @@ namespace aspect
         // Go through the particles on this domain and print the position of each one
         output << "      <Points>\n";
         output << "        <DataArray name=\"Position\" type=\"Float64\" NumberOfComponents=\"3\" Format=\"ascii\">\n";
-        for (typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator
-             it=particles.begin(); it!=particles.end(); ++it)
+        for (typename ParticleHandler<dim>::particle_iterator
+             it=particle_handler.begin(); it!=particle_handler.end(); ++it)
           {
-            output << "          " << it->second.get_location();
+            output << "          " << it->get_location();
 
             // pad with zeros since VTU format wants x/y/z coordinates
             for (unsigned int d=dim; d<3; ++d)
@@ -110,9 +110,9 @@ namespace aspect
         output << "      <PointData Scalars=\"scalars\">\n";
 
         output << "        <DataArray type=\"UInt64\" Name=\"id\" NumberOfComponents=\"1\" Format=\"ascii\">\n";
-        for (typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator
-             it=particles.begin(); it!=particles.end(); ++it)
-          output << "          " << it->second.get_id() << "\n" ;
+        for (typename ParticleHandler<dim>::particle_iterator
+             it=particle_handler.begin(); it!=particle_handler.end(); ++it)
+          output << "          " << it->get_id() << "\n" ;
 
         output << "        </DataArray>\n";
 
@@ -132,10 +132,10 @@ namespace aspect
                        << property_information.get_field_name_by_index(field_index)
                        << "\" NumberOfComponents=\"" << (n_components == 1 ? 1 : 3)
                        << "\" Format=\"ascii\">\n";
-                for (typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator
-                     it=particles.begin(); it!=particles.end(); ++it)
+                for (typename ParticleHandler<dim>::particle_iterator
+                     it=particle_handler.begin(); it!=particle_handler.end(); ++it)
                   {
-                    const std::vector<double> particle_data = it->second.get_properties();
+                    const ArrayView<const double> particle_data = it->get_properties();
 
                     output << "         ";
                     for (unsigned int d=0; d < n_components; ++d)
@@ -157,10 +157,10 @@ namespace aspect
                            << property_information.get_field_name_by_index(field_index) << '_' << d
                            << "\" NumberOfComponents=\"1"
                            << "\" Format=\"ascii\">\n";
-                    for (typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator
-                         it=particles.begin(); it!=particles.end(); ++it)
+                    for (typename ParticleHandler<dim>::particle_iterator
+                         it=particle_handler.begin(); it!=particle_handler.end(); ++it)
                       {
-                        const std::vector<double> particle_data = it->second.get_properties();
+                        const ArrayView<const double> particle_data = it->get_properties();
 
                         output << particle_data[data_offset+d] << "\n";
                       }
@@ -222,22 +222,26 @@ namespace aspect
             pvtu_output << "</VTKFile>\n";
             pvtu_output.close();
 
+            // update the .pvd record for the entire simulation
             times_and_pvtu_file_names.push_back(std::make_pair(current_time,
                                                                "particles/"+pvtu_filename));
-            vtu_file_names.push_back (full_filename);
-
-            // write .pvd and .visit records
             const std::string pvd_master_filename = (this->get_output_directory() + "particles.pvd");
             std::ofstream pvd_master (pvd_master_filename.c_str());
-            DataOut<dim>().write_pvd_record (pvd_master, times_and_pvtu_file_names);
 
-//TODO: write a global .visit record. this needs a variant of the write_visit_record
-// function
-            /*
-                          const std::string visit_master_filename = (this->get_output_directory() + "particles.visit");
-                          std::ofstream visit_master (visit_master_filename.c_str());
-                          DataOut<dim>().write_visit_record (visit_master, vtu_file_names);
-            */
+            DataOutBase::write_pvd_record (pvd_master, times_and_pvtu_file_names);
+
+            // same for the .visit record for the entire simulation. for this, we first
+            // have to collect all files that together form this one time step
+            std::vector<std::string> this_timestep_output_files;
+            for (unsigned int i=0; i<Utilities::MPI::n_mpi_processes(this->get_mpi_communicator()); ++i)
+              this_timestep_output_files.push_back ("particles/" + output_file_prefix +
+                                                    "." + Utilities::int_to_string(i, 4) + ".vtu");
+            times_and_vtu_file_names.push_back (std::make_pair (current_time,
+                                                                this_timestep_output_files));
+
+            const std::string visit_master_filename = (this->get_output_directory() + "particles.visit");
+            std::ofstream visit_master (visit_master_filename.c_str());
+            DataOutBase::write_visit_record (visit_master, times_and_vtu_file_names);
           }
         file_index++;
 
@@ -249,9 +253,11 @@ namespace aspect
       void VTUOutput<dim>::serialize (Archive &ar, const unsigned int)
       {
         // invoke serialization of the base class
+        ar &static_cast<Interface<dim> &>(*this);
+
         ar &file_index
         & times_and_pvtu_file_names
-        & vtu_file_names
+        & times_and_vtu_file_names
         ;
       }
 

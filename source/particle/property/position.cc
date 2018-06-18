@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -41,7 +41,7 @@ namespace aspect
                                                   const Point<dim> &position,
                                                   const Vector<double> &,
                                                   const std::vector<Tensor<1,dim> > &,
-                                                  std::vector<double> &data) const
+                                                  const ArrayView<double> &data) const
       {
         for (unsigned int i = 0; i < dim; ++i)
           data[data_position+i] = position[i];
@@ -74,7 +74,7 @@ namespace aspect
     {
       ASPECT_REGISTER_PARTICLE_PROPERTY(Position,
                                         "position",
-                                        "Implementation of a plugin in which the tracer "
+                                        "Implementation of a plugin in which the particle "
                                         "property is defined as the current position.")
     }
   }

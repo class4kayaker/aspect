@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016 by the authors of the ASPECT code.
+  Copyright (C) 2016 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __aspect__fe_variable_system_h
-#define __aspect__fe_variable_system_h
+#ifndef _aspect_fe_variable_system_h
+#define _aspect_fe_variable_system_h
 
 #include <aspect/global.h>
 #include <deal.II/fe/component_mask.h>
@@ -112,7 +112,7 @@ namespace aspect
    * from an instance of VariableDeclaration<dim> but contains additional
    * information that can be queried.
    */
-  template<int dim>
+  template <int dim>
   struct FEVariable: public VariableDeclaration<dim>
   {
       /**

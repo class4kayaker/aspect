@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_property_position_h
-#define __aspect__particle_property_position_h
+#ifndef _aspect_particle_property_position_h
+#define _aspect_particle_property_position_h
 
 #include <aspect/particle/property/interface.h>
 
@@ -30,7 +30,7 @@ namespace aspect
     namespace Property
     {
       /**
-       * A class that sets tracer properties to the current position.
+       * A class that sets particle properties to the current position.
        *
        * @ingroup ParticleProperties
        */
@@ -81,11 +81,11 @@ namespace aspect
                                         const Point<dim> &position,
                                         const Vector<double> &solution,
                                         const std::vector<Tensor<1,dim> > &gradients,
-                                        std::vector<double> &particle_properties) const;
+                                        const ArrayView<double> &particle_properties) const;
 
           /**
            * This implementation tells the particle manager that
-           * we need to update tracer properties over time.
+           * we need to update particle properties over time.
            */
           UpdateTimeFlags
           need_update () const;

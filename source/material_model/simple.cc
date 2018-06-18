@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,20 +14,18 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/material_model/simple.h>
 
-using namespace dealii;
 
 namespace aspect
 {
   namespace MaterialModel
   {
-
     template <int dim>
     void
     Simple<dim>::
@@ -37,19 +35,24 @@ namespace aspect
       for (unsigned int i=0; i < in.position.size(); ++i)
         {
           const double delta_temp = in.temperature[i]-reference_T;
-          const double temperature_dependence = (reference_T > 0
-                                                 ?
-                                                 std::max(std::min(std::exp(-thermal_viscosity_exponent*delta_temp/reference_T),
-                                                                   1e2),
-                                                          1e-2)
-                                                 :
-                                                 1.0);
+          const double temperature_dependence
+            = (reference_T > 0
+               ?
+               std::max(std::min(std::exp(-thermal_viscosity_exponent *
+                                          delta_temp/reference_T),
+                                 maximum_thermal_prefactor),
+                        minimum_thermal_prefactor)
+               :
+               1.0);
 
           out.viscosities[i] = ((composition_viscosity_prefactor != 1.0) && (in.composition[i].size()>0))
                                ?
-                               //Geometric interpolation
-                               pow(10.0, ((1-in.composition[i][0]) * log10(eta*temperature_dependence)
-                                          + in.composition[i][0] * log10(eta*composition_viscosity_prefactor*temperature_dependence)))
+                               // Geometric interpolation
+                               std::pow(10.0, ((1-in.composition[i][0]) * std::log10(eta *
+                                                                                     temperature_dependence)
+                                               + in.composition[i][0] * std::log10(eta *
+                                                                                   composition_viscosity_prefactor *
+                                                                                   temperature_dependence)))
                                :
                                temperature_dependence * eta;
 
@@ -87,37 +90,7 @@ namespace aspect
       return eta;
     }
 
-    template <int dim>
-    double
-    Simple<dim>::
-    reference_density () const
-    {
-      return reference_rho;
-    }
 
-    template <int dim>
-    double
-    Simple<dim>::
-    reference_thermal_expansion_coefficient () const
-    {
-      return thermal_alpha;
-    }
-
-    template <int dim>
-    double
-    Simple<dim>::
-    reference_cp () const
-    {
-      return reference_specific_heat;
-    }
-
-    template <int dim>
-    double
-    Simple<dim>::
-    reference_thermal_diffusivity () const
-    {
-      return k_value/(reference_rho*reference_specific_heat);
-    }
 
     template <int dim>
     bool
@@ -161,6 +134,14 @@ namespace aspect
                              "See the general documentation "
                              "of this model for a formula that states the dependence of the "
                              "viscosity on this factor, which is called $\\beta$ there.");
+          prm.declare_entry("Maximum thermal prefactor","1.0e2",
+                            Patterns::Double (0),
+                            "The maximum value of the viscosity prefactor associated with temperature "
+                            "dependence.");
+          prm.declare_entry("Minimum thermal prefactor","1.0e-2",
+                            Patterns::Double (0),
+                            "The minimum value of the viscosity prefactor associated with temperature "
+                            "dependence.");
           prm.declare_entry ("Thermal conductivity", "4.7",
                              Patterns::Double (0),
                              "The value of the thermal conductivity $k$. "
@@ -205,6 +186,11 @@ namespace aspect
           eta                        = prm.get_double ("Viscosity");
           composition_viscosity_prefactor = prm.get_double ("Composition viscosity prefactor");
           thermal_viscosity_exponent = prm.get_double ("Thermal viscosity exponent");
+          maximum_thermal_prefactor       = prm.get_double ("Maximum thermal prefactor");
+          minimum_thermal_prefactor       = prm.get_double ("Minimum thermal prefactor");
+          if ( maximum_thermal_prefactor == 0.0 ) maximum_thermal_prefactor = std::numeric_limits<double>::max();
+          if ( minimum_thermal_prefactor == 0.0 ) minimum_thermal_prefactor = std::numeric_limits<double>::min();
+
           k_value                    = prm.get_double ("Thermal conductivity");
           reference_specific_heat    = prm.get_double ("Reference specific heat");
           thermal_alpha              = prm.get_double ("Thermal expansion coefficient");
@@ -264,15 +250,20 @@ namespace aspect
                                    "defined as "
                                    "\\begin{align}"
                                    "  \\tau(T) &= H\\left(e^{-\\beta (T-T_0)/T_0}\\right),"
-                                   "  \\qquad\\qquad H(x) = \\begin{cases}"
-                                   "                            10^{-2} & \\text{if}\\; x<10^{-2}, \\\\"
+                                   "\\intertext{with} "
+                                   "  \\qquad\\qquad H(x) &= \\begin{cases}"
+                                   "                            \\tau_{\\text{min}} & \\text{if}\\; x<\\tau_{\\text{min}}, \\\\"
                                    "                            x & \\text{if}\\; 10^{-2}\\le x \\le 10^2, \\\\"
-                                   "                            10^{2} & \\text{if}\\; x>10^{2}, \\\\"
+                                   "                            \\tau_{\\text{max}} & \\text{if}\\; x>\\tau_{\\text{max}}, \\\\"
                                    "                         \\end{cases}"
                                    "\\end{align} "
-                                   "where $\\beta$ corresponds to the input parameter ``Thermal viscosity exponent'' "
+                                   "where $x=e^{-\\beta (T-T_0)/T_0}$, "
+                                   "$\\beta$ corresponds to the input parameter ``Thermal viscosity exponent'', "
                                    "and $T_0$ to the parameter ``Reference temperature''. If you set $T_0=0$ "
-                                   "in the input file, the thermal pre-factor $\\tau(T)=1$."
+                                   "in the input file, the thermal pre-factor $\\tau(T)=1$. The parameters $\\tau_{\\text{min}}$ "
+                                   "and $\\tau_{\\text{max}}$ set the minimum and maximum values of the temperature pre-factor "
+                                   "and are set using ``Maximum thermal prefactor'' and ``Minimum thermal prefactor''. "
+                                   "Specifying a value of 0.0 for the minimum or maximum values will disable pre-factor limiting."
                                    "\n\n"
                                    "The compositional pre-factor for the viscosity is defined as "
                                    "\\begin{align}"

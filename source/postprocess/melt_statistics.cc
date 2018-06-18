@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -71,32 +71,7 @@ namespace aspect
           {
             // fill material model inputs
             fe_values.reinit (cell);
-            fe_values[this->introspection().extractors.temperature]
-            .get_function_values (this->get_solution(),
-                                  in.temperature);
-            fe_values[this->introspection().extractors.pressure]
-            .get_function_values (this->get_solution(),
-                                  in.pressure);
-            fe_values[this->introspection().extractors.velocities]
-            .get_function_values (this->get_solution(),
-                                  in.velocity);
-            fe_values[this->introspection().extractors.pressure]
-            .get_function_gradients (this->get_solution(),
-                                     in.pressure_gradient);
-            for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-              fe_values[this->introspection().extractors.compositional_fields[c]]
-              .get_function_values(this->get_solution(),
-                                   composition_values[c]);
-            for (unsigned int i=0; i<fe_values.n_quadrature_points; ++i)
-              {
-                for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-                  in.composition[i][c] = composition_values[c][i];
-              }
-
-            fe_values[this->introspection().extractors.velocities].get_function_symmetric_gradients (this->get_solution(),
-                in.strain_rate);
-            in.position = fe_values.get_quadrature_points();
-            in.cell = &cell;
+            in.reinit(fe_values, cell, this->introspection(), this->get_solution());
 
             // we can only postprocess melt fractions if the material model that is used
             // in the simulation has implemented them

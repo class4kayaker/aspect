@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016 by the authors of the ASPECT code.
+  Copyright (C) 2016 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -36,9 +36,9 @@ namespace
   {
     std::ostringstream output;
 
-    // convert from bytes intto mb
+    // convert from bytes into Mb
     const double mb = 1024*1024;
-    //sum up local matrix memory usage
+    // sum up local matrix memory usage
     double global_matrix_memory_consumption = dealii::Utilities::MPI::sum(matrix.memory_consumption(),
                                                                           comm);
     output << "\nTotal " << matrix_name << " memory consumption: "
@@ -48,7 +48,7 @@ namespace
     // output number of nonzero elements in matrix. Do so with 1000s separator
     // since they are frequently large; this was previously done by using the empty
     // string locale, but creating std::locale with an empty string caused problems
-    // on some platforms, so the functionaltity yo catch the exception and ignore
+    // on some platforms, so the functionality yo catch the exception and ignore
     // is kept here, even though explicitly setting a facet should always work.
     try
       {
@@ -62,9 +62,8 @@ namespace
 #ifdef ASPECT_USE_PETSC
     // TODO: PETSc statistics, n_nonzero_elements doesn't exist.
 #else
-    const int global_matrix_nnz = matrix.n_nonzero_elements();
     output << "Total " << matrix_name << " nnz: "
-           << global_matrix_nnz << std::endl;
+           << matrix.n_nonzero_elements() << std::endl;
 
     // output number of nonzero elements in each matrix block
     output << matrix_name << " nnz by block: " << std::endl;

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -56,13 +56,13 @@ namespace aspect
       {
         prm.enter_subsection("Postprocess");
         {
-          prm.enter_subsection("Tracers");
+          prm.enter_subsection("Particles");
           {
             prm.enter_subsection("Function");
             {
               prm.declare_entry ("Number of components", "1",
                                  Patterns::Integer (0),
-                                 "The number of function components where each component is described"
+                                 "The number of function components where each component is described "
                                  "by a function expression delimited by a ';'.");
               Functions::ParsedFunction<dim>::declare_parameters (prm, 1);
             }
@@ -80,7 +80,7 @@ namespace aspect
       {
         prm.enter_subsection("Postprocess");
         {
-          prm.enter_subsection("Tracers");
+          prm.enter_subsection("Particles");
           {
             prm.enter_subsection("Function");
             n_components = prm.get_integer ("Number of components");
@@ -92,7 +92,7 @@ namespace aspect
             catch (...)
               {
                 std::cerr << "ERROR: FunctionParser failed to parse\n"
-                          << "\t'Postprocess.Tracers.Function'\n"
+                          << "\t'Postprocess.Particles.Function'\n"
                           << "with expression\n"
                           << "\t'" << prm.get("Function expression") << "'";
                 throw;
@@ -116,11 +116,11 @@ namespace aspect
     {
       ASPECT_REGISTER_PARTICLE_PROPERTY(Function,
                                         "function",
-                                        "Implementation of a model in which the tracer "
+                                        "Implementation of a model in which the particle "
                                         "property is set by evaluating an explicit function "
                                         "at the initial position of each particle. The "
                                         "function is defined in the parameters in section "
-                                        "``Tracers|Function''. The format of these "
+                                        "``Particles|Function''. The format of these "
                                         "functions follows the syntax understood by the "
                                         "muparser library, see Section~\\ref{sec:muparser-format}.")
     }

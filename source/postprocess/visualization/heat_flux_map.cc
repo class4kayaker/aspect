@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/visualization/heat_flux_map.h>
-#include <aspect/simulator_access.h>
+#include <aspect/geometry_model/interface.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -64,64 +64,46 @@ namespace aspect
         unsigned int cell_index = 0;
         for (; cell!=endc; ++cell,++cell_index)
           if (cell->is_locally_owned())
-            if (cell->at_boundary())
-              {
-                double normal_flux = 0;
-                double face_area = 0;
+            {
+              (*return_value.second)(cell_index) = 0;
 
-                for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-                  if (cell->at_boundary(f))
-                    {
-                      fe_face_values.reinit (cell, f);
+              for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+                if (cell->at_boundary(f) &&
+                    (this->get_geometry_model().translate_id_to_symbol_name (cell->face(f)->boundary_id()) == "top" ||
+                     this->get_geometry_model().translate_id_to_symbol_name (cell->face(f)->boundary_id()) == "bottom"))
+                  {
+                    double normal_flux = 0;
+                    double face_area = 0;
 
-                      // get the various components of the solution, then
-                      // evaluate the material properties there
-                      fe_face_values[this->introspection().extractors.temperature].get_function_gradients (this->get_solution(),
-                          temperature_gradients);
-                      fe_face_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(), in.temperature);
-                      fe_face_values[this->introspection().extractors.pressure].get_function_values (this->get_solution(), in.pressure);
+                    fe_face_values.reinit (cell, f);
 
-                      for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-                        fe_face_values[this->introspection().extractors.compositional_fields[c]].get_function_values(this->get_solution(),
-                            composition_values[c]);
+                    // Temperature gradients needed for heat flux.
+                    fe_face_values[this->introspection().extractors.temperature].get_function_gradients (this->get_solution(),
+                        temperature_gradients);
 
-                      in.position = fe_face_values.get_quadrature_points();
-
-                      // since we are not reading the viscosity and the viscosity
-                      // is the only coefficient that depends on the strain rate,
-                      // we need not compute the strain rate. set the corresponding
-                      // array to empty, to prevent accidental use and skip the
-                      // evaluation of the strain rate in evaluate().
-                      in.strain_rate.resize(0);
-
-                      for (unsigned int i=0; i<fe_face_values.n_quadrature_points; ++i)
-                        {
-                          for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-                            in.composition[i][c] = composition_values[c][i];
-                        }
-
-                      this->get_material_model().evaluate(in, out);
+                    // Set use_strain_rate to false since we don't need viscosity.
+                    in.reinit(fe_face_values, cell, this->introspection(), this->get_solution(), false);
+                    this->get_material_model().evaluate(in, out);
 
 
-                      // Calculate the normal conductive heat flux given by the formula
-                      //   j = - k * n . grad T
+                    // Calculate the normal conductive heat flux given by the formula
+                    //   j = - k * n . grad T
 
-                      for (unsigned int q=0; q<fe_face_values.n_quadrature_points; ++q)
-                        {
-                          const double thermal_conductivity
-                            = out.thermal_conductivities[q];
+                    for (unsigned int q=0; q<fe_face_values.n_quadrature_points; ++q)
+                      {
+                        const double thermal_conductivity
+                          = out.thermal_conductivities[q];
 
-                          normal_flux += -thermal_conductivity *
-                                         (temperature_gradients[q] * fe_face_values.normal_vector(q)) *
-                                         fe_face_values.JxW(q);
-                          face_area += fe_face_values.JxW(q);
-                        }
-                    }
+                        normal_flux += -thermal_conductivity *
+                                       (temperature_gradients[q] * fe_face_values.normal_vector(q)) *
+                                       fe_face_values.JxW(q);
+                        face_area += fe_face_values.JxW(q);
+                      }
 
-                //store final position and heatflow
-                (*return_value.second)(cell_index) = normal_flux / face_area;
-
-              }
+                    // add heatflow for this face
+                    (*return_value.second)(cell_index) += normal_flux / face_area;
+                  }
+            }
 
         return return_value;
       }
@@ -141,7 +123,7 @@ namespace aspect
       ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(HeatFluxMap,
                                                   "heat flux map",
                                                   "A visualization output object that generates output for "
-                                                  "the heat flux density across each boundary. The heat flux density"
+                                                  "the heat flux density across each boundary. The heat flux density "
                                                   "is computed in outward direction, i.e., from the domain to the "
                                                   "outside, using the formula $-k \\nabla T \\cdot \\mathbf n$, where "
                                                   "$k$ is the thermal conductivity as reported by the material "

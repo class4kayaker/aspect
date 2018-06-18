@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__postprocess_depth_average_h
-#define __aspect__postprocess_depth_average_h
+#ifndef _aspect_postprocess_depth_average_h
+#define _aspect_postprocess_depth_average_h
 
 #include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>
@@ -116,12 +116,7 @@ namespace aspect
         /**
          * List of the quantities to calculate for each depth zone.
          */
-        std::vector<std::string> output_variables;
-
-        /**
-         * Whether to calculate all available quantites when averaging.
-         */
-        bool output_all_variables;
+        std::vector<std::string> variables;
 
         /**
          * Whether to use plain ascii text output

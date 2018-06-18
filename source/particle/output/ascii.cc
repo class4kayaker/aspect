@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -44,7 +44,7 @@ namespace aspect
 
       template <int dim>
       std::string
-      ASCIIOutput<dim>::output_particle_data(const std::multimap<types::LevelInd, Particle<dim> > &particles,
+      ASCIIOutput<dim>::output_particle_data(const ParticleHandler<dim> &particle_handler,
                                              const Property::ParticlePropertyInformation &property_information,
                                              const double /*time*/)
       {
@@ -89,14 +89,19 @@ namespace aspect
         output << "\n";
 
         // And print the data for each particle
-        for (typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator it=particles.begin(); it!=particles.end(); ++it)
+        for (typename ParticleHandler<dim>::particle_iterator it=particle_handler.begin(); it!=particle_handler.end(); ++it)
           {
-            const std::vector<double> properties = it->second.get_properties();
 
-            output << it->second.get_location();
-            output << ' ' << it->second.get_id();
-            for (unsigned int i = 0; i < properties.size(); ++i)
-              output << ' ' << properties[i];
+            output << it->get_location();
+            output << ' ' << it->get_id();
+
+            if (property_information.n_fields() > 0)
+              {
+                const ArrayView<const double> properties = it->get_properties();
+
+                for (unsigned int i = 0; i < properties.size(); ++i)
+                  output << ' ' << properties[i];
+              }
 
             output << "\n";
           }
@@ -111,6 +116,8 @@ namespace aspect
       void ASCIIOutput<dim>::serialize (Archive &ar, const unsigned int)
       {
         // invoke serialization of the base class
+        ar &static_cast<Interface<dim> &>(*this);
+
         ar &file_index
         ;
       }

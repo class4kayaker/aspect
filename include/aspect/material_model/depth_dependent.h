@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2014 by the authors of the ASPECT code.
+  Copyright (C) 2014 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,14 +14,12 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
-
-
-#ifndef __aspect__model_depth_dependent_h
-#define __aspect__model_depth_dependent_h
+#ifndef _aspect_material_model_depth_dependent_h
+#define _aspect_material_model_depth_dependent_h
 
 #include <deal.II/base/function_lib.h>
 #include <aspect/material_model/interface.h>
@@ -47,6 +45,19 @@ namespace aspect
     class DepthDependent : public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
     {
       public:
+        /**
+         * Initialize the base model at the beginning of the run.
+         */
+        virtual
+        void initialize();
+
+        /**
+         * Update the base model and viscosity function at the beginning of
+         * each timestep.
+         */
+        virtual
+        void update();
+
         /**
          * Function to compute the material properties in @p out given the
          * inputs in @p in.
@@ -80,13 +91,6 @@ namespace aspect
          */
         virtual double reference_viscosity () const;
 
-        /**
-         * Method to calculate reference density for the depth-dependent model. Because the depth-
-         * dependent model deos not modify density, the reference density is equivalent to the
-         * base model's reference density.
-         */
-        virtual double reference_density () const;
-
       private:
 
         /**
@@ -102,7 +106,7 @@ namespace aspect
 
         /**
          * Currently chosen source for the viscosity.
-         **/
+         */
         ViscositySource viscosity_source;
 
         /**

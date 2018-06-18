@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -49,8 +49,6 @@ namespace aspect
         virtual bool is_compressible () const;
 
         virtual double reference_viscosity () const;
-
-        virtual double reference_density () const;
 
         virtual void evaluate(const typename Interface<dim>::MaterialModelInputs &in,
                               typename Interface<dim>::MaterialModelOutputs &out) const;
@@ -105,13 +103,6 @@ namespace aspect
       return eta_L;
     }
 
-    template <int dim>
-    double
-    SimplerWithCrust<dim>::
-    reference_density () const
-    {
-      return reference_rho;
-    }
 
     template <int dim>
     void

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,11 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
 #include <aspect/particle/output/interface.h>
+#include <aspect/simulator_access.h>
 
 
 namespace aspect
@@ -47,11 +48,6 @@ namespace aspect
       {}
 
       template <int dim>
-      template <class Archive>
-      void Interface<dim>::serialize (Archive &ar, const unsigned int)
-      {}
-
-      template <int dim>
       void
       Interface<dim>::save (std::ostringstream &) const
       {}
@@ -70,8 +66,8 @@ namespace aspect
         std_cxx1x::tuple
         <void *,
         void *,
-        internal::Plugins::PluginList<Interface<2> >,
-        internal::Plugins::PluginList<Interface<3> > > registered_plugins;
+        aspect::internal::Plugins::PluginList<Interface<2> >,
+        aspect::internal::Plugins::PluginList<Interface<3> > > registered_plugins;
       }
 
 
@@ -97,7 +93,7 @@ namespace aspect
         std::string name;
         prm.enter_subsection ("Postprocess");
         {
-          prm.enter_subsection ("Tracers");
+          prm.enter_subsection ("Particles");
           {
             name = prm.get ("Data output format");
           }
@@ -121,7 +117,7 @@ namespace aspect
         // declare the entry in the parameter file
         prm.enter_subsection ("Postprocess");
         {
-          prm.enter_subsection ("Tracers");
+          prm.enter_subsection ("Particles");
           {
             const std::string pattern_of_names
               = std_cxx1x::get<dim>(registered_plugins).get_pattern_of_names ();
@@ -129,7 +125,7 @@ namespace aspect
             prm.declare_entry ("Data output format", "vtu",
                                Patterns::Selection (pattern_of_names + "|none"),
                                "File format to output raw particle data in. "
-                               "If you select 'none' no output will be "
+                               "If you select `none' no output will be "
                                "written."
                                "Select one of the following models:\n\n"
                                +
@@ -140,6 +136,16 @@ namespace aspect
         prm.leave_subsection ();
 
         std_cxx1x::get<dim>(registered_plugins).declare_parameters (prm);
+      }
+
+
+
+      template <int dim>
+      void
+      write_plugin_graph (std::ostream &out)
+      {
+        std_cxx11::get<dim>(registered_plugins).write_plugin_graph ("Particle output interface",
+                                                                    out);
       }
     }
   }
@@ -178,6 +184,10 @@ namespace aspect
   template  \
   void \
   declare_parameters<dim> (ParameterHandler &); \
+  \
+  template \
+  void \
+  write_plugin_graph<dim> (std::ostream &); \
   \
   template \
   Interface<dim> * \

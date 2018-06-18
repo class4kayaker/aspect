@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -23,7 +23,6 @@
 #include <utility>
 #include <limits>
 
-using namespace dealii;
 
 namespace aspect
 {
@@ -131,6 +130,7 @@ namespace aspect
             const double average = std::pow (prod, 1./N);
             for (unsigned int i=0; i<N; ++i)
               values_out[i] = average;
+            break;
           }
           case pick_largest:
           {
@@ -160,7 +160,7 @@ namespace aspect
           }
           case nwd_arithmetic_average:
           {
-            //initialize variables
+            // initialize variables
             double sum_value = 0;
             double sum_weights = 0;
             std::vector<double> temp_values(N,0);
@@ -212,7 +212,7 @@ namespace aspect
                   return;
                 }
 
-            //initialize variables
+            // initialize variables
             double sum_value = 0;
             double sum_weights = 0;
             std::vector<double> temp_values(N,0);
@@ -257,7 +257,7 @@ namespace aspect
           }
           case nwd_geometric_average:
           {
-            //initialize variables
+            // initialize variables
             double sum_value = 0;
             double sum_weights = 0;
             std::vector<double> temp_values(N,0);
@@ -289,7 +289,7 @@ namespace aspect
                     const double distance = position[i].distance(position[j])/max_distance;
                     double weight = alfad * ((1 + 3 * (distance / bell_shape_limit)) * (1 - (distance / bell_shape_limit)) * (1 - (distance / bell_shape_limit)) * (1 - (distance / bell_shape_limit)));
 
-                    // the weigth beyond the bell shape limit should always be zero.
+                    // the weight beyond the bell shape limit should always be zero.
                     if (distance > bell_shape_limit )
                       weight = 0;
 
@@ -362,14 +362,14 @@ namespace aspect
         {
           prm.declare_entry("Base model","simple",
                             Patterns::Selection(MaterialModel::get_valid_model_names_pattern<dim>()),
-                            "The name of a material model that will be modified by an"
+                            "The name of a material model that will be modified by an "
                             "averaging operation. Valid values for this parameter "
                             "are the names of models that are also valid for the "
                             "``Material models/Model name'' parameter. See the documentation for "
                             "that for more information.");
           prm.declare_entry ("Averaging operation", "none",
                              Patterns::Selection ("none|arithmetic average|harmonic average|geometric average|pick largest|log average|nwd arithmetic average|nwd harmonic average|nwd geometric average"),
-                             "Chose the averaging operation to use.");
+                             "Choose the averaging operation to use.");
           prm.declare_entry ("Bell shape limit", "1",
                              Patterns::Double(0),
                              "The limit normalized distance between 0 and 1 where the bell shape becomes zero. See the manual for a more information.");
@@ -426,14 +426,6 @@ namespace aspect
     {
       return base_model->reference_viscosity();
     }
-
-    template <int dim>
-    double
-    Averaging<dim>::
-    reference_density() const
-    {
-      return base_model->reference_density();
-    }
   }
 }
 
@@ -448,13 +440,13 @@ namespace aspect
                                    "within a cell. The values to average are supplied by any of the other available "
                                    "material models. In other words, it is a ``compositing material model''. "
                                    "Parameters related to the average model are read from a subsection "
-                                   "``Material model/Averaging''. "
+                                   "``Material model/Averaging''."
                                    "\n\n"
                                    "The user must specify a ``Base model'' from which material properties are "
                                    "derived. Furthermore an averaging operation must be selected, where the "
                                    "Choice should be from the list none|arithmetic average|harmonic average|"
                                    "geometric average|pick largest|log average|NWD arithmetic average|NWD harmonic average"
-                                   "|NWD geometric average. "
+                                   "|NWD geometric average."
                                    "\n\n"
                                    "NWD stands for Normalized Weighed Distance. The models with this in front "
                                    "of their name work with a weighed average, which means each quadrature point "
@@ -467,7 +459,7 @@ namespace aspect
                                    "This means that if variable ''Bell shape limit'' is exactly one, the farthest "
                                    "quadrature point is just on the limit and its weight will be exactly zero. In "
                                    "this plugin it is not implemented as larger and equal than the limit, but larger "
-                                   "than, to ensure the the quadrature point at distance zero is always included."
+                                   "than, to ensure the quadrature point at distance zero is always included."
                                   )
   }
 }

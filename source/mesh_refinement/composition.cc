@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -36,13 +36,12 @@ namespace aspect
                    ExcMessage ("This refinement criterion can not be used when no "
                                "compositional fields are active!"));
       indicators = 0;
+      Vector<float> this_indicator (indicators.size());
+      QGauss<dim-1> quadrature (this->introspection().polynomial_degree.compositional_fields+1);
 
       for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
         {
-          Vector<float> this_indicator (indicators.size());
-
-          QGauss<dim-1> quadrature (this->get_fe().base_element(this->introspection().base_elements.compositional_fields).degree+1);
-
+          this_indicator = 0;
           KellyErrorEstimator<dim>::estimate (this->get_mapping(),
                                               this->get_dof_handler(),
                                               quadrature,
@@ -53,9 +52,8 @@ namespace aspect
                                               0,
                                               0,
                                               this->get_triangulation().locally_owned_subdomain());
-          for (unsigned int i=0; i<indicators.size(); ++i)
-            this_indicator[i] *= composition_scaling_factors[c];
-          indicators += this_indicator;
+          // compute indicators += c*this_indicator:
+          indicators.add(composition_scaling_factors[c], this_indicator);
         }
     }
 
@@ -127,6 +125,27 @@ namespace aspect
                                               "refinement indicators from the compositional fields. "
                                               "If there is more than one compositional field, then "
                                               "it simply takes the sum of the indicators computed "
-                                              "from each of the compositional field.")
+                                              "from each of the compositional field."
+                                              "\n\n"
+                                              "The way these indicators are computed is by "
+                                              "evaluating the `Kelly error indicator' on each "
+                                              "compositional field. This error indicator takes the "
+                                              "finite element approximation of the compositional "
+                                              "field and uses it to compute an approximation "
+                                              "of the second derivatives of the composition for "
+                                              "each cell. This approximation is then multiplied "
+                                              "by an appropriate power of the cell's diameter "
+                                              "to yield an indicator for how large the error "
+                                              "is likely going to be on this cell. This "
+                                              "construction rests on the observation that for "
+                                              "many partial differential equations, the error "
+                                              "on each cell is proportional to some power of "
+                                              "the cell's diameter times the second derivatives "
+                                              "of the solution on that cell."
+                                              "\n\n"
+                                              "For complex equations such as those we solve "
+                                              "here, this observation may not be strictly "
+                                              "true in the mathematical sense, but it often "
+                                              "yields meshes that are surprisingly good.")
   }
 }

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -110,13 +110,13 @@ namespace aspect
     boundary_temperature (const types::boundary_id boundary_indicator,
                           const Point<dim> &position) const
     {
-      // verify that the geometry is in fact a time_dep_box since only
+      // verify that the geometry is a time_dep_box since only
       // for this geometry do we know for sure what boundary indicators it
       // uses and what they mean
       Assert (dynamic_cast<const GeometryModel::Box<dim>*>(&this->get_geometry_model())
               != 0,
               ExcMessage ("This boundary model is only implemented if the geometry is "
-                          "in fact a time_dep_box."));
+                          "a time_dep_box."));
 
       Assert (boundary_indicator<2*dim, ExcMessage ("Unknown boundary indicator."));
       return temperature_[boundary_indicator] * this->get_time();

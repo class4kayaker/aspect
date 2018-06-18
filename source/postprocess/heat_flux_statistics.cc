@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/heat_flux_statistics.h>
+#include <aspect/utilities.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -29,20 +30,6 @@ namespace aspect
 {
   namespace Postprocess
   {
-    namespace
-    {
-      /**
-       * Given a string #s, return it in the form ' ("s")' if nonempty.
-       * Otherwise just return the empty string itself.
-       */
-      std::string parenthesize_if_nonempty (const std::string &s)
-      {
-        if (s.size() > 0)
-          return " (\"" + s + "\")";
-        else
-          return "";
-      }
-    }
 
     template <int dim>
     std::pair<std::string,std::string>
@@ -85,38 +72,13 @@ namespace aspect
             if (cell->at_boundary(f))
               {
                 fe_face_values.reinit (cell, f);
-                fe_face_values[this->introspection().extractors.temperature].get_function_gradients (this->get_solution(),
-                    temperature_gradients);
-                fe_face_values[this->introspection().extractors.temperature].get_function_values (this->get_solution(),
-                    in.temperature);
-                fe_face_values[this->introspection().extractors.pressure].get_function_values (this->get_solution(),
-                                                                                               in.pressure);
-                fe_face_values[this->introspection().extractors.velocities].get_function_values (this->get_solution(),
-                    in.velocity);
-                fe_face_values[this->introspection().extractors.pressure].get_function_gradients (this->get_solution(),
-                    in.pressure_gradient);
-                for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-                  fe_face_values[this->introspection().extractors.compositional_fields[c]].get_function_values(this->get_solution(),
-                      composition_values[c]);
-
-                in.position = fe_face_values.get_quadrature_points();
-
-                // since we are not reading the viscosity and the viscosity
-                // is the only coefficient that depends on the strain rate,
-                // we need not compute the strain rate. set the corresponding
-                // array to empty, to prevent accidental use and skip the
-                // evaluation of the strain rate in evaluate().
-                in.strain_rate.resize(0);
-
-                for (unsigned int i=0; i<fe_face_values.n_quadrature_points; ++i)
-                  {
-                    for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-                      in.composition[i][c] = composition_values[c][i];
-                  }
-                in.cell = &cell;
+                // Set use_strain_rates to false since we don't need viscosity
+                in.reinit(fe_face_values, cell, this->introspection(), this->get_solution(), false);
 
                 this->get_material_model().evaluate(in, out);
 
+                // Get the temperature gradients from the solution.
+                fe_face_values[this->introspection().extractors.temperature].get_function_gradients (this->get_solution(), temperature_gradients);
 
                 double local_normal_flux = 0;
                 for (unsigned int q=0; q<fe_face_values.n_quadrature_points; ++q)
@@ -173,8 +135,8 @@ namespace aspect
         {
           const std::string name = "Outward heat flux through boundary with indicator "
                                    + Utilities::int_to_string(p->first)
-                                   + parenthesize_if_nonempty(this->get_geometry_model()
-                                                              .translate_id_to_symbol_name (p->first))
+                                   + aspect::Utilities::parenthesize_if_nonempty(this->get_geometry_model()
+                                                                                 .translate_id_to_symbol_name (p->first))
                                    + " (W)";
           statistics.add_value (name, p->second);
 
@@ -214,9 +176,9 @@ namespace aspect
                                   "$T$ is the temperature, and $\\mathbf n$ is the outward normal. "
                                   "Note that the quantity so computed does not include any energy "
                                   "transported across the boundary by material transport in cases "
-                                  "where $\\mathbf u \\cdot \\mathbf n \\neq 0$. The pointwise "
-                                  "heatflux can be obtained from the heat flux map postprocessor, "
-                                  "which outputs the heatflux to a file, or the heat flux map "
+                                  "where $\\mathbf u \\cdot \\mathbf n \\neq 0$. The point-wise "
+                                  "heat flux can be obtained from the heat flux map postprocessor, "
+                                  "which outputs the heat flux to a file, or the heat flux map "
                                   "visualization postprocessor, which outputs the heat flux for "
                                   "visualization. "
                                   "\n\n"
@@ -224,6 +186,17 @@ namespace aspect
                                   "flux. If you "
                                   "are interested in the opposite direction, for example from "
                                   "the core into the mantle when the domain describes the "
-                                  "mantle, then you need to multiply the result by -1.")
+                                  "mantle, then you need to multiply the result by -1."
+                                  "\n\n"
+                                  "\\note{In geodynamics, the term ``heat flux'' is often understood "
+                                  "to be the quantity $- k \\nabla T$, which is really a heat "
+                                  "flux \\textit{density}, i.e., a vector-valued field. In contrast "
+                                  "to this, the current postprocessor only computes the integrated "
+                                  "flux over each part of the boundary. Consequently, the units of "
+                                  "the quantity computed here are $W=\\frac{J}{s}$.}"
+                                  "\n\n"
+                                  "The ``heat flux densities'' postprocessor computes the same "
+                                  "quantity as the one here, but divided by the area of "
+                                  "the surface.")
   }
 }

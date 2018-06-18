@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -26,12 +26,36 @@
 #include <utility>
 #include <limits>
 
-using namespace dealii;
 
 namespace aspect
 {
   namespace MaterialModel
   {
+    template <int dim>
+    void
+    DepthDependent<dim>::initialize()
+    {
+      base_model->initialize();
+    }
+
+
+
+    template <int dim>
+    void
+    DepthDependent<dim>::update()
+    {
+      base_model->update();
+
+      // we get time passed as seconds (always) but may want
+      // to reinterpret it in years
+      if (this->convert_output_to_years())
+        viscosity_function.set_time (this->get_time() / year_in_seconds);
+      else
+        viscosity_function.set_time (this->get_time());
+    }
+
+
+
     template <int dim>
     void
     DepthDependent<dim>::read_viscosity_file(const std::string &filename,
@@ -98,7 +122,7 @@ namespace aspect
     DepthDependent<dim>::calculate_depth_dependent_prefactor(const double &depth) const
     {
       /* The depth dependent prefactor is the multiplicative factor by which the
-       * viscosity computed by the base model's evaluate mathod will be scaled */
+       * viscosity computed by the base model's evaluate method will be scaled */
       const double reference_viscosity = base_model->reference_viscosity();
       if ( viscosity_source == File )
         {
@@ -169,14 +193,14 @@ namespace aspect
                              "text `$ASPECT_SOURCE_DIR' which will be interpreted as the path "
                              "in which the ASPECT source files were located when ASPECT was "
                              "compiled. This interpretation allows, for example, to reference "
-                             "files located in the 'data/' subdirectory of ASPECT. ");
+                             "files located in the `data/' subdirectory of ASPECT. ");
           prm.declare_entry("Viscosity depth file", "visc-depth.txt",
                             Patterns::Anything (),
                             "The name of the file containing depth-dependent viscosity data. ");
 
           prm.declare_entry("Depth list", "", Patterns::List(Patterns::Double ()),
                             "A comma-separated list of depth values for use with the ``List'' "
-                            "``Depth dependence method''. The list must be provided in order of"
+                            "``Depth dependence method''. The list must be provided in order of "
                             "increasing depth, and the last value must be greater than or equal to "
                             "the maximal depth of the model. The depth list is interpreted as a layered "
                             "viscosity structure and the depth values specify the maximum depths of each "
@@ -307,14 +331,6 @@ namespace aspect
       const double mean_depth = 0.5*this->get_geometry_model().maximal_depth();
       return calculate_depth_dependent_prefactor( mean_depth )*base_model->reference_viscosity();
     }
-
-    template <int dim>
-    double
-    DepthDependent<dim>::
-    reference_density() const
-    {
-      return base_model->reference_density();
-    }
   }
 }
 
@@ -338,7 +354,7 @@ namespace aspect
                                    "\\begin{equation}"
                                    "\\eta(z,p,T,X,...) = \\eta(z) \\eta_b(p,T,X,..)/\\eta_{rb}"
                                    "\\end{equation}"
-                                   "where $\\eta(z)$ is the the depth-dependence specified by the depth dependent "
+                                   "where $\\eta(z)$ is the depth-dependence specified by the depth dependent "
                                    "model, $\\eta_b(p,T,X,...)$ is the viscosity calculated from the base model, "
                                    "and $\\eta_{rb}$ is the reference viscosity of the ``Base model''. "
                                    "In addition to the specification of the ``Base model'', the user must specify "

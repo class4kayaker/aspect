@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016 by the authors of the ASPECT code.
+  Copyright (C) 2016 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,9 +14,9 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
-*/
+ */
 
 
 #include <aspect/geometry_model/initial_topography_model/prm_polygon.h>
@@ -53,6 +53,16 @@ namespace aspect
 
 
     template <int dim>
+    double
+    PrmPolygon<dim>::
+    max_topography () const
+    {
+      return maximum_topography;
+    }
+
+
+
+    template <int dim>
     void
     PrmPolygon<dim>::
     declare_parameters (ParameterHandler &prm)
@@ -68,10 +78,10 @@ namespace aspect
                               Patterns::Anything(),
                               "Set the topography height and the polygon which should be set to that height. "
                               "The format is : \"The topography height \textgreater The point list describing "
-                              "a polygon & The next topography height \textgreater the next point list "
+                              "a polygon \\& The next topography height \textgreater the next point list "
                               "describing a polygon.\" The format for the point list describing the polygon is "
                               "\"x1,y1;x2,y2\". For example for two triangular areas of 100 and -100 meters high "
-                              "set: '100 \textgreater 0,0;5,5;0,10 & -100 \textgreater 10,10;10,15;20,15'. "
+                              "set: '100 \textgreater 0,0;5,5;0,10 \\& -100 \textgreater 10,10;10,15;20,15'. "
                               "Units of the height are always in meters. The units of the coordinates are "
                               "dependent on the geometry model. In the box model they are in meters, in the "
                               "chunks they are in degrees, etc. Please refer to the manual of the individual "
@@ -100,6 +110,7 @@ namespace aspect
              * we need to fill the point lists and topography values. They
              * are stored in the Topography subsection in the Topography parameter.
              */
+            maximum_topography = -std::numeric_limits<double>::max();
             const std::string temptopo = prm.get("Topography parameters");
             const std::vector<std::string> temp_topographies = Utilities::split_string_list(temptopo,'&');
             const unsigned int temp_topographies_size = temp_topographies.size();
@@ -117,6 +128,7 @@ namespace aspect
                                                                " separated by a >.'"));
 
                 topography_values[i_topo] = Utilities::string_to_double(temp_topography[0]);
+                maximum_topography = std::max(topography_values[i_topo],maximum_topography);
 
                 const std::vector<std::string> temp_coordinates = Utilities::split_string_list(temp_topography[1],';');
                 const unsigned int temp_coordinate_size = temp_coordinates.size();

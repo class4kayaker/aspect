@@ -15,9 +15,9 @@
 # 15: Average temperature (K)
 # 16: Maximal temperature (K)
 # 17: Average nondimensional temperature (K)
-# 18: Outward heat flux through boundary with indicator 0 ("inner") (W)
-# 19: Outward heat flux through boundary with indicator 1 ("outer") (W)
+# 18: Outward heat flux through boundary with indicator 0 ("bottom") (W)
+# 19: Outward heat flux through boundary with indicator 1 ("top") (W)
 # 20: Outward heat flux through boundary with indicator 2 ("left") (W)
 # 21: Outward heat flux through boundary with indicator 3 ("right") (W)
-0 0.000000000000e+00 0.000000000000e+00 192 1891 833 0 466 3766 1331 output-steinberger_viscosity_adiabatic/solution/solution-00000 7.90934094e-02 2.82527437e-01 2.73000000e+02 2.25349525e+03 4.25000000e+03 4.97987240e-01 -2.35066741e+05 5.29609312e+05 1.96873763e+03 1.96873763e+03 
-1 1.000000000000e+05 1.000000000000e+05 192 1891 833 9 359 2811 1008 output-steinberger_viscosity_adiabatic/solution/solution-00001 8.44195162e-02 2.87528105e-01 2.73000000e+02 2.25269095e+03 4.25000000e+03 4.97785001e-01 -2.31588352e+05 5.21065443e+05 1.91084387e+03 1.91084387e+03 
+0 0.000000000000e+00 0.000000000000e+00 192 1891 833 0 559 3288 1709 output-steinberger_viscosity_adiabatic/solution/solution-00000 7.93624578e-02 2.82251310e-01 2.73000000e+02 2.25420787e+03 4.25000000e+03 4.98166425e-01 -2.32770645e+05 5.38969268e+05 2.17027488e+03 2.17027488e+03 
+1 1.000000000000e+05 1.000000000000e+05 192 1891 833 9 388 1817 1189 output-steinberger_viscosity_adiabatic/solution/solution-00001 8.48058676e-02 2.88437047e-01 2.73000000e+02 2.25339856e+03 4.25000000e+03 4.97962928e-01 -2.29335665e+05 5.30203857e+05 2.10802986e+03 2.10796025e+03 

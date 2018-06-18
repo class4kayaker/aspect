@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,19 +14,42 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__free_surface_h
-#define __aspect__free_surface_h
+#ifndef _aspect_free_surface_h
+#define _aspect_free_surface_h
 
 #include <aspect/simulator.h>
+#include <aspect/simulator/assemblers/interface.h>
 
 namespace aspect
 {
   using namespace dealii;
+
+  namespace Assemblers
+  {
+    /**
+     * Apply stabilization to a cell of the system matrix.  The
+     * stabilization is only added to cells on a free surface.  The
+     * scheme is based on that of Kaus et. al., 2010.  Called during
+     * assembly of the system matrix.
+     */
+    template <int dim>
+    class ApplyStabilization: public Assemblers::Interface<dim>,
+      public SimulatorAccess<dim>
+    {
+      public:
+        virtual ~ApplyStabilization () {};
+
+        virtual
+        void
+        execute (internal::Assembly::Scratch::ScratchBase<dim>   &scratch,
+                 internal::Assembly::CopyData::CopyDataBase<dim> &data) const;
+    };
+  }
 
   template<int dim>
   class FreeSurfaceHandler
@@ -55,19 +78,16 @@ namespace aspect
       void execute();
 
       /**
+       * Called by Simulator::set_assemblers() to allow the FreeSurfaceHandler
+       * to register its assembler.
+       */
+      void set_assemblers();
+
+      /**
        * Allocates and sets up the members of the FreeSurfaceHandler. This
        * is called by Simulator<dim>::setup_dofs()
        */
       void setup_dofs();
-
-      /**
-       * Apply stabilization to a cell of the system matrix.  The
-       * stabilization is only added to cells on a free surface.  The
-       * scheme is based on that of Kaus et. al., 2010.  Called during
-       * assemly of the system matrix.
-       */
-      void apply_stabilization (const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                internal::Assembly::CopyData::StokesSystem<dim>      &data);
 
       /**
        * Declare parameters for the free surface handling.
@@ -80,11 +100,19 @@ namespace aspect
        */
       void parse_parameters (ParameterHandler &prm);
 
+
+      /**
+       * Return the chosen stabilization term. See
+       * Kaus et al 2010 for details on the meaning of
+       * this term.
+       */
+      double get_stabilization_term () const;
+
     private:
       /**
        * Set the boundary conditions for the solution of the elliptic
        * problem, which computes the displacements of the internal
-       * vertices so that the mesh does not become too distored due to
+       * vertices so that the mesh does not become too distorted due to
        * motion of the free surface.  Velocities of vertices on the free
        * surface are set to be the normal of the Stokes velocity solution
        * projected onto that surface.  Velocities of vertices on free-slip
@@ -94,7 +122,7 @@ namespace aspect
       void make_constraints ();
 
       /**
-       * Project the the Stokes velocity solution onto the
+       * Project the Stokes velocity solution onto the
        * free surface. Called by make_constraints()
        */
       void project_velocity_onto_boundary (LinearAlgebra::Vector &output);
@@ -116,13 +144,13 @@ namespace aspect
       Simulator<dim> &sim;
 
       /**
-      * Finite element for the free surface implementation, which is
-      * used for tracking mesh deformation.
-      */
+       * Finite element for the free surface implementation, which is used for
+       * tracking mesh deformation.
+       */
       const FESystem<dim> free_surface_fe;
 
       /**
-       * DoFHanlder for the free surface implementation.
+       * DoFHandler for the free surface implementation.
        */
       DoFHandler<dim> free_surface_dof_handler;
 
@@ -205,19 +233,6 @@ namespace aspect
        * the parameter file.
        */
       std::set<types::boundary_id> tangential_mesh_boundary_indicators;
-
-      /**
-       * A handle on the connection that connects the Stokes assembler
-       * signal of the main simulator object to the apply_stabilization()
-       * function. We keep track of this connection because we need to
-       * break it once the current free surface handler object goes out
-       * of scope.
-       *
-       * With the current variable, the connection is broken once the
-       * scoped_connection goes out of scope, i.e., when the surrounding
-       * class is destroyed.
-       */
-      boost::signals2::scoped_connection assembler_connection;
 
       friend class Simulator<dim>;
       friend class SimulatorAccess<dim>;

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__geometry_model_box_h
-#define __aspect__geometry_model_box_h
+#ifndef _aspect_geometry_model_box_h
+#define _aspect_geometry_model_box_h
 
 #include <aspect/geometry_model/interface.h>
 #include <aspect/simulator_access.h>
@@ -34,12 +34,31 @@ namespace aspect
 
     /**
      * A class that describes a box geometry of certain width, height, and
-     * depth (in 3d).
+     * depth (in 3d), and, possibly, topography.
      */
     template <int dim>
     class Box : public Interface<dim>, public SimulatorAccess<dim>
     {
       public:
+        /**
+         * Initialization function. This function is called once at the
+         * beginning of the program after parse_parameters is run and after
+         * the SimulatorAccess (if applicable) is initialized.
+         */
+        void initialize ();
+
+        /**
+         * Add initial topography to the mesh.
+         */
+        void topography (typename parallel::distributed::Triangulation<dim> &grid) const;
+
+        /**
+         * Relocate the vertical coordinate of the given point based on
+         * the topography at the surface specified by the initial topography
+         * model.
+         */
+        Point<dim> add_topography (const Point<dim> &x_y_z) const;
+
         /**
          * Generate a coarse mesh for the geometry described by this class.
          */
@@ -80,11 +99,21 @@ namespace aspect
          * "vertical" direction. The current class considers the
          * $(0,1)^T$ vector in 2d (and the $(0,0,1)^T$ vector in 3d)
          * as vertical and considers the "top" boundary as the
-         * "surface". In almost all cases one will use a gravity model
+         * surface. In almost all cases one will use a gravity model
          * that also matches these definitions.
+         *
+         * Note that the depth is calculated with respect to the
+         * surface without initial topography.
          */
         virtual
         double depth(const Point<dim> &position) const;
+
+        /**
+         * Return the height of the given position relative to
+         * the initial box height.
+         */
+        virtual
+        double height_above_reference_surface(const Point<dim> &position) const;
 
         virtual
         Point<dim> representative_point(const double depth) const;
@@ -147,6 +176,29 @@ namespace aspect
         bool
         point_is_in_domain(const Point<dim> &p) const;
 
+        /*
+         * Returns what the natural coordinate system for this geometry model is,
+         * which for a box is Cartesian.
+         */
+        virtual
+        aspect::Utilities::Coordinates::CoordinateSystem natural_coordinate_system() const;
+
+        /**
+         * Takes the Cartesian points (x,z or x,y,z) and returns standardized
+         * coordinates which are most 'natural' to the geometry model. For a box
+         * the results is unchanged and is (x,z) in 2d or (x,y,z) in 3d.
+         */
+        virtual
+        std_cxx11::array<double,dim> cartesian_to_natural_coordinates(const Point<dim> &position) const;
+
+        /**
+         * Undoes the action of cartesian_to_natural_coordinates, and turns the
+         * coordinate system which is most 'natural' to the geometry model into
+         * Cartesian coordinates.
+         */
+        virtual
+        Point<dim> natural_to_cartesian_coordinates(const std_cxx11::array<double,dim> &position) const;
+
         /**
          * Declare the parameters this class takes through input files.
          */
@@ -178,9 +230,14 @@ namespace aspect
         bool periodic[dim];
 
         /**
-         * The number of cells in each coordinate direction
+         * The number of cells in each coordinate direction.
          */
         unsigned int repetitions[dim];
+
+        /**
+         * A pointer to the initial topography model.
+         */
+        InitialTopographyModel::Interface<dim> *topo_model;
 
     };
   }

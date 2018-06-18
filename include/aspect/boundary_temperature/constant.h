@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2014 by the authors of the ASPECT code.
+  Copyright (C) 2014 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__boundary_temperature_constant_h
-#define __aspect__boundary_temperature_constant_h
+#ifndef _aspect_boundary_temperature_constant_h
+#define _aspect_boundary_temperature_constant_h
 
 #include <aspect/boundary_temperature/interface.h>
 #include <aspect/simulator_access.h>
@@ -90,7 +90,7 @@ namespace aspect
 
       private:
         /**
-         * Temperatures at the inner and outer boundaries.
+         * Temperatures at the boundaries.
          */
         std::map<types::boundary_id, double> boundary_temperatures;
     };

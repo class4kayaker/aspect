@@ -1,9 +1,9 @@
 #include <aspect/material_model/interface.h>
-#include <aspect/velocity_boundary_conditions/interface.h>
+#include <aspect/boundary_velocity/interface.h>
 #include <aspect/simulator_access.h>
 #include <aspect/global.h>
 #include <aspect/melt.h>
-#include <aspect/fluid_pressure_boundary_conditions/interface.h>
+#include <aspect/boundary_fluid_pressure/interface.h>
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -17,7 +17,7 @@ namespace aspect
 {
   template <int dim>
   class MeltMaterial:
-    public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>
   {
       virtual bool is_compressible () const
       {
@@ -29,10 +29,12 @@ namespace aspect
         return 1.0;
       }
 
-      virtual double reference_density () const
+      virtual double reference_darcy_coefficient () const
       {
-        return 1.0;
+        const double permeability = 1.0 + std::pow(0.5, 2.0);
+        return permeability / 2.0;
       }
+
       virtual void evaluate(const typename MaterialModel::Interface<dim>::MaterialModelInputs &in,
                             typename MaterialModel::Interface<dim>::MaterialModelOutputs &out) const
       {
@@ -70,7 +72,7 @@ namespace aspect
   template <int dim>
   class PressureBdry:
 
-    public FluidPressureBoundaryConditions::Interface<dim>
+    public BoundaryFluidPressure::Interface<dim>
   {
     public:
       virtual
@@ -104,9 +106,9 @@ namespace aspect
                                  "MeltMaterial3",
                                  "")
 
-  ASPECT_REGISTER_FLUID_PRESSURE_BOUNDARY_CONDITIONS(PressureBdry,
-                                                     "PressureBdry",
-                                                     "A fluid pressure boundary condition that prescribes the "
-                                                     "gradient of the fluid pressure at the boundaries as "
-                                                     "calculated in the analytical solution. ")
+  ASPECT_REGISTER_BOUNDARY_FLUID_PRESSURE_MODEL(PressureBdry,
+                                                "PressureBdry",
+                                                "A fluid pressure boundary condition that prescribes the "
+                                                "gradient of the fluid pressure at the boundaries as "
+                                                "calculated in the analytical solution. ")
 }

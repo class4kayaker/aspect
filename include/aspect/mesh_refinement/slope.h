@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__mesh_refinement_slope_h
-#define __aspect__mesh_refinement_slope_h
+#ifndef _aspect_mesh_refinement_slope_h
+#define _aspect_mesh_refinement_slope_h
 
 #include <aspect/mesh_refinement/interface.h>
 #include <aspect/simulator_access.h>
@@ -35,7 +35,7 @@ namespace aspect
      * mesh on a free surface.  Specifically, it calculates the slope of the
      * surface by comparing the local normal and gravity vectors.
      * Cells with steeper slopes get refined. This is useful for cases where
-     * there is steep topgraphy which needs to be tracked better.
+     * there is steep topography which needs to be tracked better.
      *
      * @ingroup MeshRefinement
      */

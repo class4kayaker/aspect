@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,18 +14,26 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/heating_model/adiabatic_heating.h>
+#include <aspect/gravity_model/interface.h>
 
 
 namespace aspect
 {
   namespace HeatingModel
   {
+    template <int dim>
+    bool
+    AdiabaticHeating<dim>::use_simplified_adiabatic_heating() const
+    {
+      return simplified_adiabatic_heating;
+    }
+
     template <int dim>
     void
     AdiabaticHeating<dim>::
@@ -98,7 +106,7 @@ namespace aspect
   {
     ASPECT_REGISTER_HEATING_MODEL(AdiabaticHeating,
                                   "adiabatic heating",
-                                  "Implementation of a standard and a simplified model of"
+                                  "Implementation of a standard and a simplified model of "
                                   "adiabatic heating.")
   }
 }

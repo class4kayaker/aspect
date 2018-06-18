@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_generator_ascii_file_h
-#define __aspect__particle_generator_ascii_file_h
+#ifndef _aspect_particle_generator_ascii_file_h
+#define _aspect_particle_generator_ascii_file_h
 
 #include <aspect/particle/generator/interface.h>
 
@@ -30,8 +30,8 @@ namespace aspect
     namespace Generator
     {
       /**
-       *  Generate a distribution of particles that is determined by the
-       *  coordinates given in an ascii data file.
+       * Generate a distribution of particles that is determined by the
+       * coordinates given in an ascii data file.
        *
        * @ingroup ParticleGenerators
        */

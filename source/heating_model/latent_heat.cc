@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -47,36 +47,6 @@ namespace aspect
                                                            * material_model_inputs.temperature[q]
                                                            * material_model_outputs.entropy_derivative_temperature[q];
         }
-    }
-
-    template <int dim>
-    void
-    LatentHeat<dim>::declare_parameters (ParameterHandler &prm)
-    {
-      prm.enter_subsection("Heating model");
-      {
-        prm.enter_subsection("Latent heat");
-        {
-        }
-        prm.leave_subsection();
-      }
-      prm.leave_subsection();
-    }
-
-
-
-    template <int dim>
-    void
-    LatentHeat<dim>::parse_parameters (ParameterHandler &prm)
-    {
-      prm.enter_subsection("Heating model");
-      {
-        prm.enter_subsection("Latent heat");
-        {
-        }
-        prm.leave_subsection();
-      }
-      prm.leave_subsection();
     }
   }
 }

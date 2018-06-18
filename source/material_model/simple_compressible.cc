@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 #include <aspect/material_model/simple_compressible.h>
+#include <aspect/adiabatic_conditions/interface.h>
 
-using namespace dealii;
 
 namespace aspect
 {
@@ -44,8 +44,8 @@ namespace aspect
           out.thermal_expansion_coefficients[i] = thermal_alpha;
 
           double rho = reference_rho * std::exp(reference_compressibility * (pressure - this->get_surface_pressure()));
-          if (this->get_adiabatic_conditions().is_initialized())
-            rho *= (1 - thermal_alpha * (temperature - this->get_adiabatic_conditions().temperature(position)));
+          rho *= (1 - thermal_alpha * (temperature - this->get_adiabatic_conditions().temperature(position)));
+
           out.densities[i] = rho;
           out.compressibilities[i] = reference_compressibility; // 1/rho drho/dp
           out.entropy_derivative_pressure[i] = 0.0;
@@ -66,37 +66,7 @@ namespace aspect
       return eta;
     }
 
-    template <int dim>
-    double
-    SimpleCompressible<dim>::
-    reference_density () const
-    {
-      return reference_rho;
-    }
 
-    template <int dim>
-    double
-    SimpleCompressible<dim>::
-    reference_thermal_expansion_coefficient () const
-    {
-      return thermal_alpha;
-    }
-
-    template <int dim>
-    double
-    SimpleCompressible<dim>::
-    reference_cp () const
-    {
-      return reference_specific_heat;
-    }
-
-    template <int dim>
-    double
-    SimpleCompressible<dim>::
-    reference_thermal_diffusivity () const
-    {
-      return k_value/(reference_rho*reference_specific_heat);
-    }
 
     template <int dim>
     bool

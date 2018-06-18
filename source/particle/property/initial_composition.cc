@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,11 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
 #include <aspect/particle/property/initial_composition.h>
+#include <aspect/initial_composition/interface.h>
 
 namespace aspect
 {
@@ -32,7 +33,7 @@ namespace aspect
                                                                 std::vector<double> &data) const
       {
         for (unsigned int i = 0; i < this->n_compositional_fields(); i++)
-          data.push_back(this->get_compositional_initial_conditions().initial_composition(position,i));
+          data.push_back(this->get_initial_composition_manager().initial_composition(position,i));
       }
 
       template <int dim>
@@ -69,9 +70,9 @@ namespace aspect
     {
       ASPECT_REGISTER_PARTICLE_PROPERTY(InitialComposition,
                                         "initial composition",
-                                        "Implementation of a plugin in which the tracer "
+                                        "Implementation of a plugin in which the particle "
                                         "property is given as the initial composition "
-                                        "at the particle's initial position. The tracer "
+                                        "at the particle's initial position. The particle "
                                         "gets as many properties as there are "
                                         "compositional fields.")
     }

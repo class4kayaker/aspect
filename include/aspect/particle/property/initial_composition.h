@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_property_initial_composition_h
-#define __aspect__particle_property_initial_composition_h
+#ifndef _aspect_particle_property_initial_composition_h
+#define _aspect_particle_property_initial_composition_h
 
 #include <aspect/particle/property/interface.h>
 #include <aspect/simulator_access.h>
@@ -31,7 +31,7 @@ namespace aspect
     namespace Property
     {
       /**
-       * A class that initializes tracer properties based on a
+       * A class that initializes particle properties based on a
        * functional description provided in the input file.
        *
        * @ingroup ParticleProperties

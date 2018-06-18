@@ -1,5 +1,6 @@
 #include <aspect/material_model/simple.h>
-#include <aspect/velocity_boundary_conditions/interface.h>
+#include <aspect/boundary_velocity/interface.h>
+#include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>
 #include <aspect/global.h>
 
@@ -24,7 +25,7 @@ namespace aspect
       {
         const double min_eta = 1.0;
         const double max_eta = eta;
-        const double epsilon = 1; //strain rate
+        const double epsilon = 1; // strain rate
         const double A(min_eta*(max_eta-min_eta)/(max_eta+min_eta));
         std::complex<double> phi, psi, dphi;
         const double offset[2]= {1.0, 1.0};
@@ -37,14 +38,14 @@ namespace aspect
         std::complex<double> z(x,y);
         if (r2<r2_inclusion)
           {
-            //inside the inclusion
+            // inside the inclusion
             phi=0;
             dphi=0;
             psi=-4*epsilon*(max_eta*min_eta/(min_eta+max_eta))*z;
           }
         else
           {
-            //outside the inclusion
+            // outside the inclusion
             phi=-2*epsilon*A*r2_inclusion/z;
             dphi=-phi/z;
             psi=-2*epsilon*(min_eta*z+A*r2_inclusion*r2_inclusion/(z*z*z));
@@ -84,7 +85,7 @@ namespace aspect
 
 
     template <int dim>
-    class InclusionBoundary : public VelocityBoundaryConditions::Interface<dim>
+    class InclusionBoundary : public BoundaryVelocity::Interface<dim>
     {
       public:
         /**
@@ -148,43 +149,31 @@ namespace aspect
      * @ingroup MaterialModels
      */
     template <int dim>
-    class InclusionMaterial : public MaterialModel::InterfaceCompatibility<dim>
+    class InclusionMaterial : public MaterialModel::Interface<dim>
     {
       public:
+
         /**
          * @name Physical parameters used in the basic equations
          * @{
          */
-        virtual double viscosity (const double                  temperature,
-                                  const double                  pressure,
-                                  const std::vector<double>    &compositional_fields,
-                                  const SymmetricTensor<2,dim> &strain_rate,
-                                  const Point<dim>             &position) const;
 
-        virtual double density (const double temperature,
-                                const double pressure,
-                                const std::vector<double> &compositional_fields,
-                                const Point<dim> &position) const;
+        virtual void evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
+                              MaterialModel::MaterialModelOutputs<dim> &out) const
+        {
+          for (unsigned int i=0; i < in.position.size(); ++i)
+            {
+              const Point<dim> &pos = in.position[i];
+              const double r2 = ( pos[0] - 1.0 ) * ( pos[0] - 1.0 ) + ( pos[1] - 1.0 ) * ( pos[1] - 1.0 );
+              out.viscosities[i] = ( r2 < 0.2 * 0.2 ) ? eta_B : 1.0;
+              out.densities[i] = 0;
+              out.thermal_expansion_coefficients[i] = 0;
+              out.compressibilities[i] = 0;
+              out.thermal_conductivities[i] = 0.0;
+              out.specific_heat[i] = 0;
+            }
+        }
 
-        virtual double compressibility (const double temperature,
-                                        const double pressure,
-                                        const std::vector<double> &compositional_fields,
-                                        const Point<dim> &position) const;
-
-        virtual double specific_heat (const double temperature,
-                                      const double pressure,
-                                      const std::vector<double> &compositional_fields,
-                                      const Point<dim> &position) const;
-
-        virtual double thermal_expansion_coefficient (const double      temperature,
-                                                      const double      pressure,
-                                                      const std::vector<double> &compositional_fields,
-                                                      const Point<dim> &position) const;
-
-        virtual double thermal_conductivity (const double temperature,
-                                             const double pressure,
-                                             const std::vector<double> &compositional_fields,
-                                             const Point<dim> &position) const;
         /**
          * @}
          */
@@ -200,7 +189,7 @@ namespace aspect
          * Incompressibility does not necessarily imply that the density is
          * constant; rather, it may still depend on temperature or pressure.
          * In the current context, compressibility means whether we should
-         * solve the contuity equation as $\nabla \cdot (\rho \mathbf u)=0$
+         * solve the continuity equation as $\nabla \cdot (\rho \mathbf u)=0$
          * (compressible Stokes) or as $\nabla \cdot \mathbf{u}=0$
          * (incompressible Stokes).
          */
@@ -229,15 +218,6 @@ namespace aspect
          * @{
          */
         virtual double reference_viscosity () const;
-
-        virtual double reference_density () const;
-
-        virtual double reference_thermal_expansion_coefficient () const;
-
-//TODO: should we make this a virtual function as well? where is it used?
-        double reference_thermal_diffusivity () const;
-
-        double reference_cp () const;
         /**
          * @}
          */
@@ -256,112 +236,9 @@ namespace aspect
     template <int dim>
     double
     InclusionMaterial<dim>::
-    viscosity (const double,
-               const double,
-               const std::vector<double> &,       /*composition*/
-               const SymmetricTensor<2,dim> &,
-               const Point<dim> &p) const
-    {
-      const double r2 = (p(0)-1.0)*(p(0)-1.0) + (p(1)-1.0)*(p(1)-1.0);
-      return (r2<0.2*0.2)? eta_B : 1.0;
-    }
-
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
     reference_viscosity () const
     {
       return 1;
-    }
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    reference_density () const
-    {
-      return 0;
-    }
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    reference_thermal_expansion_coefficient () const
-    {
-      return 0;
-    }
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    specific_heat (const double,
-                   const double,
-                   const std::vector<double> &, /*composition*/
-                   const Point<dim> &) const
-    {
-      return 0;
-    }
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    reference_cp () const
-    {
-      return 0;
-    }
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    thermal_conductivity (const double,
-                          const double,
-                          const std::vector<double> &, /*composition*/
-                          const Point<dim> &) const
-    {
-      return 0;
-    }
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    reference_thermal_diffusivity () const
-    {
-      return 0;
-    }
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    density (const double,
-             const double,
-             const std::vector<double> &, /*composition*/
-             const Point<dim> &p) const
-    {
-      return 0;
-    }
-
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    thermal_expansion_coefficient (const double temperature,
-                                   const double,
-                                   const std::vector<double> &, /*composition*/
-                                   const Point<dim> &) const
-    {
-      return 0;
-    }
-
-
-    template <int dim>
-    double
-    InclusionMaterial<dim>::
-    compressibility (const double,
-                     const double,
-                     const std::vector<double> &, /*composition*/
-                     const Point<dim> &) const
-    {
-      return 0.0;
     }
 
 
@@ -423,9 +300,6 @@ namespace aspect
 
 
 
-
-
-
     /**
       * A postprocessor that evaluates the accuracy of the solution of the
       * aspect::MaterialModel::DuretzEtAl::Inclusion material models.
@@ -480,7 +354,7 @@ namespace aspect
                       ExcMessage("Postprocessor DuretzEtAl only works with the material model SolCx, SolKz, and Inclusion."));
         }
 
-      const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.velocities).degree+2);
+      const QGauss<dim> quadrature_formula (this->introspection().polynomial_degree.velocities +2);
 
       Vector<float> cellwise_errors_u (this->get_triangulation().n_active_cells());
       Vector<float> cellwise_errors_p (this->get_triangulation().n_active_cells());
@@ -550,12 +424,12 @@ namespace aspect
                                    "A material model that corresponds to the 'Inclusion' benchmark "
                                    "defined in Duretz et al., G-Cubed, 2011.")
 
-    ASPECT_REGISTER_VELOCITY_BOUNDARY_CONDITIONS(InclusionBoundary,
-                                                 "InclusionBoundary",
-                                                 "Implementation of the velocity boundary conditions for the "
-                                                 "``inclusion'' benchmark. See the manual and the Kronbichler, Heister "
-                                                 "and Bangerth paper on ASPECT for more information about this "
-                                                 "benchmark.")
+    ASPECT_REGISTER_BOUNDARY_VELOCITY_MODEL(InclusionBoundary,
+                                            "InclusionBoundary",
+                                            "Implementation of the velocity boundary conditions for the "
+                                            "``inclusion'' benchmark. See the manual and the Kronbichler, Heister "
+                                            "and Bangerth paper on ASPECT for more information about this "
+                                            "benchmark.")
 
     ASPECT_REGISTER_POSTPROCESSOR(InclusionPostprocessor,
                                   "InclusionPostprocessor",

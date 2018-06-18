@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -56,10 +56,17 @@ namespace aspect
     {
       ASPECT_REGISTER_PARTICLE_PROPERTY(InitialPosition,
                                         "initial position",
-                                        "Implementation of a plugin in which the tracer "
+                                        "Implementation of a plugin in which the particle "
                                         "property is given as the initial position "
-                                        "of the tracer."
-                                        "\n\n")
+                                        "of the particle. This property is vector-valued with "
+                                        "as many components as there are space dimensions. "
+                                        "In practice, it is often most useful to only "
+                                        "visualize one of the components of this vector, "
+                                        "or the magnitude of the vector. For example, in "
+                                        "a spherical mantle simulation, the magnitude of this "
+                                        "property equals the starting radius of a particle, "
+                                        "and is thereby indicative of which part of the "
+                                        "mantle a particle comes from.")
     }
   }
 }

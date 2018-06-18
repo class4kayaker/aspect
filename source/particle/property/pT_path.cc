@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,11 +14,13 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
 #include <aspect/particle/property/pT_path.h>
+#include <aspect/adiabatic_conditions/interface.h>
+#include <aspect/initial_temperature/interface.h>
 
 namespace aspect
 {
@@ -32,7 +34,7 @@ namespace aspect
                                                     std::vector<double> &data) const
       {
         data.push_back(this->get_adiabatic_conditions().pressure(position));
-        data.push_back(this->get_initial_conditions().initial_temperature(position));
+        data.push_back(this->get_initial_temperature_manager().initial_temperature(position));
       }
 
       template <int dim>
@@ -41,7 +43,7 @@ namespace aspect
                                                 const Point<dim> &,
                                                 const Vector<double> &solution,
                                                 const std::vector<Tensor<1,dim> > &,
-                                                std::vector<double> &data) const
+                                                const ArrayView<double> &data) const
       {
         data[data_position] = solution[this->introspection().component_indices.pressure];
         data[data_position+1] = solution[this->introspection().component_indices.temperature];
@@ -82,7 +84,7 @@ namespace aspect
     {
       ASPECT_REGISTER_PARTICLE_PROPERTY(PTPath,
                                         "pT path",
-                                        "Implementation of a plugin in which the tracer "
+                                        "Implementation of a plugin in which the particle "
                                         "property is defined as the current pressure and "
                                         "temperature at this position. This can be used "
                                         "to generate pressure-temperature paths of "

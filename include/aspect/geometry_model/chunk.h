@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,16 +14,17 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__geometry_model_chunk_h
-#define __aspect__geometry_model_chunk_h
+#ifndef _aspect_geometry_model_chunk_h
+#define _aspect_geometry_model_chunk_h
 
 #include <aspect/geometry_model/interface.h>
 #include <aspect/simulator_access.h>
+#include <aspect/compat.h>
 
 #include <deal.II/grid/manifold.h>
 #include <deal.II/base/function_lib.h>
@@ -54,11 +55,23 @@ namespace aspect
     {
       public:
 
+#if !DEAL_II_VERSION_GTE(9,0,0)
+        void initialize ();
+#endif
+
         /**
          * Generate a coarse mesh for the geometry described by this class.
          */
         virtual
         void create_coarse_mesh (parallel::distributed::Triangulation<dim> &coarse_grid) const;
+
+#if !DEAL_II_VERSION_GTE(9,0,0)
+        /**
+         * Connect the set/clear manifold id functions to the post/pre_compute_no_normal_flux signals.
+         */
+        void
+        connect_to_signal(SimulatorSignals<dim> &signals);
+#endif
 
         /**
          * Return the set of boundary indicators that are used by this model.
@@ -81,9 +94,9 @@ namespace aspect
          * describing which parts of the boundary have to satisfy which
          * boundary conditions.
          *
-         * This geometry returns the map <code>{{"inner"->0}, {"outer"->1},
-         * {"west"->2}, {"east"->3}}</code> in 2d, and <code>{{"inner"->0},
-         * {"outer"->1}, {"west"->2}, {"east"->3}, {"south"->4},
+         * This geometry returns the map <code>{{"bottom"->0}, {"top"->1},
+         * {"west"->2}, {"east"->3}}</code> in 2d, and <code>{{"bottom"->0},
+         * {"top"->1}, {"west"->2}, {"east"->3}, {"south"->4},
          * {"north"->5}}</code> in 3d.
          */
         virtual
@@ -113,75 +126,78 @@ namespace aspect
          * Computing a depth requires a geometry model to define a
          * "vertical" direction. The current class considers the
          * radial vector away from the origin as vertical and
-         * considers the "outer" boundary as the "surface". In almost
+         * considers the "top" boundary as the surface. In almost
          * all cases one will use a gravity model that also matches
          * these definitions.
          */
         virtual
         double depth(const Point<dim> &position) const;
 
+        /**
+         * Return the height of the given position relative to the outer
+         * radius.
+         */
+        virtual
+        double height_above_reference_surface(const Point<dim> &position) const;
+
         virtual
         Point<dim> representative_point(const double depth) const;
 
         /**
-         * Return the longitude at the western edge of the chunk
-         * Measured in radians
+         * Return the longitude at the western edge of the chunk measured in
+         * radians.
          */
         virtual
         double west_longitude() const;
 
         /**
-         * Return the longitude at the eastern edge of the chunk
-         * Measured in radians
+         * Return the longitude at the eastern edge of the chunk measured in
+         * radians.
          */
         virtual
         double east_longitude() const;
 
         /**
-         * Returns the longitude range of the chunk
-         * Measured in radians
+         * Return the longitude range of the chunk measured in radians.
          */
         virtual
         double longitude_range() const;
 
         /**
-         * Return the latitude at the southern edge of the chunk
-         * Measured in radians from the equator
+         * Return the latitude at the southern edge of the chunk measured in
+         * radians from the equator.
          */
         virtual
         double south_latitude() const;
 
         /**
-         * Return the latitude at the northern edge of the chunk
-         * Measured in radians from the equator
+         * Return the latitude at the northern edge of the chunk measured in
+         * radians from the equator.
          */
         virtual
         double north_latitude() const;
 
         /**
-         * Return the latitude range of the chunk
-         * Measured in radians
+         * Return the latitude range of the chunk Measured in radians
          */
         virtual
         double latitude_range() const;
 
         /**
-         * Return the maximum depth from the surface of the model
-         * Measured in meters
+         * Return the maximum depth from the surface of the model measured in
+         * meters.
          */
         virtual
         double maximal_depth() const;
 
         /**
-         * Return the inner radius of the chunk
-         * Measured in meters
+         * Return the inner radius of the chunk measured in meters.
          */
         virtual
         double inner_radius() const;
 
         /**
-         * Return the outer radius of the chunk
-         * Measured in meters
+         * Return the outer radius of the chunk measured in meters.
          */
         virtual
         double outer_radius() const;
@@ -204,6 +220,29 @@ namespace aspect
         virtual
         bool
         point_is_in_domain(const Point<dim> &p) const;
+
+        /*
+         * Returns what the natural coordinate system for this geometry model is,
+         * which for a chunk is Spherical.
+         */
+        virtual
+        aspect::Utilities::Coordinates::CoordinateSystem natural_coordinate_system() const;
+
+        /**
+         * Takes the Cartesian points (x,z or x,y,z) and returns standardized
+         * coordinates which are most 'natural' to the geometry model. For a chunk
+         * this is (radius, longitude) in 2d and (radius, longitude, latitude) in 3d.
+         */
+        virtual
+        std_cxx11::array<double,dim> cartesian_to_natural_coordinates(const Point<dim> &position) const;
+
+        /**
+         * Undoes the action of cartesian_to_natural_coordinates, and turns the
+         * coordinate system which is most 'natural' to the geometry model into
+         * Cartesian coordinates.
+         */
+        virtual
+        Point<dim> natural_to_cartesian_coordinates(const std_cxx11::array<double,dim> &position) const;
 
         /**
          * Declare the parameters this class takes through input files.
@@ -240,15 +279,29 @@ namespace aspect
         /**
          * ChunkGeometry is a class that implements the interface of
          * ChartManifold. The function push_forward takes a point
-         * in the reference (lat,long,radius) domain and transforms
+         * in the reference (radius,lon,lat) domain and transforms
          * it into real space (cartesian). The inverse function
          * pull_back reverses this operation.
+         * The push_forward_gradient provides derivatives of the
+         * reference coordinates to the real space coordinates,
+         * which are used in computing normal vectors.
+         * In set_min_longitude the minimum longitude is set,
+         * which is used to test the quadrant of returned longitudes
+         * in the pull_back function.
          */
 
         class ChunkGeometry : public ChartManifold<dim,dim>
         {
           public:
+            /**
+             * Constructor
+             */
             ChunkGeometry();
+
+            /**
+             * Copy constructor
+             */
+            ChunkGeometry(const ChunkGeometry &other);
 
             virtual
             Point<dim>
@@ -259,25 +312,36 @@ namespace aspect
             push_forward(const Point<dim> &chart_point) const;
 
             virtual
+            DerivativeForm<1, dim, dim>
+            push_forward_gradient(const Point<dim> &chart_point) const;
+
+            virtual
             void
             set_min_longitude(const double p1_lon);
+
+#if DEAL_II_VERSION_GTE(9,0,0)
+            /**
+             * Return a copy of this manifold.
+             */
+            virtual
+            std::unique_ptr<Manifold<dim,dim> >
+            clone() const;
+#endif
 
           private:
             // The minimum longitude of the domain
             double point1_lon;
         };
 
-        Point<dim> pull_back(const Point<dim>) const;
-        Point<dim> push_forward(const Point<dim>) const;
-
         /**
          * An object that describes the geometry.
          */
         ChunkGeometry manifold;
 
-        static void set_manifold_ids (Triangulation<dim> &triangulation);
-        static void clear_manifold_ids (Triangulation<dim> &triangulation);
-
+#if !DEAL_II_VERSION_GTE(9,0,0)
+        void set_manifold_ids (typename parallel::distributed::Triangulation<dim> &triangulation);
+        void clear_manifold_ids (typename parallel::distributed::Triangulation<dim> &triangulation);
+#endif
     };
   }
 }

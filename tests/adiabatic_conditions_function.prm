@@ -7,11 +7,11 @@ set Start time                             = 0
 set Adiabatic surface temperature          = 1613.0
 set Surface pressure                       = 0
 set Use years in output instead of seconds = false  # default: true
-set Nonlinear solver scheme                = IMPES
+set Nonlinear solver scheme                = single Advection, single Stokes
 
 
 subsection Boundary temperature model
-  set Model name = box
+  set List of model names = box
 end
 
 subsection Adiabatic conditions model
@@ -19,16 +19,16 @@ subsection Adiabatic conditions model
 
   subsection Function
     set Function constants  = 
-    set Function expression = sin(depth); depth
+    set Function expression = sin(depth); depth; 5.0+depth*depth
     set Variable names      = depth
   end
 
 end
 
 subsection Gravity model
-  set Model name = radial constant
+  set Model name = vertical
 
-  subsection Radial constant
+  subsection Vertical
     set Magnitude = 9.81
   end
 end
@@ -44,7 +44,7 @@ subsection Geometry model
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = function
 
   subsection Function
@@ -73,15 +73,24 @@ subsection Mesh refinement
 end
 
 
-subsection Model settings
+# The parameters below this comment were created by the update script
+# as replacement for the old 'Model settings' subsection. They can be
+# safely merged with any existing subsections with the same name.
+
+subsection Boundary temperature model
   set Fixed temperature boundary indicators   = 0, 1
-  set Prescribed velocity boundary indicators =
+end
+
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = 0, 2, 3
+end
+
+subsection Boundary velocity model
   set Zero velocity boundary indicators       = 1
 end
 
 subsection Postprocess
-  set List of postprocessors = visualization
+  set List of postprocessors = visualization, depth average
 
   subsection Visualization
     set Output format                 = gnuplot

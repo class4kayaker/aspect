@@ -1,33 +1,16 @@
 
 Loading shared library <./libmelt_property_visualization.so>
 
-Number of active cells: 4,096 (on 7 levels)
-Number of degrees of freedom: 112,521 (41,732+33,282+4,225+16,641+16,641)
+Number of active cells: 1,024 (on 6 levels)
+Number of degrees of freedom: 30,600 (12,611+8,450+1,089+4,225+4,225)
 
 *** Timestep 0:  t=0 seconds
    Skipping temperature solve because RHS is zero.
    Solving porosity system ... 0 iterations.
    Solving Stokes system... done.
    Solving for u_f in 11 iterations.
-      Nonlinear residuals: 0, 8.70027e-19, 21.6796
-      Total relative nonlinear residual: 1
-
-
-   Skipping temperature solve because RHS is zero.
-   Solving porosity system ... 0 iterations.
-   Solving Stokes system... done.
-   Solving for u_f in 10 iterations.
-      Nonlinear residuals: 0, 8.70027e-19, 1.32549
-      Total relative nonlinear residual: 0.06114
-
-
-   Skipping temperature solve because RHS is zero.
-   Solving porosity system ... 0 iterations.
-   Solving Stokes system... done.
-   Solving for u_f in 10 iterations.
-      Nonlinear residuals: 0, 8.70027e-19, 9.18053e-05
-      Total relative nonlinear residual: 4.23464e-06
-
+      Relative nonlinear residuals (temperature, compositional fields, Stokes system): 0, 2.06347e-16, 1
+      Relative nonlinear residual (total system) after nonlinear iteration 1: 1
 
 
    Postprocessing:

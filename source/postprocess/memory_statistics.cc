@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2016 by the authors of the ASPECT code.
+ Copyright (C) 2016 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -36,7 +36,7 @@ namespace aspect
     MemoryStatistics<dim>::execute (TableHandler &statistics)
     {
       // memory consumption:
-      const double mb = 1024*1024; //convert from bytes into mb
+      const double mb = 1024*1024; // convert from bytes into mb
       statistics.add_value ("System matrix memory consumption (MB) ", this->get_system_matrix().memory_consumption()/mb);
       statistics.add_value ("Triangulation memory consumption (MB) ", this->get_triangulation().memory_consumption()/mb);
       statistics.add_value ("p4est memory consumption (MB) ", this->get_triangulation().memory_consumption_p4est()/mb);

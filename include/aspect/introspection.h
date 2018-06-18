@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__introspection_h
-#define __aspect__introspection_h
+#ifndef _aspect_introspection_h
+#define _aspect_introspection_h
 
 #include <deal.II/base/index_set.h>
 #include <deal.II/fe/component_mask.h>
@@ -92,6 +92,11 @@ namespace aspect
        * components are the scalar pressure and temperature fields.
        */
       const unsigned int n_components;
+
+      /**
+       * The number of compositional fields.
+       */
+      const unsigned int n_compositional_fields;
 
       /**
        * A variable that holds whether the temperature field should use a
@@ -352,6 +357,16 @@ namespace aspect
        */
       bool
       compositional_name_exists (const std::string &name) const;
+
+      /**
+       * A function that gets a component index as an input
+       * parameter and returns if the component is one of the stokes system
+       * (i.e. if it is the pressure or one of the velocity components).
+       *
+       * @param component_index The component index to check.
+       */
+      bool
+      is_stokes_component (const unsigned int component_index) const;
 
     private:
       /**

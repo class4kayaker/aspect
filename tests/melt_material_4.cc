@@ -1,9 +1,10 @@
 #include <aspect/material_model/interface.h>
-#include <aspect/velocity_boundary_conditions/interface.h>
+#include <aspect/boundary_velocity/interface.h>
+#include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>
 #include <aspect/global.h>
 #include <aspect/melt.h>
-#include <aspect/fluid_pressure_boundary_conditions/interface.h>
+#include <aspect/boundary_fluid_pressure/interface.h>
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -19,7 +20,7 @@ namespace aspect
 {
   template <int dim>
   class MeltMaterial:
-    public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>
   {
       virtual bool is_compressible () const
       {
@@ -31,10 +32,13 @@ namespace aspect
         return 1.0;
       }
 
-      virtual double reference_density () const
+      virtual double reference_darcy_coefficient () const
       {
-        return 1.0;
+        const double porosity = 0.01;
+        const double permeability = 1.0 + 0.001 / (1.0 - porosity);
+        return permeability / 2.0;
       }
+
       virtual void evaluate(const typename MaterialModel::Interface<dim>::MaterialModelInputs &in,
                             typename MaterialModel::Interface<dim>::MaterialModelOutputs &out) const
       {
@@ -92,8 +96,8 @@ namespace aspect
         const double p_f = 1.0 - (y+0.1);
         const double p_s = 0.0;
 
-        values[0]=0;  //x vel
-        values[1]=0.5 * std::pow(y+0.1, 2.0);  //y vel
+        values[0]=0;  // x vel
+        values[1]=0.5 * std::pow(y+0.1, 2.0);  // y vel
         values[2]=p_f;  // p_f
         values[3]=(1.0-porosity)*(p_s-p_f); // p_c
         values[4]=-1; // u_f_x
@@ -121,7 +125,7 @@ namespace aspect
   MMPostprocessor<dim>::execute (TableHandler &statistics)
   {
     RefFunction<dim> ref_func;
-    const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.velocities).degree+2);
+    const QGauss<dim> quadrature_formula (this->introspection().polynomial_degree.velocities +2);
 
     Vector<float> cellwise_errors_porosity (this->get_triangulation().n_active_cells());
     Vector<float> cellwise_errors_p (this->get_triangulation().n_active_cells());
@@ -175,7 +179,7 @@ namespace aspect
   template <int dim>
   class PressureBdry:
 
-    public FluidPressureBoundaryConditions::Interface<dim>
+    public BoundaryFluidPressure::Interface<dim>
   {
     public:
       virtual
@@ -212,10 +216,10 @@ namespace aspect
                                 "MMPostprocessor",
                                 "")
 
-  ASPECT_REGISTER_FLUID_PRESSURE_BOUNDARY_CONDITIONS(PressureBdry,
-                                                     "PressureBdry",
-                                                     "A fluid pressure boundary condition that prescribes the "
-                                                     "gradient of the fluid pressure at the boundaries as "
-                                                     "calculated in the analytical solution. ")
+  ASPECT_REGISTER_BOUNDARY_FLUID_PRESSURE_MODEL(PressureBdry,
+                                                "PressureBdry",
+                                                "A fluid pressure boundary condition that prescribes the "
+                                                "gradient of the fluid pressure at the boundaries as "
+                                                "calculated in the analytical solution. ")
 
 }

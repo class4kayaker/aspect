@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/mesh_refinement/interface.h>
+#include <aspect/utilities.h>
 
 #include <typeinfo>
 
@@ -333,8 +334,8 @@ namespace aspect
       std_cxx11::tuple
       <void *,
       void *,
-      internal::Plugins::PluginList<Interface<2> >,
-      internal::Plugins::PluginList<Interface<3> > > registered_plugins;
+      aspect::internal::Plugins::PluginList<Interface<2> >,
+      aspect::internal::Plugins::PluginList<Interface<3> > > registered_plugins;
     }
 
 
@@ -451,6 +452,11 @@ namespace aspect
         plugin_names
           = Utilities::split_string_list(prm.get("Strategy"));
 
+        AssertThrow(Utilities::has_unique_entries(plugin_names),
+                    ExcMessage("The list of strings for the parameter "
+                               "'Mesh refinement/Strategy' contains entries more than once. "
+                               "This is not allowed. Please check your parameter file."));
+
         normalize_criteria = prm.get_bool ("Normalize individual refinement criteria");
 
         scaling_factors
@@ -504,6 +510,16 @@ namespace aspect
                                                                description,
                                                                declare_parameters_function,
                                                                factory_function);
+    }
+
+
+
+    template <int dim>
+    void
+    Manager<dim>::write_plugin_graph (std::ostream &out)
+    {
+      std_cxx11::get<dim>(registered_plugins).write_plugin_graph ("Mesh refinement criteria interface",
+                                                                  out);
     }
 
   }

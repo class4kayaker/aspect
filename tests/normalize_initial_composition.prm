@@ -5,7 +5,7 @@ set Dimension                              = 2
 set End time                               = 0
 
 subsection Boundary temperature model
-  set Model name = initial temperature 
+  set List of model names = initial temperature 
 end
 
 subsection Compositional fields
@@ -13,7 +13,8 @@ subsection Compositional fields
   set List of normalized fields   =  0,1
 end
 
-subsection Compositional initial conditions
+subsection Initial composition model
+  set List of model names = function
   subsection Function
     set Function expression = 1;1
   end
@@ -36,7 +37,7 @@ subsection Gravity model
   end
 end
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = function 
   subsection Function
     set Function expression = 1
@@ -52,7 +53,11 @@ subsection Mesh refinement
   set Initial global refinement                = 0
 end
 
-subsection Model settings
+# The parameters below this comment were created by the update script
+# as replacement for the old 'Model settings' subsection. They can be
+# safely merged with any existing subsections with the same name.
+
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = left, right, top, bottom
 end
 

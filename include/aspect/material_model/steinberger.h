@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,15 +14,16 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
-
-#ifndef __aspect__model_steinberger_h
-#define __aspect__model_steinberger_h
+#ifndef _aspect_material_model_steinberger_h
+#define _aspect_material_model_steinberger_h
 
 #include <aspect/material_model/interface.h>
+
+#include <aspect/material_model/grain_size.h>
 #include <aspect/simulator_access.h>
 
 namespace aspect
@@ -33,17 +34,89 @@ namespace aspect
 
     namespace internal
     {
-      class MaterialLookup;
-      class LateralViscosityLookup;
-      class RadialViscosityLookup;
+      /**
+       * A class that reads in a text file that contains the
+       * temperature-dependency of viscosity for a set of equidistant depth
+       * layers. See
+       * the data/material-model/steinberger directory for an example data
+       * file.
+       * The class can return the value for a given depth.
+       */
+      class LateralViscosityLookup
+      {
+        public:
+          /**
+           * Read in a file.
+           */
+          LateralViscosityLookup(const std::string &filename,
+                                 const MPI_Comm &comm);
+
+          /**
+           * Returns a temperature-dependency for a given depth.
+           */
+          double lateral_viscosity(double depth) const;
+
+          /**
+           * Number of depth slices of the read file.
+           */
+          int get_nslices() const;
+        private:
+          /**
+           * Stored values
+           */
+          std::vector<double> values;
+
+          /**
+           * Stored bounds an depths.
+           */
+          double min_depth;
+          double delta_depth;
+          double max_depth;
+      };
+
+      /**
+       * A class that reads in a text file that contains the
+       * viscosity for a set of equidistant depth layers. See
+       * the data/material-model/steinberger directory for an example data
+       * file.
+       * The class can return the value for a given depth.
+       */
+      class RadialViscosityLookup
+      {
+        public:
+          /**
+           * Constructor. Reads in the given file.
+           */
+          RadialViscosityLookup(const std::string &filename,
+                                const MPI_Comm &comm);
+
+          /**
+           * Return the viscosity for a given depth.
+           */
+          double radial_viscosity(double depth) const;
+
+        private:
+          /**
+           * Stored data values.
+           */
+          std::vector<double> values;
+
+          /**
+           * Depth bounds for the read in values.
+           */
+          double min_depth;
+          double delta_depth;
+          double max_depth;
+      };
     }
+
     /**
      * A variable viscosity material model that reads the essential values of
      * coefficients from tables in input files.
      *
      * The viscosity of this model is based on the paper
-     * Steinberger/Calderwood 2006: "Models of large-scale viscous flow in the
-     * Earth's mantle with contraints from mineral physics and surface
+     * Steinberger & Calderwood 2006: "Models of large-scale viscous flow in the
+     * Earth's mantle with constraints from mineral physics and surface
      * observations". The thermal conductivity is constant and the other
      * parameters are provided via lookup tables from the software PERPLEX.
      *
@@ -53,7 +126,6 @@ namespace aspect
     class Steinberger: public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>
     {
       public:
-
         /**
          * Initialization function. Loads the material data and sets up
          * pointers.
@@ -67,6 +139,7 @@ namespace aspect
          * model to update internal data structures.
          */
         virtual void update();
+
         /**
          * @name Physical parameters used in the basic equations
          * @{
@@ -111,6 +184,20 @@ namespace aspect
                                    const double      pressure,
                                    const std::vector<double> &compositional_fields,
                                    const Point<dim> &position) const;
+
+        /**
+         * Returns the cell-wise averaged enthalpy derivatives for the evaluate
+         * function and postprocessors. The function returns two pairs, the
+         * first one represents the temperature derivative, the second one the
+         * pressure derivative. The first member of each pair is the derivative,
+         * the second one the number of vertex combinations the function could
+         * use to compute the derivative. The second member is useful to handle
+         * the case no suitable combination of vertices could be found (e.g.
+         * if the temperature and pressure on all vertices of the current
+         * cell is identical.
+         */
+        std_cxx1x::array<std::pair<double, unsigned int>,2>
+        enthalpy_derivative (const typename Interface<dim>::MaterialModelInputs &in) const;
         /**
          * @}
          */
@@ -124,7 +211,7 @@ namespace aspect
          * Return whether the model is compressible or not.  Incompressibility
          * does not necessarily imply that the density is constant; rather, it
          * may still depend on temperature or pressure. In the current
-         * context, compressibility means whether we should solve the contuity
+         * context, compressibility means whether we should solve the continuity
          * equation as $\nabla \cdot (\rho \mathbf u)=0$ (compressible Stokes)
          * or as $\nabla \cdot \mathbf{u}=0$ (incompressible Stokes).
          */
@@ -138,10 +225,6 @@ namespace aspect
          * @{
          */
         virtual double reference_viscosity () const;
-
-        virtual double reference_density () const;
-
-        virtual double reference_thermal_expansion_coefficient () const;
         /**
          * @}
          */
@@ -177,73 +260,55 @@ namespace aspect
          * @}
          */
 
+        virtual
+        void
+        create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const;
+
+
       private:
         bool interpolation;
         bool latent_heat;
-        bool compressible;
         bool use_lateral_average_temperature;
+
+        /**
+         * Reference viscosity. Only used for pressure scaling purposes
+         * and returned by the reference_viscosity() function.
+         */
         double reference_eta;
+
+        /**
+         * The value for thermal conductivity. This model only
+         * implements a constant thermal conductivity for the whole domain.
+         */
+        double thermal_conductivity_value;
+
+        /**
+         * Information about lateral temperature averages.
+         */
         std::vector<double> avg_temp;
+        unsigned int n_lateral_slices;
+
+        /**
+         * Minimum and maximum allowed viscosity, as well as the maximum allowed
+         * viscosity variation compared to the average radial viscosity.
+         */
         double min_eta;
         double max_eta;
         double max_lateral_eta_variation;
+
+        /**
+         * Information about the location of data files.
+         */
         std::string data_directory;
         std::vector<std::string> material_file_names;
-        unsigned int n_material_data;
         std::string radial_viscosity_file_name;
         std::string lateral_viscosity_file_name;
 
         /**
-         * In the incompressible case we need to adjust the temperature as if
-         * there would be an adiabatic temperature increase to look up the
-         * material properties in the lookup table.
-         */
-        double get_corrected_temperature (const double temperature,
-                                          const double pressure,
-                                          const Point<dim> &position) const;
-
-        /**
-         * In the incompressible case we need to adjust the pressure as if
-         * there would be an compressible adiabatic pressure increase to look
-         * up the material properties in the lookup table. Unfortunately we do
-         * not know the adiabatic pressure profile for the incompressible case
-         * and therefore we do not know the dynamic pressure. The only
-         * currently possible solution is to use the adiabatic pressure
-         * profile only, neglecting dynamic pressure for material lookup in
-         * this case. This is essentially similar to having a depth dependent
-         * reference profile for all properties and modifying the profiles
-         * only in temperature-dimension.
-         */
-        double get_corrected_pressure (const double temperature,
-                                       const double pressure,
-                                       const Point<dim> &position) const;
-
-        /**
-         * This function returns the compressible density derived from the
-         * list of loaded lookup tables.
-         */
-        double get_compressible_density (const double temperature,
-                                         const double pressure,
-                                         const std::vector<double> &compositional_fields,
-                                         const Point<dim> &position) const;
-
-        /**
-         * We need to correct the compressible density in the incompressible
-         * case to an incompressible profile. This is done by dividing the
-         * compressible density with the density at this pressure at adiabatic
-         * temperature and multiplying with the surface adiabatic density.
-         */
-        double get_corrected_density (const double temperature,
-                                      const double pressure,
-                                      const std::vector<double> &compositional_fields,
-                                      const Point<dim> &position) const;
-
-        /**
          * List of pointers to objects that read and process data we get from
-         * Perplex files. There is one pointer/object per compositional field
-         * data provided.
+         * Perplex files.
          */
-        std::vector<std_cxx11::shared_ptr<internal::MaterialLookup> > material_lookup;
+        std::vector<std_cxx11::shared_ptr<Lookup::PerplexReader> > material_lookup;
 
         /**
          * Pointer to an object that reads and processes data for the lateral

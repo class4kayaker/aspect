@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_output_vtu_h
-#define __aspect__particle_output_vtu_h
+#ifndef _aspect_particle_output_vtu_h
+#define _aspect_particle_output_vtu_h
 
 #include <aspect/particle/output/interface.h>
 #include <aspect/simulator_access.h>
@@ -59,15 +59,11 @@ namespace aspect
            * to a file. If possible, encode the current simulation time
            * into this file using the data provided in the last argument.
            *
-           * @param[in] particles The set of particles to generate a graphical
-           * representation for.
+           * @param[in] particle_handler The particle handler that allows access
+           * to the collection of particles.
            *
-           * @param [in] property_component_list A vector of the names and number
-           * of components of each property. Every name entry represents the
-           * name of one particle property that will be written.The number of
-           * components equals one for scalar properties and dim for
-           * vector properties, but any other number is valid as well
-           * (e.g. number of compositional fields).
+           * @param [in] property_information Information object containing names and number
+           * of components of each property.
            *
            * @param[in] current_time Current time of the simulation, given as either
            * years or seconds, as selected in the input file. In other words,
@@ -80,7 +76,7 @@ namespace aspect
            */
           virtual
           std::string
-          output_particle_data(const std::multimap<types::LevelInd, Particle<dim> >     &particles,
+          output_particle_data(const ParticleHandler<dim> &particle_handler,
                                const Property::ParticlePropertyInformation &property_information,
                                const double current_time);
 
@@ -121,9 +117,11 @@ namespace aspect
           std::vector<std::pair<double,std::string> > times_and_pvtu_file_names;
 
           /**
-           * Like the previous variable, but for the .visit file.
+           * A corresponding variable that we use for the .visit files created
+           * by DataOutInterface::write_visit_record. The second part of a
+           * pair contains all files that together form a time step.
            */
-          std::vector<std::string>                    vtu_file_names;
+          std::vector<std::pair<double,std::vector<std::string> > > times_and_vtu_file_names;
       };
     }
   }

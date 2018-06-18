@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
@@ -35,7 +35,7 @@ namespace aspect
     namespace Output
     {
 
-      // Define the hdf5 type of the partice index output
+      // Define the hdf5 type of the particle index output
 #ifdef DEAL_II_WITH_HDF5
 
 #ifdef DEAL_II_WITH_64BIT_INDICES
@@ -50,29 +50,31 @@ namespace aspect
       HDF5Output<dim>::HDF5Output()
         :
         file_index(0)
-      {
+      {}
 
+
+
+      template <int dim>
+      void HDF5Output<dim>::initialize ()
+      {
 #ifndef DEAL_II_WITH_HDF5
         AssertThrow (false,
                      ExcMessage ("deal.ii was not compiled with HDF5 support, "
                                  "so HDF5 output is not possible. Please "
                                  "recompile deal.ii with HDF5 support turned on "
-                                 "or select a different tracer output format."));
+                                 "or select a different particle output format."));
 #endif
 
-      }
-
-      template <int dim>
-      void HDF5Output<dim>::initialize ()
-      {
         aspect::Utilities::create_directory (this->get_output_directory() + "particles/",
                                              this->get_mpi_communicator(),
                                              true);
       }
 
+
+
       template <int dim>
       std::string
-      HDF5Output<dim>::output_particle_data(const std::multimap<types::LevelInd, Particle<dim> > &particles,
+      HDF5Output<dim>::output_particle_data(const ParticleHandler<dim> &particle_handler,
                                             const Property::ParticlePropertyInformation &property_information,
                                             const double current_time)
       {
@@ -86,8 +88,8 @@ namespace aspect
         const std::string h5_filename = output_path_prefix+".h5";
 
         // Create the hdf5 output size information
-        types::particle_index n_local_particles = particles.size();
-        const types::particle_index n_global_particles = Utilities::MPI::sum(n_local_particles,this->get_mpi_communicator());
+        types::particle_index n_local_particles = particle_handler.n_locally_owned_particles();
+        const types::particle_index n_global_particles = particle_handler.n_global_particles();
 
         hsize_t global_dataset_size[2];
         global_dataset_size[0] = n_global_particles;
@@ -99,7 +101,7 @@ namespace aspect
 
         // Get the offset of the local particles among all processes
         types::particle_index local_particle_index_offset;
-        MPI_Scan(&n_local_particles, &local_particle_index_offset, 1, ASPECT_TRACER_INDEX_MPI_TYPE, MPI_SUM, this->get_mpi_communicator());
+        MPI_Scan(&n_local_particles, &local_particle_index_offset, 1, ASPECT_PARTICLE_INDEX_MPI_TYPE, MPI_SUM, this->get_mpi_communicator());
 
         hsize_t offset[2];
         offset[0] = local_particle_index_offset - n_local_particles;
@@ -123,15 +125,16 @@ namespace aspect
           }
 
         // Write into the output vectors
-        typename std::multimap<types::LevelInd, Particle<dim> >::const_iterator it = particles.begin();
-        for (unsigned int i = 0; it != particles.end(); ++i, ++it)
+        typename ParticleHandler<dim>::particle_iterator it = particle_handler.begin();
+        for (unsigned int i = 0; it != particle_handler.end(); ++i, ++it)
           {
             for (unsigned int d = 0; d < dim; ++d)
-              position_data[i*3+d] = it->second.get_location()(d);
+              position_data[i*3+d] = it->get_location()(d);
 
-            index_data[i] = it->second.get_id();
+            index_data[i] = it->get_id();
 
-            const std::vector<double> properties = it->second.get_properties();
+            const ArrayView<const double> properties = it->get_properties();
+
             unsigned int particle_property_index = 0;
 
             unsigned int output_field_index = 0;
@@ -290,7 +293,7 @@ namespace aspect
         return output_path_prefix;
 #else
         (void) property_information;
-        (void) particles;
+        (void) particle_handler;
         (void) current_time;
         return "";
 #endif
@@ -302,6 +305,8 @@ namespace aspect
       void HDF5Output<dim>::serialize (Archive &ar, const unsigned int)
       {
         // invoke serialization of the base class
+        ar &static_cast<Interface<dim> &>(*this);
+
         ar &file_index
         &xdmf_entries
         ;

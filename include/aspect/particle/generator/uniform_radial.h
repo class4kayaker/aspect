@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_generator_uniform_radial_h
-#define __aspect__particle_generator_uniform_radial_h
+#ifndef _aspect_particle_generator_uniform_radial_h
+#define _aspect_particle_generator_uniform_radial_h
 
 #include <aspect/particle/generator/interface.h>
 
@@ -42,7 +42,7 @@ namespace aspect
        * spacing in radius, colatitude and longitude around a
        * certain center point. Note that in order
        * to produce a regular distribution the number of generated
-       * tracers might not exactly match the one specified in the
+       * particles might not exactly match the one specified in the
        * input file.
        *
        * @ingroup ParticleGenerators
@@ -79,28 +79,28 @@ namespace aspect
         private:
 
           /**
-           * The minimum spherical coordinates of the tracer region, i.e.
+           * The minimum spherical coordinates of the particle region, i.e.
            * the first radius, colatitude and longitude from the given
-           * center position P_center where tracers are generated.
+           * center position P_center where particles are generated.
            */
           std_cxx11::array<double,dim> P_min;
 
           /**
-           * The maximum spherical coordinates of the tracer region, i.e.
+           * The maximum spherical coordinates of the particle region, i.e.
            * the last radius, colatitude and longitude from the given
-           * center position P_center where tracers are generated.
+           * center position P_center where particles are generated.
            */
           std_cxx11::array<double,dim> P_max;
 
           /**
-           * The center of the tracer region. Defaults to the origin.
+           * The center of the particle region. Defaults to the origin.
            */
           Point<dim> P_center;
 
           /**
            * The number of radial layers of particles that will be generated.
            * In particular this parameter determines the radial spacing between
-           * particle layers as Pmax[0] - P_min[0] / radial$_$layers.
+           * particle layers as Pmax[0] - P_min[0] / radial_layers.
            */
           unsigned int radial_layers;
 
@@ -110,7 +110,7 @@ namespace aspect
            * of actually generated
            * particles can differ slightly from this number.
            */
-          types::particle_index n_tracers;
+          types::particle_index n_particles;
       };
 
     }

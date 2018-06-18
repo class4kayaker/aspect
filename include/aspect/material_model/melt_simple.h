@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,12 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
-
-#ifndef __aspect__model_melt_simple_h
-#define __aspect__model_melt_simple_h
+#ifndef _aspect_material_model_melt_simple_h
+#define _aspect_material_model_melt_simple_h
 
 #include <aspect/material_model/interface.h>
 #include <aspect/simulator_access.h>
@@ -53,21 +52,33 @@ namespace aspect
      * @ingroup MaterialModels
      */
     template <int dim>
-    class MeltSimple : public MaterialModel::Interface<dim>, public ::aspect::SimulatorAccess<dim>, public MaterialModel::MeltFractionModel<dim>
+    class MeltSimple : public MaterialModel::MeltInterface<dim>, public ::aspect::SimulatorAccess<dim>, public MaterialModel::MeltFractionModel<dim>
     {
       public:
         /**
          * Return whether the model is compressible or not.  Incompressibility
          * does not necessarily imply that the density is constant; rather, it
          * may still depend on temperature or pressure. In the current
-         * context, compressibility means whether we should solve the contuity
+         * context, compressibility means whether we should solve the continuity
          * equation as $\nabla \cdot (\rho \mathbf u)=0$ (compressible Stokes)
          * or as $\nabla \cdot \mathbf{u}=0$ (incompressible Stokes).
          */
         virtual bool is_compressible () const;
+
         /**
-         * @}
+         * Initialization function. This function is called once at the
+         * beginning of the program after parse_parameters is run and after
+         * the SimulatorAccess (if applicable) is initialized.
          */
+        virtual
+        void
+        initialize ();
+
+        virtual void evaluate(const typename Interface<dim>::MaterialModelInputs &in,
+                              typename Interface<dim>::MaterialModelOutputs &out) const;
+
+        virtual void melt_fractions (const MaterialModel::MaterialModelInputs<dim> &in,
+                                     std::vector<double> &melt_fractions) const;
 
         /**
          * @name Reference quantities
@@ -75,13 +86,11 @@ namespace aspect
          */
         virtual double reference_viscosity () const;
 
-        virtual double reference_density () const;
+        virtual double reference_darcy_coefficient () const;
 
-        virtual void evaluate(const typename Interface<dim>::MaterialModelInputs &in,
-                              typename Interface<dim>::MaterialModelOutputs &out) const;
-
-        virtual void melt_fractions (const MaterialModel::MaterialModelInputs<dim> &in,
-                                     std::vector<double> &melt_fractions) const;
+        /**
+         * @}
+         */
 
         /**
          * @name Functions used in dealing with run-time parameters
@@ -103,6 +112,11 @@ namespace aspect
         /**
          * @}
          */
+
+        virtual
+        void
+        create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const;
+
 
       private:
         double reference_rho_s;
@@ -127,6 +141,7 @@ namespace aspect
         bool model_is_compressible;
         bool fractional_melting;
         double freezing_rate;
+        double melting_time_scale;
 
         /**
          * Parameters for anhydrous melting of peridotite after Katz, 2003

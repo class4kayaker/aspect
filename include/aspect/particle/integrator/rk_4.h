@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2018 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_integrator_rk_4_h
-#define __aspect__particle_integrator_rk_4_h
+#ifndef _aspect_particle_integrator_rk_4_h
+#define _aspect_particle_integrator_rk_4_h
 
 #include <aspect/particle/integrator/interface.h>
 
@@ -30,13 +30,13 @@ namespace aspect
     namespace Integrator
     {
       /**
-      * Runge Kutta fourth order integrator, where $y_{n+1} = y_n + (1/6)*k1 + (1/3)*k2 + (1/3)*k3 + (1/6)*k4$
-      * and k1, k2, k3, k4 are defined as usual.
-      * This scheme requires storing the original location and intermediate k1, k2, k3 values,
-      * so the read/write_data functions reflect this.
-      *
+       * Runge Kutta fourth order integrator, where $y_{n+1} = y_n + (1/6)*k1 + (1/3)*k2 + (1/3)*k3 + (1/6)*k4$
+       * and k1, k2, k3, k4 are defined as usual.
+       * This scheme requires storing the original location and intermediate k1, k2, k3 values,
+       * so the read/write_data functions reflect this.
+       *
        * @ingroup ParticleIntegrators
-      */
+       */
       template <int dim>
       class RK4 : public Interface<dim>
       {
@@ -63,8 +63,8 @@ namespace aspect
            */
           virtual
           void
-          local_integrate_step(const typename std::multimap<types::LevelInd, Particle<dim> >::iterator &begin_particle,
-                               const typename std::multimap<types::LevelInd, Particle<dim> >::iterator &end_particle,
+          local_integrate_step(const typename ParticleHandler<dim>::particle_iterator &begin_particle,
+                               const typename ParticleHandler<dim>::particle_iterator &end_particle,
                                const std::vector<Tensor<1,dim> > &old_velocities,
                                const std::vector<Tensor<1,dim> > &velocities,
                                const double dt);
@@ -93,41 +93,23 @@ namespace aspect
            * @return The number of bytes required to store the relevant
            * integrator data for one particle.
            */
-          virtual unsigned int get_data_size() const;
+          virtual std::size_t get_data_size() const;
 
           /**
-           * Read integration related data for a particle specified by particle_id
-           * from the data array. This function is called after transferring
-           * a particle to the local domain during an integration step.
-           *
-           * @param [in] data A pointer into the data array. The pointer
-           * marks the position where this function starts reading.
-           * @param [in] particle_id The id number of the particle to read the data
-           * for.
-           * @return The updated position of the pointer into the data array.
-           * The return value is @p data advanced by get_data_size() bytes.
+           * @copydoc Interface::read_data()
            */
           virtual
           const void *
-          read_data(const void *data,
-                    const types::particle_index particle_id);
+          read_data(const typename ParticleHandler<dim>::particle_iterator &particle,
+                    const void *data);
 
           /**
-           * Write integration related data to a vector for a particle
-           * specified by particle_id. This function is called in cases where
-           * particles leave the local domain during an integration step to
-           * transfer this data to another process.
-           *
-           * @param [in] data A pointer into the array of integrator data.
-           * @param [in] particle_id The id number of the particle to write the data
-           * for.
-           * @return The updated position of the pointer into the data array.
-           * The return value is @p data advanced by get_data_size() bytes.
+           * @copydoc Interface::write_data()
            */
           virtual
           void *
-          write_data(void *data,
-                     const types::particle_index particle_id) const;
+          write_data(const typename ParticleHandler<dim>::particle_iterator &particle,
+                     void *data) const;
 
         private:
           /**
@@ -139,14 +121,14 @@ namespace aspect
           /**
            * The particle location before the first integration step. This is
            * used in the following steps and transferred to another process if
-           * the tracer leaves the domain during one of the steps.
+           * the particle leaves the domain during one of the steps.
            */
           std::map<types::particle_index, Point<dim> > loc0;
 
           /**
            * The intermediate values of the RK4 scheme. These are
            * used in the following steps and transferred to another process if
-           * the tracer leaves the domain during one of the steps.
+           * the particle leaves the domain during one of the steps.
            */
           std::map<types::particle_index, Tensor<1,dim> > k1, k2, k3;
 

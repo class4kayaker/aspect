@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/mesh_refinement/nonadiabatic_temperature.h>
+#include <aspect/adiabatic_conditions/interface.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -58,7 +59,7 @@ namespace aspect
       MaterialModel::MaterialModelInputs<dim> in(quadrature.size(),
                                                  this->n_compositional_fields());
 
-      // the values of the compositional fields are stored as blockvectors for each field
+      // the values of the compositional fields are stored as block vectors for each field
       // we have to extract them in this structure
       typename DoFHandler<dim>::active_cell_iterator
       cell = this->get_dof_handler().begin_active(),

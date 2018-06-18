@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -22,6 +22,8 @@
 #include <aspect/global.h>
 #include <aspect/utilities.h>
 #include <aspect/heating_model/interface.h>
+#include <aspect/heating_model/adiabatic_heating.h>
+#include <aspect/heating_model/shear_heating.h>
 
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/signaling_nan.h>
@@ -83,7 +85,7 @@ namespace aspect
                                            const Point<dim> &) const
     {
       Assert(false,
-             ExcMessage ("There is no 'evaluate()' or 'specific_heating_rate()' function implemented in the heating model!"));
+             ExcMessage ("There is no `evaluate()' or `specific_heating_rate()' function implemented in the heating model!"));
       return 0.0;
     }
 
@@ -115,13 +117,32 @@ namespace aspect
     {}
 
 
+
+    template <int dim>
+    bool
+    Manager<dim>::adiabatic_heating_enabled() const
+    {
+      return find_heating_model<HeatingModel::AdiabaticHeating<dim> >() != NULL;
+    }
+
+
+
+    template <int dim>
+    bool
+    Manager<dim>::shear_heating_enabled() const
+    {
+      return find_heating_model<HeatingModel::ShearHeating<dim> >() != NULL;
+    }
+
+
+
     namespace
     {
       std_cxx11::tuple
       <void *,
       void *,
-      internal::Plugins::PluginList<Interface<2> >,
-      internal::Plugins::PluginList<Interface<3> > > registered_plugins;
+      aspect::internal::Plugins::PluginList<Interface<2> >,
+      aspect::internal::Plugins::PluginList<Interface<3> > > registered_plugins;
     }
 
 
@@ -150,55 +171,12 @@ namespace aspect
         model_names
           = Utilities::split_string_list(prm.get("List of model names"));
 
-        const std::string model_name = prm.get ("Model name");
-
-        AssertThrow (model_name == "unspecified" || model_names.size() == 0,
-                     ExcMessage ("The parameter 'Model name' is only used for reasons"
-                                 "of backwards compatibility and can not be used together with "
-                                 "the new functionality 'List of model names'. Please add your "
-                                 "heating model to the list instead."));
-
-        if (!(model_name == "unspecified"))
-          model_names.push_back(model_name);
-
+        AssertThrow(Utilities::has_unique_entries(model_names),
+                    ExcMessage("The list of strings for the parameter "
+                               "'Heating model/List of model names' contains entries more than once. "
+                               "This is not allowed. Please check your parameter file."));
       }
       prm.leave_subsection ();
-
-      prm.enter_subsection ("Model settings");
-      {
-        const bool include_shear_heating = prm.get_bool ("Include shear heating");
-        Assert(!(include_shear_heating && std::find(model_names.begin(), model_names.end(), "shear heating") != model_names.end()),
-               ExcMessage ("Deprecated: The old functionality 'Include shear heating'"
-                           "is only allowed for reasons of backwards compatibility and "
-                           "can not be used together with the new functionality 'List "
-                           "of model names'. Please remove the 'Include shear heating'"
-                           "setting."));
-        if (include_shear_heating)
-          model_names.push_back("shear heating");
-
-        const bool include_adiabatic_heating = prm.get_bool ("Include adiabatic heating");
-        Assert(!(include_adiabatic_heating && std::find(model_names.begin(), model_names.end(), "adiabatic heating") != model_names.end()),
-               ExcMessage ("Deprecated: The old functionality 'Include adiabatic heating'"
-                           "is only allowed for reasons of backwards compatibility and "
-                           "can not be used together with the new functionality 'List "
-                           "of model names'. Please remove the 'Include adiabatic heating'"
-                           "setting."));
-        if (include_adiabatic_heating)
-          model_names.push_back("adiabatic heating");
-
-        const bool include_latent_heat = prm.get_bool ("Include latent heat");
-        Assert(!(include_latent_heat && std::find(model_names.begin(), model_names.end(), "latent heat") != model_names.end()),
-               ExcMessage ("Deprecated: The old functionality 'Include latent heat'"
-                           "is only allowed for reasons of backwards compatibility and "
-                           "can not be used together with the new functionality 'List "
-                           "of model names'. Please remove the 'Include latent heat'"
-                           "setting."));
-        if (include_latent_heat)
-          model_names.push_back("latent heat");
-      }
-      prm.leave_subsection ();
-
-
 
       // go through the list, create objects and let them parse
       // their own parameters
@@ -242,10 +220,14 @@ namespace aspect
         {
           heating_model_outputs.heating_source_terms[q] = 0.0;
           heating_model_outputs.lhs_latent_heat_terms[q] = 0.0;
+          heating_model_outputs.rates_of_temperature_change[q] = 0.0;
         }
 
       HeatingModel::HeatingModelOutputs individual_heating_outputs(material_model_inputs.position.size(),
                                                                    this->n_compositional_fields());
+
+      const MaterialModel::ReactionRateOutputs<dim> *reaction_rate_outputs
+        = material_model_outputs.template get_additional_output<MaterialModel::ReactionRateOutputs<dim> >();
 
       for (typename std::list<std_cxx11::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
            heating_model = heating_model_objects.begin();
@@ -256,9 +238,38 @@ namespace aspect
             {
               heating_model_outputs.heating_source_terms[q] += individual_heating_outputs.heating_source_terms[q];
               heating_model_outputs.lhs_latent_heat_terms[q] += individual_heating_outputs.lhs_latent_heat_terms[q];
+
+              if (!this->get_parameters().use_operator_splitting)
+                Assert(individual_heating_outputs.rates_of_temperature_change[q] == 0.0,
+                       ExcMessage("Rates of temperature change heating model outputs have to be zero "
+                                  "if the model does not use operator splitting."));
+              heating_model_outputs.rates_of_temperature_change[q] += individual_heating_outputs.rates_of_temperature_change[q];
             }
         }
+
+      // If the heating model does not get the reaction rate outputs, it can not correctly compute
+      // the rates of temperature change. To make sure these (incorrect) values are never used anywhere,
+      // overwrite them with signaling_NaNs.
+      if (reaction_rate_outputs == NULL)
+        for (unsigned int q=0; q<heating_model_outputs.rates_of_temperature_change.size(); ++q)
+          heating_model_outputs.rates_of_temperature_change[q] = numbers::signaling_nan<double>();
     }
+
+
+
+    template <int dim>
+    void
+    Manager<dim>::
+    create_additional_material_model_outputs(MaterialModel::MaterialModelOutputs<dim> &material_model_outputs) const
+    {
+      for (typename std::list<std_cxx11::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
+           heating_model = heating_model_objects.begin();
+           heating_model != heating_model_objects.end(); ++heating_model)
+        {
+          (*heating_model)->create_additional_material_model_outputs(material_model_outputs);
+        }
+    }
+
 
 
     template <int dim>
@@ -292,51 +303,12 @@ namespace aspect
                           Patterns::MultipleSelection(pattern_of_names),
                           "A comma separated list of heating models that "
                           "will be used to calculate the heating terms in the energy "
-                          "equation. The results of each of these criteria , i.e., "
+                          "equation. The results of each of these criteria, i.e., "
                           "the heating source terms and the latent heat terms for the "
                           "left hand side will be added.\n\n"
                           "The following heating models are available:\n\n"
                           +
                           std_cxx11::get<dim>(registered_plugins).get_description_string());
-
-        prm.declare_entry ("Model name", "unspecified",
-                           Patterns::Selection (pattern_of_names+"|unspecified"),
-                           "Select one of the following models:\n\n"
-                           "Warning: This is the old formulation of specifying "
-                           "heating models and shouldn't be used. Please use 'List of "
-                           "model names' instead."
-                           +
-                           std_cxx11::get<dim>(registered_plugins).get_description_string());
-      }
-      prm.leave_subsection ();
-
-      prm.enter_subsection ("Model settings");
-      {
-        prm.declare_entry ("Include shear heating", "false",
-                           Patterns::Bool (),
-                           "Whether to include shear heating into the model or not. From a "
-                           "physical viewpoint, shear heating should always be used but may "
-                           "be undesirable when comparing results with known benchmarks that "
-                           "do not include this term in the temperature equation.\n\n"
-                           "Warning: deprecated! Add 'shear heating' to the 'List of model "
-                           "names' instead.");
-        prm.declare_entry ("Include adiabatic heating", "false",
-                           Patterns::Bool (),
-                           "Whether to include adiabatic heating into the model or not. From a "
-                           "physical viewpoint, adiabatic heating should always be used but may "
-                           "be undesirable when comparing results with known benchmarks that "
-                           "do not include this term in the temperature equation.\n\n"
-                           "Warning: deprecated! Add 'adiabatic heating' to the 'List of model "
-                           "names' instead.");
-        prm.declare_entry ("Include latent heat", "false",
-                           Patterns::Bool (),
-                           "Whether to include the generation of latent heat at phase transitions "
-                           "into the model or not. From a physical viewpoint, latent heat should "
-                           "always be used but may be undesirable when comparing results with known "
-                           "benchmarks that do not include this term in the temperature equation "
-                           "or when dealing with a model without phase transitions.\n\n"
-                           "Warning: deprecated! Add 'latent heat' to the 'List of model "
-                           "names' instead.");
       }
       prm.leave_subsection ();
 
@@ -344,10 +316,24 @@ namespace aspect
     }
 
 
+
+    template <int dim>
+    void
+    Manager<dim>::write_plugin_graph (std::ostream &out)
+    {
+      std_cxx11::get<dim>(registered_plugins).write_plugin_graph ("Heating model interface",
+                                                                  out);
+    }
+
+
+
     HeatingModelOutputs::HeatingModelOutputs(const unsigned int n_points,
                                              const unsigned int)
       :
       heating_source_terms(n_points,numbers::signaling_nan<double>()),
+      // initialize the reaction terms with zeroes because they are not filled
+      // in all heating models
+      rates_of_temperature_change(n_points,0.0),
       lhs_latent_heat_terms(n_points,numbers::signaling_nan<double>())
     {
     }

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2014 by the authors of the ASPECT code.
+  Copyright (C) 2014 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,16 +14,17 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__boundary_temperature_function_h
-#define __aspect__boundary_temperature_function_h
+#ifndef _aspect_boundary_temperature_function_h
+#define _aspect_boundary_temperature_function_h
 
 #include <aspect/boundary_temperature/interface.h>
 #include <aspect/simulator_access.h>
+#include <aspect/utilities.h>
 
 #include <deal.II/base/parsed_function.h>
 
@@ -120,6 +121,12 @@ namespace aspect
          */
         double min_temperature;
         double max_temperature;
+
+        /**
+         * The coordinate representation to evaluate the function. Possible
+         * choices are depth, cartesian and spherical.
+         */
+        Utilities::Coordinates::CoordinateSystem coordinate_system;
     };
   }
 }

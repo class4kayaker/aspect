@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__postprocess_stokes_residual_h
-#define __aspect__postprocess_stokes_residual_h
+#ifndef _aspect_postprocess_stokes_residual_h
+#define _aspect_postprocess_stokes_residual_h
 
 #include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>
@@ -95,9 +95,8 @@ namespace aspect
         /**
          * Callback function to collect the data.
          */
-        void stokes_solver_callback (const SimulatorAccess<dim> &sim,
-                                     const bool success,
-                                     const std::vector<double> &history);
+        void stokes_solver_callback (const SolverControl &solver_control_cheap,
+                                     const SolverControl &solver_control_expensive);
 
         /**
          * An array of all the past values

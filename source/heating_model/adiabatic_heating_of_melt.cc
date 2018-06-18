@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -44,7 +44,8 @@ namespace aspect
       // get the melt velocity from the solution vector
       std::vector<Tensor<1,dim> > melt_velocity (material_model_inputs.position.size());
 
-      if (material_model_inputs.cell && this->get_timestep_number() > 0)
+      if (material_model_inputs.current_cell.state() == IteratorState::valid
+          && this->get_timestep_number() > 0)
         {
           // we have to create a long vector, because that is the only way to extract the velocities
           // from the solution vector
@@ -53,7 +54,7 @@ namespace aspect
           Functions::FEFieldFunction<dim, DoFHandler<dim>, LinearAlgebra::BlockVector>
           fe_value(this->get_dof_handler(), this->get_solution(), this->get_mapping());
 
-          fe_value.set_active_cell(*material_model_inputs.cell);
+          fe_value.set_active_cell(material_model_inputs.current_cell);
 
           for (unsigned int d=0; d<dim; ++d)
             fe_value.value_list(material_model_inputs.position,
@@ -151,14 +152,14 @@ namespace aspect
   {
     ASPECT_REGISTER_HEATING_MODEL(AdiabaticHeatingMelt,
                                   "adiabatic heating of melt",
-                                  "Implementation of a standard and a simplified model of"
+                                  "Implementation of a standard and a simplified model of "
                                   "adiabatic heating of melt. The full model implements the "
                                   "heating term \n"
                                   "$\\alpha T (-\\phi \\mathbf u_s \\cdot \\nabla p) "
                                   "+ \\alpha T (\\phi \\mathbf u_f \\cdot \nabla p)$.\n"
                                   "For full adiabatic heating, "
                                   "this has to be used in combination with the heating model "
-                                  "'adiabatic heating' to also include adiabatic heating for "
+                                  "`adiabatic heating' to also include adiabatic heating for "
                                   "the solid part, and the full heating term is then "
                                   "$\\alpha T ((1-\\phi) \\mathbf u_s \\cdot \\nabla p) "
                                   "+ \\alpha T (\\phi \\mathbf u_f \\cdot \\nabla p)$.")

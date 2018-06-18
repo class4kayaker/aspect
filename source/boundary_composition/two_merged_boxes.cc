@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -38,13 +38,12 @@ namespace aspect
                           const Point<dim> &/*position*/,
                           const unsigned int compositional_field) const
     {
-      // verify that the geometry is in fact a box since only
-      // for this geometry do we know for sure what boundary indicators it
-      // uses and what they mean
+      // verify that the geometry is a box since only for this geometry
+      // do we know for sure what boundary indicators it uses and what they mean
       Assert (dynamic_cast<const GeometryModel::TwoMergedBoxes<dim>*>(&this->get_geometry_model())
               != 0,
               ExcMessage ("This boundary model is only useful if the geometry is "
-                          "in fact a box with additional lithosphere boundary indicators."));
+                          "a box with additional lithosphere boundary indicators."));
 
       Assert (boundary_indicator<2*dim+2*(dim-1), ExcMessage ("The given boundary indicator needs to be less than 2*dimension+2*(dim-1)."));
 
@@ -172,9 +171,9 @@ namespace aspect
       // has the requisite number of elements
       for (unsigned int f=0; f<2*dim+2*(dim-1); ++f)
         AssertThrow (composition_values[f].size() == this->n_compositional_fields(),
-                     ExcMessage (std::string("The specification of boundary composition values for the 'box with "
+                     ExcMessage (std::string("The specification of boundary composition values for the `box with "
                                              "lithosphere boundary indicators' model "
-                                             "requires as many values for each boundary indicatof the box as there "
+                                             "requires as many values for each boundary indicator the box as there "
                                              "are compositional "
                                              "fields. However, for boundary indicator ")
                                  +

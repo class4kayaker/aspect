@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -292,6 +292,39 @@ namespace aspect
     }
 
 
+    template <int dim>
+    aspect::Utilities::Coordinates::CoordinateSystem
+    TwoMergedBoxes<dim>::natural_coordinate_system() const
+    {
+      return aspect::Utilities::Coordinates::CoordinateSystem::cartesian;
+    }
+
+
+    template <int dim>
+    std_cxx11::array<double,dim>
+    TwoMergedBoxes<dim>::cartesian_to_natural_coordinates(const Point<dim> &position_point) const
+    {
+      std::array<double,dim> position_array;
+      for (unsigned int i = 0; i < dim; i++)
+        position_array[i] = position_point(i);
+
+      return position_array;
+    }
+
+
+
+    template <int dim>
+    Point<dim>
+    TwoMergedBoxes<dim>::natural_to_cartesian_coordinates(const std_cxx11::array<double,dim> &position_tensor) const
+    {
+      Point<dim> position_point;
+      for (unsigned int i = 0; i < dim; i++)
+        position_point[i] = position_tensor[i];
+
+      return position_point;
+    }
+
+
 
     template <int dim>
     void
@@ -463,7 +496,7 @@ namespace aspect
                                    "indicators 0 through 5 indicate left, right, front, back, bottom "
                                    "and top boundaries (see also the documentation of the deal.II class "
                                    "``GeometryInfo''), while indicators 6, 7, 8 and 9 denote the left, "
-                                   "rigth, front and back upper parts of the vertical boundaries, respectively. "
+                                   "right, front and back upper parts of the vertical boundaries, respectively. "
                                    "You can also use symbolic names ``left'', ``right'', "
                                    "``left lithosphere'', etc., to refer to these boundaries in input files."
                                    "\n\n"

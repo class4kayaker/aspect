@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011-2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__postprocess_boundary_pressures_h
-#define __aspect__postprocess_boundary_pressures_h
+#ifndef _aspect_postprocess_boundary_pressures_h
+#define _aspect_postprocess_boundary_pressures_h
 
 #include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>
@@ -33,7 +33,7 @@ namespace aspect
     /**
      * A postprocessor that computes the laterally averaged pressure
      * at the top and bottom boundaries of the solution.  This is useful
-     * for calculating the dyanamic topography at those surfaces.
+     * for calculating the dynamic topography at those surfaces.
      *
      * @ingroup Postprocessing
      */

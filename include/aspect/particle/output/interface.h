@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_output_interface_h
-#define __aspect__particle_output_interface_h
+#ifndef _aspect_particle_output_interface_h
+#define _aspect_particle_output_interface_h
 
 #include <aspect/particle/particle.h>
 #include <aspect/particle/property/interface.h>
@@ -64,15 +64,11 @@ namespace aspect
            * to a file. If possible, encode the current simulation time
            * into this file using the data provided in the last argument.
            *
-           * @param[in] particles The set of particles to generate a graphical
-           * representation for.
+           * @param[in] particle_handler The particle handler that allows access
+           * to the collection of particles.
            *
-           * @param [in] property_component_list A vector of the names and number
-           * of components of each property. Every name entry represents the
-           * name of one particle property that will be written.The number of
-           * components equals one for scalar properties and dim for
-           * vector properties, but any other number is valid as well
-           * (e.g. number of compositional fields).
+           * @param [in] property_information Information object containing names and number
+           * of components of each property.
            *
            * @param[in] current_time Current time of the simulation, given as either
            * years or seconds, as selected in the input file. In other words,
@@ -85,7 +81,7 @@ namespace aspect
            */
           virtual
           std::string
-          output_particle_data(const std::multimap<types::LevelInd, Particle<dim> >     &particles,
+          output_particle_data(const ParticleHandler<dim> &particle_handler,
                                const Property::ParticlePropertyInformation &property_information,
                                const double current_time) = 0;
 
@@ -133,6 +129,14 @@ namespace aspect
       };
 
 
+      // template function
+      template <int dim>
+      template <class Archive>
+      void Interface<dim>::serialize (Archive &, const unsigned int)
+      {}
+
+
+
       /**
        * Register a particle output so that it can be selected from
        * the parameter file.
@@ -177,6 +181,20 @@ namespace aspect
       template <int dim>
       void
       declare_parameters (ParameterHandler &prm);
+
+
+      /**
+       * For the current plugin subsystem, write a connection graph of all of the
+       * plugins we know about, in the format that the
+       * programs dot and neato understand. This allows for a visualization of
+       * how all of the plugins that ASPECT knows about are interconnected, and
+       * connect to other parts of the ASPECT code.
+       *
+       * @param output_stream The stream to write the output to.
+       */
+      template <int dim>
+      void
+      write_plugin_graph (std::ostream &output_stream);
 
       /**
        * Given a class name, a name, and a description for the parameter file

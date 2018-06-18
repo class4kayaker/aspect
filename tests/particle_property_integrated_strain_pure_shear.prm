@@ -17,10 +17,15 @@ subsection Geometry model
   end
 end
 
-subsection Model settings
-  set Include adiabatic heating               = false
-  set Include shear heating                   = false
+# The parameters below this comment were created by the update script
+# as replacement for the old 'Model settings' subsection. They can be
+# safely merged with any existing subsections with the same name.
+
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = left,bottom
+end
+
+subsection Boundary velocity model
   set Prescribed velocity boundary indicators = top:function, right:function
 end
 
@@ -51,10 +56,10 @@ end
 # Note: The temperature plays no role in this model
 
 subsection Boundary temperature model
-  set Model name = box
+  set List of model names = box
 end
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = function
   subsection Function
     set Function expression = 0
@@ -85,13 +90,13 @@ end
 ############### Parameters describing what to do with the solution
 
 subsection Postprocess
-  set List of postprocessors = tracers
+  set List of postprocessors = particles
 
-  subsection Tracers
-    set Number of tracers = 10
+  subsection Particles
+    set Number of particles = 10
     set Time between data output = 1.0
     set Data output format = ascii
-    set List of tracer properties = integrated strain
+    set List of particle properties = integrated strain
 
     set Particle generator name = random uniform
   end

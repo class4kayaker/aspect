@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -30,6 +30,7 @@ namespace aspect
     ArtificialViscosity<dim>::execute(Vector<float> &indicators) const
     {
       indicators = 0;
+      Vector<float> this_indicator(indicators.size());
       if (temperature_scaling_factor > 0.0)
         {
           this->get_artificial_viscosity(indicators);
@@ -38,7 +39,7 @@ namespace aspect
 
       for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
         {
-          Vector<float> this_indicator (indicators.size());
+          this_indicator = 0;
           this->get_artificial_viscosity_composition(this_indicator, c);
 
           // compute indicators += c*this_indicator:

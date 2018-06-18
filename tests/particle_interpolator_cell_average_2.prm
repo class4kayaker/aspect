@@ -1,7 +1,7 @@
 #########################################################
 # This is a variation of the composition-passive.prm
 # parameter file, with the exception that we also
-# advect along a set of tracers that 
+# advect along a set of particles that 
 #
 # See the manual for more information about this setup.
 
@@ -24,16 +24,25 @@ subsection Geometry model
 end
 
 
-subsection Model settings
+# The parameters below this comment were created by the update script
+# as replacement for the old 'Model settings' subsection. They can be
+# safely merged with any existing subsections with the same name.
+
+subsection Boundary temperature model
   set Fixed temperature boundary indicators   = bottom, top
-  set Zero velocity boundary indicators       =
+end
+
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = left, right, bottom
+end
+
+subsection Boundary velocity model
   set Prescribed velocity boundary indicators = top: function
 end
 
 
 subsection Boundary temperature model
-  set Model name = box
+  set List of model names = box
 
   subsection Box
     set Bottom temperature = 1
@@ -56,7 +65,7 @@ subsection Gravity model
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = function
 
   subsection Function
@@ -91,13 +100,14 @@ end
 
 
 subsection Postprocess
-  set List of postprocessors = tracers, velocity statistics, composition statistics, temperature statistics
+  set List of postprocessors = particles, velocity statistics, composition statistics, temperature statistics
 
-  subsection Tracers
-    set Number of tracers        = 20000
+  subsection Particles
+    set Number of particles        = 20000
     set Time between data output = 0.03
     set Data output format       = none
-    set List of tracer properties = initial composition
+    set List of particle properties = initial composition
+    set Update ghost particles   = true
   end
 end
 
@@ -113,7 +123,7 @@ subsection Compositional fields
   set Compositional field methods = particles
 end
 
-subsection Compositional initial conditions
+subsection Initial composition model
   set Model name = function
 
   subsection Function

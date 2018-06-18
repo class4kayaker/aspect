@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/termination_criteria/interface.h>
 #include <aspect/simulator.h>
+#include <aspect/utilities.h>
 
 #include <typeinfo>
 
@@ -169,8 +170,8 @@ namespace aspect
       std_cxx11::tuple
       <void *,
       void *,
-      internal::Plugins::PluginList<Interface<2> >,
-      internal::Plugins::PluginList<Interface<3> > > registered_plugins;
+      aspect::internal::Plugins::PluginList<Interface<2> >,
+      aspect::internal::Plugins::PluginList<Interface<3> > > registered_plugins;
     }
 
 
@@ -226,6 +227,10 @@ namespace aspect
         do_checkpoint_on_terminate = prm.get_bool("Checkpoint on termination");
 
         plugin_names = Utilities::split_string_list(prm.get("Termination criteria"));
+        AssertThrow(Utilities::has_unique_entries(plugin_names),
+                    ExcMessage("The list of strings for the parameter "
+                               "'Termination criteria/Termination criteria' contains entries more than once. "
+                               "This is not allowed. Please check your parameter file."));
 
         // as described, the end time plugin is always active
         if (std::find (plugin_names.begin(), plugin_names.end(), "end time")
@@ -263,6 +268,16 @@ namespace aspect
                                                                description,
                                                                declare_parameters_function,
                                                                factory_function);
+    }
+
+
+
+    template <int dim>
+    void
+    Manager<dim>::write_plugin_graph (std::ostream &out)
+    {
+      std_cxx11::get<dim>(registered_plugins).write_plugin_graph ("Termination criteria interface",
+                                                                  out);
     }
 
   }

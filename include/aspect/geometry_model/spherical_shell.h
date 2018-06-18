@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2014, 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,17 +14,21 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__geometry_model_spherical_shell_h
-#define __aspect__geometry_model_spherical_shell_h
+#ifndef _aspect_geometry_model_spherical_shell_h
+#define _aspect_geometry_model_spherical_shell_h
 
 #include <aspect/geometry_model/interface.h>
 #include <aspect/simulator_access.h>
 
+#if !DEAL_II_VERSION_GTE(9,0,0)
+#include <deal.II/grid/tria_boundary_lib.h>
+#endif
+#include <deal.II/grid/manifold_lib.h>
 
 namespace aspect
 {
@@ -46,6 +50,11 @@ namespace aspect
     class SphericalShell : public Interface<dim>, public SimulatorAccess<dim>
     {
       public:
+        /**
+         *
+         */
+        SphericalShell();
+
         /**
          * Generate a coarse mesh for the geometry described by this class.
          */
@@ -78,6 +87,13 @@ namespace aspect
         virtual
         double depth(const Point<dim> &position) const;
 
+        /**
+         * Return the height of the given position relative to
+         * the outer radius of the shell.
+         */
+        virtual
+        double height_above_reference_surface(const Point<dim> &position) const;
+
         virtual
         Point<dim> representative_point(const double depth) const;
 
@@ -91,7 +107,7 @@ namespace aspect
          *
          * The spherical shell model uses boundary indicators zero and one,
          * with zero corresponding to the inner surface and one corresponding
-         * to the outer surface. In 2d, if the geomery is only a slice of the
+         * to the outer surface. In 2d, if the geometry is only a slice of the
          * shell, boundary indicators 2 and 3 indicate the left and right
          * radial bounding lines.
          */
@@ -125,6 +141,13 @@ namespace aspect
         virtual
         bool
         point_is_in_domain(const Point<dim> &p) const;
+
+        /*
+         * Returns what the natural coordinate system for this geometry model is,
+         * which for a spherical shell is Spherical.
+         */
+        virtual
+        aspect::Utilities::Coordinates::CoordinateSystem natural_coordinate_system() const;
 
         /**
          * Declare the parameters this class takes through input files. The
@@ -179,6 +202,35 @@ namespace aspect
          * Number of tangential mesh cells in the initial, coarse mesh.
          */
         int n_cells_along_circumference;
+
+        /**
+         * The manifold that describes the geometry.
+         */
+        const SphericalManifold<dim> spherical_manifold;
+
+        /**
+         * Set the manifold ids on all cells (also boundaries) before
+         * refinement to generate well shaped cells.
+         */
+        void set_manifold_ids (parallel::distributed::Triangulation<dim> &triangulation) const;
+
+#if !DEAL_II_VERSION_GTE(9,0,0)
+        /**
+         * Clear manifold ids from boundaries after refinement so that
+         * the boundary objects can take over for versions of deal.II,
+         * in which manifolds could not provide the normal vectors that
+         * are necessary at boundaries.
+         */
+        void clear_manifold_ids (parallel::distributed::Triangulation<dim> &triangulation) const;
+
+        /**
+         * Boundary objects that are required until deal.II 9.0,
+         * because the manifold could not provide normal vectors
+         * up to this version.
+         */
+        const HyperShellBoundary<dim> boundary_shell;
+        const StraightBoundary<dim> straight_boundary;
+#endif
     };
   }
 }

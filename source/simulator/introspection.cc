@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -173,6 +173,7 @@ namespace aspect
     :
     FEVariableCollection<dim>(variable_definition),
     n_components (FEVariableCollection<dim>::n_components()),
+    n_compositional_fields (parameters.n_compositional_fields),
     use_discontinuous_temperature_discretization (parameters.use_discontinuous_temperature_discretization),
     use_discontinuous_composition_discretization (parameters.use_discontinuous_composition_discretization),
     component_indices (internal::setup_component_indices<dim>(*this)),
@@ -216,7 +217,7 @@ namespace aspect
 
   namespace
   {
-    template<int dim>
+    template <int dim>
     std::vector<ComponentMask>
     make_component_mask_sequence(const FEVariable<dim> &variable)
     {
@@ -271,6 +272,20 @@ namespace aspect
             true
             :
             false);
+  }
+
+  template <int dim>
+  bool
+  Introspection<dim>::is_stokes_component (const unsigned int component_index) const
+  {
+    if (component_index == component_indices.pressure)
+      return true;
+
+    for (unsigned int i=0; i<dim; ++i)
+      if (component_index == component_indices.velocities[i])
+        return true;
+
+    return false;
   }
 
 

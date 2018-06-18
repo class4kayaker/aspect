@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2018 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,15 +14,17 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_property_interface_h
-#define __aspect__particle_property_interface_h
+#ifndef _aspect_particle_property_interface_h
+#define _aspect_particle_property_interface_h
 
 #include <aspect/particle/particle.h>
+#include <aspect/particle/particle_handler.h>
 #include <aspect/particle/interpolator/interface.h>
+#include <aspect/particle/property_pool.h>
 
 #include <aspect/simulator_access.h>
 #include <aspect/plugins.h>
@@ -45,7 +47,7 @@ namespace aspect
        * By 'property plugins' we mean each separate class that is derived from
        * aspect::Particle::Property::Interface<dim>, and that is selected in
        * the input file. This means in any model there are as many property
-       * plugins as entries in the 'List of tracer properties' input parameter.
+       * plugins as entries in the 'List of particle properties' input parameter.
        *
        * Each plugin can create one or more 'property fields'. Property fields
        * are interpreted as distinctly named particle properties. Most plugins
@@ -216,7 +218,7 @@ namespace aspect
           std::vector<unsigned int> position_per_plugin;
 
           /**
-           * The number of doubles needed to represent a tracer's
+           * The number of doubles needed to represent a particle's
            * additional properties.
            */
           unsigned int number_of_components;
@@ -242,13 +244,13 @@ namespace aspect
          */
         update_never,
         /**
-         * Update the tracer properties before every output. This is
-         * sufficient for all passive tracer properties that depend on the
+         * Update the particle properties before every output. This is
+         * sufficient for all passive particle properties that depend on the
          * current solution, like the current velocity or pressure.
          */
         update_output_step,
         /**
-         * Update the tracer properties every timestep. This is only necessary
+         * Update the particle properties every timestep. This is only necessary
          * if the properties at the output time depend on some sort of time
          * integration of solution properties or time varying particle
          * properties are used while solving the model problem.
@@ -282,13 +284,13 @@ namespace aspect
       };
 
       /**
-        * Interface provides an example of how to extend the Particle
-        * class to include related particle data. This allows users to attach
-        * scalars/vectors/tensors/etc to particles and ensure they are
-        * transmitted correctly over MPI and written to output files.
-        *
-        * @ingroup ParticleProperties
-        */
+       * Interface provides an example of how to extend the Particle class to
+       * include related particle data. This allows users to attach
+       * scalars/vectors/tensors/etc to particles and ensure they are
+       * transmitted correctly over MPI and written to output files.
+       *
+       * @ingroup ParticleProperties
+       */
       template <int dim>
       class Interface
       {
@@ -355,7 +357,7 @@ namespace aspect
                                         const Point<dim> &position,
                                         const Vector<double> &solution,
                                         const std::vector<Tensor<1,dim> > &gradients,
-                                        std::vector<double> &particle_properties) const;
+                                        const ArrayView<double> &particle_properties) const;
 
           /**
            * Returns an enum, which determines at what times particle properties
@@ -366,7 +368,7 @@ namespace aspect
            * plugin that implements this function should return the value
            * appropriate for its purpose, unless it does not need any update,
            * which is the default. This option saves considerable computation
-           * time in cases, when no plugin needs to update tracer properties
+           * time in cases, when no plugin needs to update particle properties
            * over time.
            */
           virtual
@@ -484,7 +486,7 @@ namespace aspect
            * collection after it was created.
            */
           void
-          initialize_one_particle (Particle<dim> &particle) const;
+          initialize_one_particle (typename ParticleHandler<dim>::particle_iterator &particle) const;
 
           /**
            * Initialization function for particle properties. This function is
@@ -492,9 +494,9 @@ namespace aspect
            * collection that were created later than the initial particle
            * generation.
            */
-          void
-          initialize_late_particle (Particle<dim> &particle,
-                                    const std::multimap<types::LevelInd, Particle<dim> > &particles,
+          std::vector<double>
+          initialize_late_particle (const Point<dim> &particle_location,
+                                    const ParticleHandler<dim> &particle_handler,
                                     const Interpolator::Interface<dim> &interpolator,
                                     const typename parallel::distributed::Triangulation<dim>::active_cell_iterator &cell = typename parallel::distributed::Triangulation<dim>::active_cell_iterator()) const;
 
@@ -503,18 +505,18 @@ namespace aspect
            * called once every time step for every particle.
            */
           void
-          update_one_particle (Particle<dim> &particle,
+          update_one_particle (typename ParticleHandler<dim>::particle_iterator &particle,
                                const Vector<double> &solution,
                                const std::vector<Tensor<1,dim> > &gradients) const;
 
           /**
            * Returns an enum, which denotes at what time this class needs to
-           * update tracer properties. The result of this class is a
+           * update particle properties. The result of this class is a
            * combination of the need_update() functions of all individual
            * properties that are selected. More precise, it will choose to
-           * update the tracer properties as often as the plugin that needs the
+           * update the particle properties as often as the plugin that needs the
            * most frequent update option requires. This saves considerable
-           * computation time, e.g. in cases when no plugin needs to update tracer
+           * computation time, e.g. in cases when no plugin needs to update particle
            * properties over time, because the solution does not need to be
            * evaluated in this case.
            */
@@ -567,8 +569,9 @@ namespace aspect
            * @deprecated This function will be replaced by
            * ParticlePropertyInformation::get_position_by_fieldname(name)
            */
+          DEAL_II_DEPRECATED
           unsigned int
-          get_property_component_by_name(const std::string &name) const DEAL_II_DEPRECATED;
+          get_property_component_by_name(const std::string &name) const;
 
           /**
            * A function that is used to register particle property
@@ -609,6 +612,20 @@ namespace aspect
           void
           parse_parameters (ParameterHandler &prm);
 
+
+          /**
+           * For the current plugin subsystem, write a connection graph of all of the
+           * plugins we know about, in the format that the
+           * programs dot and neato understand. This allows for a visualization of
+           * how all of the plugins that ASPECT knows about are interconnected, and
+           * connect to other parts of the ASPECT code.
+           *
+           * @param output_stream The stream to write the output to.
+           */
+          static
+          void
+          write_plugin_graph (std::ostream &output_stream);
+
         private:
 
           /**
@@ -622,13 +639,12 @@ namespace aspect
            * their association with property plugins and their storage pattern.
            */
           ParticlePropertyInformation property_information;
-
       };
 
 
       /**
        * Given a class name, a name, and a description for the parameter file for
-       * a tracer property, register it with the aspect::Particle:: class.
+       * a particle property, register it with the aspect::Particle:: class.
        *
        * @ingroup Particle
        */

@@ -11,14 +11,16 @@
 /CTestTestfile.cmake
 /Makefile
 /aspect
-/benchmark/**/CMakeCache.txt
-/benchmark/**/CMakeFiles/
-/benchmark/**/Makefile
-/benchmark/**/cmake_install.cmake
-/benchmark/**/lib*.so
-/benchmark/**/output/
-/benchmark/tangurnis/*/*csv
-/benchmark/tangurnis/*/solution*
+/benchmarks/**/CMakeCache.txt
+/benchmarks/**/CMakeFiles/
+/benchmarks/**/Makefile
+/benchmarks/**/cmake_install.cmake
+/benchmarks/**/lib*.so
+/benchmarks/**/output/
+/benchmarks/**/aspect
+/benchmarks/**/temp.prm
+/benchmarks/tangurnis/*/*csv
+/benchmarks/tangurnis/*/solution*
 /build*/
 /cmake_install.cmake
 /cookbooks/**/lib*.so
@@ -42,6 +44,7 @@
 /doc/manual/prmindexfull.ilg
 /doc/manual/prmindexfull.ind
 /doc/manual/cookbooks/**/*.out
+/doc/modules/changes.h
 /output/
 /tests/CMakeFiles/
 /tests/CTestTestfile.cmake
@@ -51,3 +54,8 @@
 /tests/*.x.prm
 /tests/lib*.so
 /Testing
+
+# used for clion:
+
+.idea/
+cmake-build-debug/

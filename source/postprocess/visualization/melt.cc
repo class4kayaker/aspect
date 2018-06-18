@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/visualization/melt.h>
 #include <aspect/melt.h>
+#include <aspect/utilities.h>
 #include <aspect/simulator.h>
 #include <aspect/material_model/interface.h>
 
@@ -53,6 +54,10 @@ namespace aspect
           if (property_names[i] == "fluid density gradient")
             for (unsigned int i=0; i<dim; ++i)
               solution_names.push_back ("fluid_density_gradient");
+          else if (property_names[i] == "compaction pressure")
+            {
+              solution_names.push_back ("p_c");
+            }
           else
             {
               solution_names.push_back(property_names[i]);
@@ -93,40 +98,31 @@ namespace aspect
       template <int dim>
       void
       MeltMaterialProperties<dim>::
-      compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
-                                         const std::vector<std::vector<Tensor<1,dim> > > &/*duh*/,
-                                         const std::vector<std::vector<Tensor<2,dim> > > &/*dduh*/,
-                                         const std::vector<Point<dim> >                  &/*normals*/,
-                                         const std::vector<Point<dim> >                  &evaluation_points,
-                                         std::vector<Vector<double> >                    &computed_quantities) const
+      evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
+                            std::vector<Vector<double> > &computed_quantities) const
       {
         AssertThrow(this->include_melt_transport()==true,
                     ExcMessage("'Include melt transport' has to be on when using melt transport postprocessors."));
 
-        const unsigned int n_quadrature_points = uh.size();
+        const unsigned int n_quadrature_points = input_data.solution_values.size();
         Assert (computed_quantities.size() == n_quadrature_points,    ExcInternalError());
-        Assert (uh[0].size() == this->introspection().n_components,   ExcInternalError());
+        Assert (input_data.solution_values[0].size() == this->introspection().n_components,   ExcInternalError());
 
-        MaterialModel::MaterialModelInputs<dim> in(n_quadrature_points, this->n_compositional_fields());
+        // Set use_strain_rates to true since the compaction viscosity might also depend on the strain rate.
+        MaterialModel::MaterialModelInputs<dim> in(input_data,
+                                                   this->introspection(), true);
         MaterialModel::MaterialModelOutputs<dim> out(n_quadrature_points, this->n_compositional_fields());
         MeltHandler<dim>::create_material_model_outputs(out);
-
-        in.position = evaluation_points;
-        in.strain_rate.resize(0); // we do not need the viscosity
-        for (unsigned int q=0; q<n_quadrature_points; ++q)
-          {
-            in.pressure[q]=uh[q][this->introspection().component_indices.pressure];
-            in.temperature[q]=uh[q][this->introspection().component_indices.temperature];
-
-            for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-              in.composition[q][c] = uh[q][this->introspection().component_indices.compositional_fields[c]];
-          }
 
         this->get_material_model().evaluate(in, out);
         MaterialModel::MeltOutputs<dim> *melt_outputs = out.template get_additional_output<MaterialModel::MeltOutputs<dim> >();
         AssertThrow(melt_outputs != NULL,
                     ExcMessage("Need MeltOutputs from the material model for computing the melt properties."));
 
+        const double p_c_scale = dynamic_cast<const MaterialModel::MeltInterface<dim>*>(&this->get_material_model())->p_c_scale(in,
+                                 out,
+                                 this->get_melt_handler(),
+                                 true);
 
         for (unsigned int q=0; q<n_quadrature_points; ++q)
           {
@@ -149,6 +145,27 @@ namespace aspect
                       }
                     --output_index;
                   }
+                else if (property_names[i] == "compaction pressure")
+                  {
+                    const unsigned int pc_comp_idx = this->introspection().variable("compaction pressure").first_component_index;
+                    const double p_c_bar = input_data.solution_values[q][pc_comp_idx];
+
+                    computed_quantities[q][output_index] = p_c_scale * p_c_bar;
+                  }
+                else if (property_names[i] == "darcy coefficient")
+                  {
+                    const double K_D = this->get_melt_handler().limited_darcy_coefficient(melt_outputs->permeabilities[q] / melt_outputs->fluid_viscosities[q], p_c_scale > 0);
+                    computed_quantities[q][output_index] = K_D;
+                  }
+                else if (property_names[i] == "darcy coefficient no cutoff")
+                  {
+                    const double K_D_no_cut = melt_outputs->permeabilities[q] / melt_outputs->fluid_viscosities[q];
+                    computed_quantities[q][output_index] = K_D_no_cut;
+                  }
+                else if (property_names[i] == "is melt cell")
+                  {
+                    computed_quantities[q][output_index] = this->get_melt_handler().is_melt_cell(in.current_cell)? 1.0 : 0.0;
+                  }
                 else
                   AssertThrow(false, ExcNotImplemented());
               }
@@ -167,7 +184,8 @@ namespace aspect
             {
               const std::string pattern_of_names
                 = "compaction viscosity|fluid viscosity|permeability|"
-                  "fluid density|fluid density gradient";
+                  "fluid density|fluid density gradient|is melt cell|"
+                  "darcy coefficient|darcy coefficient no cutoff";
 
               prm.declare_entry("List of properties",
                                 "compaction viscosity,permeability",
@@ -196,6 +214,13 @@ namespace aspect
             prm.enter_subsection("Melt material properties");
             {
               property_names = Utilities::split_string_list(prm.get ("List of properties"));
+              AssertThrow(Utilities::has_unique_entries(property_names),
+                          ExcMessage("The list of strings for the parameter "
+                                     "'Postprocess/Visualization/Melt material properties/List of properties' contains entries more than once. "
+                                     "This is not allowed. Please check your parameter file."));
+
+              // Always output compaction pressure
+              property_names.insert(property_names.begin(),"compaction pressure");
             }
             prm.leave_subsection();
           }
@@ -219,7 +244,10 @@ namespace aspect
       ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(MeltMaterialProperties,
                                                   "melt material properties",
                                                   "A visualization output object that generates output "
-                                                  "for melt related properties of the material model.")
+                                                  "for melt related properties of the material model. Note "
+                                                  "that this postprocessor always outputs the compaction pressure, "
+                                                  "but can output a large range of additional properties, as "
+                                                  "selected in the ``List of properties'' parameter.")
 
     }
   }

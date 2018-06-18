@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__heating_model_shear_heating_with_melt_h
-#define __aspect__heating_model_shear_heating_with_melt_h
+#ifndef _aspect_heating_model_shear_heating_with_melt_h
+#define _aspect_heating_model_shear_heating_with_melt_h
 
 #include <aspect/heating_model/interface.h>
 #include <aspect/simulator_access.h>
@@ -37,7 +37,7 @@ namespace aspect
      *
      * Add the term
      *    $   \xi \left( \nabla \cdot \mathbf u_s \right)^2 $,
-     * which correponds to bulk (compression) heating,
+     * which corresponds to bulk (compression) heating,
      * and the term
      *    $   \frac{\eta_f \phi^2}{k_{\phi}} \left( \mathbf u_f - \mathbf u_s \right)^2 $,
      * which corresponds to heating due to melt segregation.
@@ -66,10 +66,6 @@ namespace aspect
         virtual
         void
         create_additional_material_model_outputs(MaterialModel::MaterialModelOutputs<dim> &) const;
-
-        /**
-         * @}
-         */
     };
   }
 }

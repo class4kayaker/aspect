@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/heat_flux_map.h>
+#include <aspect/geometry_model/interface.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -53,7 +54,7 @@ namespace aspect
       std::ostringstream output;
       std::vector<std::pair<Point<dim>,double> > stored_values;
 
-      // loop over all of the surface cells and evaluate the heatflux
+      // loop over all of the surface cells and evaluate the heat flux
       typename DoFHandler<dim>::active_cell_iterator
       cell = this->get_dof_handler().begin_active(),
       endc = this->get_dof_handler().end();
@@ -61,11 +62,13 @@ namespace aspect
       for (; cell!=endc; ++cell)
         if (cell->is_locally_owned())
           for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-            if (cell->at_boundary(f))
+            if (cell->at_boundary(f) &&
+                (this->get_geometry_model().translate_id_to_symbol_name (cell->face(f)->boundary_id()) == "top" ||
+                 this->get_geometry_model().translate_id_to_symbol_name (cell->face(f)->boundary_id()) == "bottom"))
               {
                 fe_face_values.reinit (cell, f);
 
-                //evaluate position of heatflow to write into output file
+                // evaluate position of heat flow to write into output file
                 const Point<dim> midpoint_at_surface = cell->face(f)->center();
 
                 // get the various components of the solution, then
@@ -116,7 +119,7 @@ namespace aspect
 
                 const double flux_density = normal_flux / face_area;
 
-                //store final position and heatflow
+                // store final position and heat flow
                 stored_values.push_back (std::make_pair(midpoint_at_surface, flux_density));
 
               }
@@ -133,9 +136,11 @@ namespace aspect
 
 
 
-      const std::string filename = this->get_output_directory() +
-                                   "heat_flux." +
-                                   Utilities::int_to_string(this->get_timestep_number(), 5);
+      std::string filename = this->get_output_directory() +
+                             "heat_flux." +
+                             Utilities::int_to_string(this->get_timestep_number(), 5);
+      if (this->get_parameters().run_postprocessors_on_nonlinear_iterations)
+        filename.append("." + Utilities::int_to_string (this->get_nonlinear_iteration(), 4));
 
       const unsigned int max_data_length = Utilities::MPI::max (output.str().size()+1,
                                                                 this->get_mpi_communicator());
@@ -208,7 +213,7 @@ namespace aspect
                                   "normal. Note that the quantity so computed does not include "
                                   "any energy transported across the boundary by material "
                                   "transport in cases where $\\mathbf u \\cdot \\mathbf n \\neq 0$. "
-                                  "The integrated heatflux for each boundary can be obtained "
+                                  "The integrated heat flux for each boundary can be obtained "
                                   "from the heat flux statistics postprocessor.")
   }
 }

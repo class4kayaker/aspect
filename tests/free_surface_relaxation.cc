@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 #include <aspect/geometry_model/box.h>
@@ -74,8 +74,8 @@ namespace aspect
 
       private:
 
-        unsigned int order;  //Order of the perturbation
-        double amplitude;  //amplitude of the perturbation
+        unsigned int order;  // Order of the perturbation
+        double amplitude;  // amplitude of the perturbation
 
     };
 
@@ -85,10 +85,10 @@ namespace aspect
     create_coarse_mesh (parallel::distributed::Triangulation<dim> &coarse_grid) const
     {
 
-      //Call the normal Box mesh generator
+      // Call the normal Box mesh generator
       Box<dim>::create_coarse_mesh( coarse_grid );
 
-      //move the vertices
+      // move the vertices
       std::vector<bool> vertex_touched (coarse_grid.n_vertices(), false);
 
       typename parallel::distributed::Triangulation<dim>::active_cell_iterator cell;

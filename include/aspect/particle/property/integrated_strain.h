@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2015 - 2016 by the authors of the ASPECT code.
+ Copyright (C) 2015 - 2017 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -14,12 +14,12 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with ASPECT; see the file doc/COPYING.  If not see
+ along with ASPECT; see the file LICENSE.  If not see
  <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __aspect__particle_property_integrated_strain_h
-#define __aspect__particle_property_integrated_strain_h
+#ifndef _aspect_particle_property_integrated_strain_h
+#define _aspect_particle_property_integrated_strain_h
 
 #include <aspect/particle/property/interface.h>
 #include <aspect/simulator_access.h>
@@ -86,11 +86,11 @@ namespace aspect
                                         const Point<dim> &position,
                                         const Vector<double> &solution,
                                         const std::vector<Tensor<1,dim> > &gradients,
-                                        std::vector<double> &particle_properties) const;
+                                        const ArrayView<double> &particle_properties) const;
 
           /**
            * This implementation tells the particle manager that
-           * we need to update tracer properties every time step.
+           * we need to update particle properties every time step.
            */
           UpdateTimeFlags
           need_update () const;

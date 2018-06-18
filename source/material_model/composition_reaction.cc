@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,14 +14,14 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/material_model/composition_reaction.h>
+#include <aspect/geometry_model/interface.h>
 
-using namespace dealii;
 
 namespace aspect
 {
@@ -34,6 +34,8 @@ namespace aspect
     evaluate(const MaterialModelInputs<dim> &in,
              MaterialModelOutputs<dim> &out) const
     {
+      ReactionRateOutputs<dim> *reaction_rate_out = out.template get_additional_output<ReactionRateOutputs<dim> >();
+
       for (unsigned int i=0; i < in.position.size(); ++i)
         {
           const double temperature = in.temperature[i];
@@ -50,7 +52,7 @@ namespace aspect
                 out.viscosities[i] = temperature_dependence * eta;
                 break;
               case 1:
-                //geometric interpolation
+                // geometric interpolation
                 out.viscosities[i] = (pow(10, ((1-composition[0]) * log10(eta*temperature_dependence)
                                                + composition[0] * log10(eta*composition_viscosity_prefactor_1*temperature_dependence))));
                 break;
@@ -90,6 +92,19 @@ namespace aspect
                     break;
                 }
               out.reaction_terms[i][c] = delta_C;
+
+              // Fill reaction rate outputs instead of the reaction terms if we use operator splitting
+              // (and then set the latter to zero).
+              if (this->get_parameters().use_operator_splitting)
+                {
+                  if (reaction_rate_out != NULL)
+                    reaction_rate_out->reaction_rates[i][c] = (this->get_timestep_number() > 0
+                                                               ?
+                                                               out.reaction_terms[i][c] / this->get_timestep()
+                                                               :
+                                                               0.0);
+                  out.reaction_terms[i][c] = 0.0;
+                }
             }
 
           out.specific_heat[i] = reference_specific_heat;
@@ -107,37 +122,7 @@ namespace aspect
       return eta;
     }
 
-    template <int dim>
-    double
-    CompositionReaction<dim>::
-    reference_density () const
-    {
-      return reference_rho;
-    }
 
-    template <int dim>
-    double
-    CompositionReaction<dim>::
-    reference_thermal_expansion_coefficient () const
-    {
-      return thermal_alpha;
-    }
-
-    template <int dim>
-    double
-    CompositionReaction<dim>::
-    reference_cp () const
-    {
-      return reference_specific_heat;
-    }
-
-    template <int dim>
-    double
-    CompositionReaction<dim>::
-    reference_thermal_diffusivity () const
-    {
-      return k_value/(reference_rho*reference_specific_heat);
-    }
 
     template <int dim>
     bool
@@ -272,6 +257,21 @@ namespace aspect
       if ((compositional_delta_rho_1 != 0) ||
           (compositional_delta_rho_2 != 0))
         this->model_dependence.density |= NonlinearDependence::compositional_fields;
+    }
+
+
+    template <int dim>
+    void
+    CompositionReaction<dim>::create_additional_named_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const
+    {
+      if (this->get_parameters().use_operator_splitting
+          && out.template get_additional_output<ReactionRateOutputs<dim> >() == NULL)
+        {
+          const unsigned int n_points = out.viscosities.size();
+          out.additional_outputs.push_back(
+            std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
+            (new MaterialModel::ReactionRateOutputs<dim> (n_points, this->n_compositional_fields())));
+        }
     }
   }
 }

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2016 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -26,6 +26,8 @@ namespace aspect
 {
   template <int dim>
   SimulatorAccess<dim>::SimulatorAccess ()
+    :
+    simulator (NULL)
   {}
 
 
@@ -133,6 +135,12 @@ namespace aspect
   }
 
 
+  template <int dim>
+  unsigned int SimulatorAccess<dim>::get_nonlinear_iteration () const
+  {
+    return simulator->nonlinear_iteration;
+  }
+
 
   template <int dim>
   const parallel::distributed::Triangulation<dim> &
@@ -190,7 +198,7 @@ namespace aspect
   unsigned int
   SimulatorAccess<dim>::n_compositional_fields () const
   {
-    return simulator->parameters.n_compositional_fields;
+    return simulator->introspection.n_compositional_fields;
   }
 
 
@@ -199,8 +207,7 @@ namespace aspect
   bool
   SimulatorAccess<dim>::include_adiabatic_heating () const
   {
-    const std::vector<std::string> &heating_models = simulator->heating_model_manager.get_active_heating_model_names();
-    return (std::find(heating_models.begin(), heating_models.end(), "adiabatic heating") != heating_models.end());
+    return simulator->heating_model_manager.adiabatic_heating_enabled();
   }
 
   template <int dim>
@@ -291,6 +298,12 @@ namespace aspect
     return simulator->old_old_solution;
   }
 
+  template <int dim>
+  const LinearAlgebra::BlockVector &
+  SimulatorAccess<dim>::get_reaction_vector () const
+  {
+    return simulator->operator_split_reaction_vector;
+  }
 
   template <int dim>
   const LinearAlgebra::BlockVector &
@@ -363,19 +376,12 @@ namespace aspect
   }
 
 
-  template <int dim>
-  void
-  SimulatorAccess<dim>::create_additional_material_model_outputs (MaterialModel::MaterialModelOutputs<dim> &out) const
-  {
-    simulator->create_additional_material_model_outputs(out);
-  }
-
 
   template <int dim>
-  const std::map<types::boundary_id,std_cxx11::shared_ptr<TractionBoundaryConditions::Interface<dim> > > &
-  SimulatorAccess<dim>::get_traction_boundary_conditions () const
+  const std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryTraction::Interface<dim> > > &
+  SimulatorAccess<dim>::get_boundary_traction () const
   {
-    return simulator->traction_boundary_conditions;
+    return simulator->boundary_traction;
   }
 
 
@@ -384,43 +390,65 @@ namespace aspect
   bool
   SimulatorAccess<dim>::has_boundary_temperature () const
   {
-    return (simulator->boundary_temperature.get() != 0);
+    return (get_boundary_temperature_manager().get_fixed_temperature_boundary_indicators().size() > 0);
   }
+
 
 
   template <int dim>
   const BoundaryTemperature::Interface<dim> &
   SimulatorAccess<dim>::get_boundary_temperature () const
   {
-    AssertThrow (simulator->boundary_temperature.get() != 0,
-                 ExcMessage("You can not call this function if no such model is actually available."));
-    return *simulator->boundary_temperature.get();
+    Assert (get_boundary_temperature_manager().get_active_boundary_temperature_conditions().size() == 1,
+            ExcMessage("You can only call this function if exactly one boundary temperature plugin is active."));
+    return *(get_boundary_temperature_manager().get_active_boundary_temperature_conditions().front());
   }
+
+
+
+  template <int dim>
+  const BoundaryTemperature::Manager<dim> &
+  SimulatorAccess<dim>::get_boundary_temperature_manager () const
+  {
+    return simulator->boundary_temperature_manager;
+  }
+
 
 
   template <int dim>
   bool
   SimulatorAccess<dim>::has_boundary_composition () const
   {
-    return (simulator->boundary_composition.get() != 0);
+    return (get_boundary_composition_manager().get_fixed_composition_boundary_indicators().size() > 0);
   }
+
 
 
   template <int dim>
   const BoundaryComposition::Interface<dim> &
   SimulatorAccess<dim>::get_boundary_composition () const
   {
-    AssertThrow (simulator->boundary_composition.get() != 0,
-                 ExcMessage("You can not call this function if no such model is actually available."));
-    return *simulator->boundary_composition.get();
+    Assert (get_boundary_composition_manager().get_active_boundary_composition_conditions().size() == 1,
+            ExcMessage("You can only call this function if exactly one boundary composition plugin is active."));
+    return *(get_boundary_composition_manager().get_active_boundary_composition_conditions().front());
   }
+
+
+
+  template <int dim>
+  const BoundaryComposition::Manager<dim> &
+  SimulatorAccess<dim>::get_boundary_composition_manager () const
+  {
+    return simulator->boundary_composition_manager;
+  }
+
 
 
   template <int dim>
   const std::set<types::boundary_id> &
   SimulatorAccess<dim>::get_fixed_temperature_boundary_indicators () const
   {
-    return simulator->parameters.fixed_temperature_boundary_indicators;
+    return get_boundary_temperature_manager().get_fixed_temperature_boundary_indicators();
   }
 
 
@@ -428,7 +456,7 @@ namespace aspect
   const std::set<types::boundary_id> &
   SimulatorAccess<dim>::get_fixed_composition_boundary_indicators () const
   {
-    return simulator->parameters.fixed_composition_boundary_indicators;
+    return get_boundary_composition_manager().get_fixed_composition_boundary_indicators();
   }
 
 
@@ -441,10 +469,32 @@ namespace aspect
 
 
   template <int dim>
-  const std::map<types::boundary_id,std_cxx11::shared_ptr<VelocityBoundaryConditions::Interface<dim> > >
-  SimulatorAccess<dim>::get_prescribed_velocity_boundary_conditions () const
+  const std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >
+  SimulatorAccess<dim>::get_prescribed_boundary_velocity () const
   {
-    return simulator->velocity_boundary_conditions;
+    const std::map<types::boundary_id,std::vector<std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > > > &
+    boundary_map = simulator->boundary_velocity_manager.get_active_boundary_velocity_conditions();
+
+    std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >
+    legacy_map;
+
+    for (typename std::map<types::boundary_id,std::vector<std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > > >::const_iterator
+         boundary = boundary_map.begin(); boundary != boundary_map.end(); ++boundary)
+      {
+        Assert (boundary->second.size() <= 1,
+                ExcMessage("You can only use this function if there is at most one boundary velocity plugin per boundary."));
+        legacy_map[boundary->first] = boundary->second.front();
+      }
+
+    return legacy_map;
+  }
+
+
+  template <int dim>
+  const BoundaryVelocity::Manager<dim> &
+  SimulatorAccess<dim>::get_boundary_velocity_manager () const
+  {
+    return simulator->boundary_velocity_manager;
   }
 
 
@@ -488,23 +538,40 @@ namespace aspect
 
 
   template <int dim>
-  const InitialConditions::Interface<dim> &
-  SimulatorAccess<dim>::get_initial_conditions () const
+  const InitialTemperature::Interface<dim> &
+  SimulatorAccess<dim>::get_initial_temperature () const
   {
-    Assert (simulator->initial_conditions.get() != 0,
-            ExcMessage("You can not call this function if no such model is actually available."));
-    return *simulator->initial_conditions.get();
+    Assert (get_initial_temperature_manager().get_active_initial_temperature_conditions().size() == 1,
+            ExcMessage("You can only call this function if exactly one initial temperature plugin is active."));
+    return *(get_initial_temperature_manager().get_active_initial_temperature_conditions().front());
   }
 
 
   template <int dim>
-  const CompositionalInitialConditions::Interface<dim> &
-  SimulatorAccess<dim>::get_compositional_initial_conditions () const
+  const InitialTemperature::Manager<dim> &
+  SimulatorAccess<dim>::get_initial_temperature_manager () const
   {
-    Assert (simulator->compositional_initial_conditions.get() != 0,
-            ExcMessage("You can not call this function if no such model is actually available."));
-    return *simulator->compositional_initial_conditions.get();
+    return simulator->initial_temperature_manager;
   }
+
+
+  template <int dim>
+  const InitialComposition::Interface<dim> &
+  SimulatorAccess<dim>::get_initial_composition () const
+  {
+    Assert (get_initial_composition_manager().get_active_initial_composition_conditions().size() == 1,
+            ExcMessage("You can only call this function if only one initial composition plugin is active."));
+    return *(get_initial_composition_manager().get_active_initial_composition_conditions().front());
+  }
+
+
+  template <int dim>
+  const InitialComposition::Manager<dim> &
+  SimulatorAccess<dim>::get_initial_composition_manager () const
+  {
+    return simulator->initial_composition_manager;
+  }
+
 
   template <int dim>
   const HeatingModel::Manager<dim> &
@@ -514,12 +581,38 @@ namespace aspect
   }
 
   template <int dim>
+  const MeshRefinement::Manager<dim> &
+  SimulatorAccess<dim>::get_mesh_refinement_manager () const
+  {
+    return simulator->mesh_refinement_manager;
+  }
+
+  template <int dim>
   const MeltHandler<dim> &
   SimulatorAccess<dim>::get_melt_handler () const
   {
     Assert (simulator->melt_handler.get() != 0,
             ExcMessage("You can not call this function if melt transport is not enabled."));
     return *(simulator->melt_handler);
+  }
+
+  template <int dim>
+  const NewtonHandler<dim> &
+  SimulatorAccess<dim>::get_newton_handler () const
+  {
+    Assert (simulator->newton_handler.get() != 0,
+            ExcMessage("You can not call this function if the Newton solver is not enabled."));
+    return *(simulator->newton_handler);
+  }
+
+  template <int dim>
+  const FreeSurfaceHandler<dim> &
+  SimulatorAccess<dim>::get_free_surface_handler () const
+  {
+    Assert (simulator->free_surface.get() != 0,
+            ExcMessage("You can not call this function if the free surface is not enabled."));
+
+    return *(simulator->free_surface);
   }
 
   template <int dim>
@@ -554,6 +647,40 @@ namespace aspect
     return simulator->current_constraints;
   }
 
+  template <int dim>
+  bool
+  SimulatorAccess<dim>::simulator_is_initialized () const
+  {
+    return (simulator != NULL);
+  }
+
+  template <int dim>
+  double
+  SimulatorAccess<dim>::get_pressure_scaling () const
+  {
+    return (simulator->pressure_scaling);
+  }
+
+  template <int dim>
+  bool
+  SimulatorAccess<dim>::pressure_rhs_needs_compatibility_modification () const
+  {
+    return simulator->do_pressure_rhs_compatibility_modification;
+  }
+
+  template <int dim>
+  bool
+  SimulatorAccess<dim>::model_has_prescribed_stokes_solution () const
+  {
+    return (simulator->prescribed_stokes_solution.get() != 0);
+  }
+
+  template <int dim>
+  const Postprocess::Manager<dim> &
+  SimulatorAccess<dim>::get_postprocess_manager() const
+  {
+    return simulator->postprocess_manager;
+  }
 }
 
 

@@ -16,7 +16,7 @@ subsection Geometry model
   end
 end
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = adiabatic
   subsection Adiabatic
     set Amplitude = 300
@@ -29,34 +29,37 @@ subsection Compositional fields
   set Number of fields = 1
 end
 
-subsection Compositional initial conditions
+subsection Initial composition model
   set Model name = ascii data
 
   subsection Ascii data model
-    set Data directory       = $ASPECT_SOURCE_DIR/data/compositional-initial-conditions/ascii-data/test/
+    set Data directory       = $ASPECT_SOURCE_DIR/data/initial-composition/ascii-data/test/
     set Data file name       = box_2d_nonuniform.txt
   end
 end
 
 subsection Boundary temperature model
-  set Model name = initial temperature
+  set List of model names = initial temperature
 end
 
 subsection Boundary composition model
-  set Model name = initial composition
+  set List of model names = initial composition
 end
 
-subsection Model settings
+# The parameters below this comment were created by the update script
+# as replacement for the old 'Model settings' subsection. They can be
+# safely merged with any existing subsections with the same name.
+
+subsection Boundary temperature model
   set Fixed temperature boundary indicators   = top,bottom,left
+end
+
+subsection Boundary composition model
   set Fixed composition boundary indicators   = left
+end
 
-  set Zero velocity boundary indicators       =
+subsection Boundary velocity model
   set Prescribed velocity boundary indicators = bottom:function,left:function,right:function,top:function
-
-  set Tangential velocity boundary indicators = 
-
-  set Include adiabatic heating               = false
-  set Include shear heating                   = false
 end
 
 

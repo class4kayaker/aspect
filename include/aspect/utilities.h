@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2014, 2015, 2016 by the authors of the ASPECT code.
+  Copyright (C) 2014 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,30 +14,38 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__utilities_h
-#define __aspect__utilities_h
+#ifndef _aspect_utilities_h
+#define _aspect_utilities_h
 
 #include <aspect/global.h>
 
 #include <deal.II/base/std_cxx11/array.h>
 #include <deal.II/base/point.h>
 #include <deal.II/base/conditional_ostream.h>
-
 #include <deal.II/base/table_indices.h>
 #include <deal.II/base/function_lib.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/fe/component_mask.h>
 
 #include <aspect/geometry_model/interface.h>
-#include <aspect/simulator_access.h>
+#include <aspect/coordinate_systems.h>
 
 
 
 namespace aspect
 {
+  template <int dim> class SimulatorAccess;
+
+  namespace GeometryModel
+  {
+    template <int dim> class Interface;
+  }
+
   /**
    * A namespace for utility functions that might be used in many different
    * places to prevent code duplication.
@@ -66,6 +74,22 @@ namespace aspect
                                  const unsigned int N,
                                  const std::string &id_text);
 
+    /**
+     * Given a vector @p var_declarations expand any entries of the form
+     * vector(str) or tensor(str) to sublists with component names of the form
+     * str_x, str_y, str_z or str_xx, str_xy... for the correct dimension
+     * value.
+     *
+     * This function is to be used for expanding lists of variable names where
+     * one or more such variable is actually intended to be a list of
+     * components.
+     *
+     * Returns the generated list of variable names
+     */
+    template <int dim>
+    std::vector<std::string>
+    expand_dimensional_variable_names (const std::vector<std::string> &var_declarations);
+
 
     /**
      * Split the set of DoFs (typically locally owned or relevant) in @p whole_set into blocks
@@ -77,6 +101,19 @@ namespace aspect
     void split_by_block (const std::vector<types::global_dof_index> &dofs_per_block,
                          const IndexSet &whole_set,
                          std::vector<IndexSet> &partitioned);
+
+
+    /**
+     * Returns an IndexSet that contains all locally active DoFs that belong to
+     * the given component_mask.
+     *
+     * This function should be moved into deal.II at some point.
+     */
+    template <int dim>
+    IndexSet extract_locally_active_dofs_with_component(const DoFHandler<dim> &dof_handler,
+                                                        const ComponentMask &component_mask);
+
+
 
     namespace Coordinates
     {
@@ -110,7 +147,7 @@ namespace aspect
       spherical_to_cartesian_coordinates(const std_cxx11::array<double,dim> &scoord);
 
       /**
-       * Returns ellispoidal coordinates of a Cartesian point. The returned array
+       * Returns ellipsoidal coordinates of a Cartesian point. The returned array
        * is filled with phi, theta and radius.
        *
        */
@@ -121,7 +158,7 @@ namespace aspect
                                            const double eccentricity);
 
       /**
-       * Return the Cartesian point of a ellispoidal position defined by phi,
+       * Return the Cartesian point of a ellipsoidal position defined by phi,
        * phi and radius.
        */
       template <int dim>
@@ -129,7 +166,17 @@ namespace aspect
       ellipsoidal_to_cartesian_coordinates(const std_cxx11::array<double,3> &phi_theta_d,
                                            const double semi_major_axis_a,
                                            const double eccentricity);
+
+
+      /**
+       * A function that takes a string representation of the name of a
+       * coordinate system (as represented by the CoordinateSystem enum)
+       * and returns the corresponding value.
+       */
+      CoordinateSystem
+      string_to_coordinate_system (const std::string &);
     }
+
 
     /**
      * Given a 2d point and a list of points which form a polygon, computes if the point
@@ -141,10 +188,21 @@ namespace aspect
                            const dealii::Point<2> &point);
 
     /**
+     * Given a 2d point and a list of points which form a polygon, compute the smallest
+     * distance of the point to the polygon. The sign is negative for points outside of
+     * the polygon and positive for points inside the polygon.
+     */
+    template <int dim>
+    double
+    signed_distance_to_polygon(const std::vector<Point<2> > &point_list,
+                               const dealii::Point<2> &point);
+
+    /**
      * Given a vector @p v in @p dim dimensional space, return a set
      * of (dim-1) vectors that are orthogonal to @p v and to each
-     * other. The lengths of these vectors equals that of the original
-     * vector @p v to ensure a well-conditioned basis.
+     * other. The length of each of these vectors equals that of the original
+     * vector @p v to ensure that the resulting set of vectors
+     * represents a well-conditioned basis.
      */
     template <int dim>
     std_cxx11::array<Tensor<1,dim>,dim-1>
@@ -152,7 +210,7 @@ namespace aspect
 
     /**
      * A function for evaluating real spherical harmonics. It takes the degree (l)
-     * and the order (m) of the spherical harmonic, where l >= 0 and 0 <= m <=l.
+     * and the order (m) of the spherical harmonic, where $l \geq 0$ and $0 \leq m \leq l$.
      * It also takes the colatitude (theta) and longitude (phi), which are in
      * radians.
      *
@@ -171,14 +229,14 @@ namespace aspect
      * \f[
      *    Y_{lm}(\theta, \phi) = \sqrt{2} X_{lm}(\theta) \sin m \phi \qquad \mathrm{if}  \qquad 0< m \le m
      * \f]
-     * where \f$X_{lm}( \theta )\f$ is an associated Legendre function.
+     * where $X_{lm}( \theta )$ is an associated Legendre function.
      *
-     * In practice it is often convenient to compute the sine (\f$-l \le m < 0\f$) and cosine (\f$0 < m \le l\f$)
+     * In practice it is often convenient to compute the sine ($-l \le m < 0$) and cosine ($0 < m \le l$)
      * variants of the real spherical harmonic at the same time. That is the approach taken
      * here, where we return a pair of numbers, the first corresponding the cosine part and the
      * second corresponding to the sine part. Given this, it is no longer necessary to distinguish
-     * between postitive and negative \f$ m \f$, so this function only accepts \f$ m \ge 0 \f$.
-     * For \f$ m = 0 \f$, there is only one part, which is stored in the first entry of the pair.
+     * between positive and negative $m$, so this function only accepts $ m \ge 0$.
+     * For $m = 0$, there is only one part, which is stored in the first entry of the pair.
      *
      * @note This function uses the Boost spherical harmonics implementation internally,
      * which is not designed for very high order (> 100) spherical harmonics computation.
@@ -186,10 +244,10 @@ namespace aspect
      * For more information, see:
      * http://www.boost.org/doc/libs/1_49_0/libs/math/doc/sf_and_dist/html/math_toolkit/special/sf_poly/sph_harm.html
      */
-    std::pair<double,double> real_spherical_harmonic( unsigned int l, //degree
-                                                      unsigned int m, //order
-                                                      double theta,   //colatitude (radians)
-                                                      double phi );   //longitude (radians)
+    std::pair<double,double> real_spherical_harmonic( unsigned int l, // degree
+                                                      unsigned int m, // order
+                                                      double theta,   // colatitude (radians)
+                                                      double phi );   // longitude (radians)
 
     /**
      * A struct to enable numerical output with a comma as thousands separator
@@ -209,7 +267,7 @@ namespace aspect
     };
 
     /**
-     * Checks whether a file named filename exists.
+     * Checks whether a file named @p filename exists and is readable.
      *
      * @param filename File to check existence
      */
@@ -277,10 +335,13 @@ namespace aspect
            * @param x X coordinates of interpolation points.
            * @param y Values in the interpolation points.
            * @param cubic_spline Whether to construct a cubic spline or just do linear interpolation
+           * @param monotone_spline Whether the cubic spline should be a monotone cubic spline.
+           * Requires cubic_spline to be set to true.
            */
           void set_points(const std::vector<double> &x,
                           const std::vector<double> &y,
-                          bool cubic_spline = true);
+                          const bool cubic_spline = true,
+                          const bool monotone_spline = false);
           /**
            * Evaluate spline at point @p x.
            */
@@ -356,31 +417,63 @@ namespace aspect
     }
 
     /**
-     * Replace the variable $ASPECT_SOURCE_DIR in @p location by the current
+     * Replace the string <tt>\$ASPECT_SOURCE_DIR</tt> in @p location by the current
      * source directory of ASPECT and return the resulting string.
      */
     std::string
     expand_ASPECT_SOURCE_DIR (const std::string &location);
 
+    /**
+     * Given a string @p s, return it in the form ' ("s")' if nonempty.
+     * Otherwise just return the empty string itself.
+     */
+    std::string parenthesize_if_nonempty (const std::string &s);
+
+    /**
+     * Returns if a vector of strings @p strings only contains unique
+     * entries.
+     */
+    bool has_unique_entries (const std::vector<std::string> &strings);
 
     /**
      * AsciiDataLookup reads in files containing input data in ascii format.
      * Note the required format of the input data: The first lines may contain
      * any number of comments if they begin with '#', but one of these lines
      * needs to contain the number of grid points in each dimension as for
-     * example '# POINTS: 3 3'. The order of the columns has to be
+     * example '# POINTS: 3 3'. The comments can optionally be followed by a
+     * single line, which does not start with '#', containing the names of
+     * the data columns.
+     * The order of the following data columns has to be
      * 'coordinates data' with @p dim coordinate columns and @p components
      * data columns. Note that the data in the input files need to be sorted
      * in a specific order: the first coordinate needs to ascend first,
      * followed by the second and so on in order to assign the correct data to
-     * the prescribed coordinates.
+     * the prescribed coordinates. The coordinates do not need to be
+     * equidistant.
      */
     template <int dim>
     class AsciiDataLookup
     {
       public:
+        /**
+         * Constructor that explicitly prescribes the number of data columns
+         * in the data file. If a list of data components is provided in the
+         * data file it is checked that the length of this list is consistent
+         * with this number of components. This constructor is mostly provided
+         * for backwards compatibility. Not prescribing the number of components
+         * and instead reading them from the input file allows for more
+         * flexible files.
+         */
         AsciiDataLookup(const unsigned int components,
                         const double scale_factor);
+
+        /**
+         * This constructor relies on the list of column names at the beginning
+         * of the model file to determine the number of data components,
+         * therefore when using this constructor it is necessary to provide
+         * this list in the first uncommented line of the data file.
+         */
+        AsciiDataLookup(const double scale_factor);
 
         /**
          * Loads a data text file. Throws an exception if the file does not
@@ -403,11 +496,56 @@ namespace aspect
         get_data(const Point<dim> &position,
                  const unsigned int component) const;
 
+        /**
+         * Returns a vector that contains the names of all data columns in the
+         * order of their appearance in the data file (and their order in the
+         * memory data table). Returns an empty vector if no names are provided
+         * or the file is not read in yet.
+         */
+        std::vector<std::string>
+        get_column_names() const;
+
+        /**
+         * Returns whether the stored coordinates are equidistant. If
+         * coordinates are equidistant the lookup is more efficient. Returns
+         * false if no coordinates are loaded at the moment.
+         */
+        bool
+        has_equidistant_coordinates() const;
+
+        /**
+         * Returns the column index of a column with the given name
+         * @p column_name. Throws an exception if no such
+         * column exists or no names were provided in the file.
+         */
+        unsigned int
+        get_column_index_from_name(const std::string &column_name) const;
+
+        /**
+         * Returns a string that contains the name of the column with index
+         * @p column_index. Throws an exception if no such
+         * column exists or no name was provided in the file.
+         */
+        std::string
+        get_column_name_from_index(const unsigned int column_index) const;
+
+        /**
+         * Return the maximum value of the component values.
+         */
+        double get_maximum_component_value(const unsigned int component) const;
+
       private:
         /**
          * The number of data components read in (=columns in the data file).
          */
-        const unsigned int components;
+        unsigned int components;
+
+        /**
+         * The names of the data components in the columns of the read file.
+         * Does not contain any strings if none are provided in the first
+         * uncommented line of the file.
+         */
+        std::vector<std::string> data_component_names;
 
         /**
          * Interpolation functions to access the data.
@@ -420,6 +558,11 @@ namespace aspect
          * The coordinate values in each direction as specified in the data file.
          */
         std_cxx11::array<std::vector<double>,dim> coordinate_values;
+
+        /**
+         * The maximum value of each component
+         */
+        std::vector<double> maximum_component_value;
 
         /**
          * The min and max of the coordinates in the data file.
@@ -436,6 +579,12 @@ namespace aspect
          * to transform the unit of the data.
          */
         const double scale_factor;
+
+        /**
+         * Stores whether the coordinate values are equidistant or not,
+         * this determines the type of data function stored.
+         */
+        bool coordinate_values_are_equidistant;
 
         /**
          * Computes the table indices of each entry in the input data file.
@@ -509,9 +658,9 @@ namespace aspect
         AsciiDataBoundary();
 
         /**
-          * Initialization function. This function is called once at the
-          * beginning of the program. Checks preconditions.
-          */
+         * Initialization function. This function is called once at the
+         * beginning of the program. Checks preconditions.
+         */
         virtual
         void
         initialize (const std::set<types::boundary_id> &boundary_ids,
@@ -533,6 +682,13 @@ namespace aspect
         get_data_component (const types::boundary_id             boundary_indicator,
                             const Point<dim>                    &position,
                             const unsigned int                   component) const;
+
+        /**
+         * Returns the maximum value of the given data component.
+         */
+        double
+        get_maximum_component_value (const types::boundary_id boundary_indicator,
+                                     const unsigned int       component) const;
 
         /**
          * Declare the parameters all derived classes take from input files.
@@ -685,6 +841,278 @@ namespace aspect
          * files.
          */
         std_cxx11::shared_ptr<aspect::Utilities::AsciiDataLookup<dim> > lookup;
+    };
+
+    /**
+     * A base class that reads in a data profile and provides its values.
+     */
+    template <int dim>
+    class AsciiDataProfile : public Utilities::AsciiDataBase<dim>
+    {
+      public:
+        /**
+         * Constructor
+         */
+        AsciiDataProfile();
+
+        /**
+         * Initialization function. This function is called once at the
+         * beginning of the program. Checks preconditions.
+         */
+        virtual
+        void
+        initialize (const MPI_Comm &communicator);
+
+
+        /**
+         * Returns the data component at the given position.
+         */
+        double
+        get_data_component (const Point<1>                      &position,
+                            const unsigned int                   component) const;
+
+        /**
+         * Returns a vector that contains the names of all data columns in the
+         * order of their appearance in the data file (and their order in the
+         * memory data table). Returns an empty vector if no names are provided
+         * or the file is not read in yet.
+         */
+        std::vector<std::string>
+        get_column_names() const;
+
+        /**
+         * Returns the column index of a column with the given name
+         * @p column_name. Throws an exception if no such
+         * column exists or no names were provided in the file.
+         */
+        unsigned int
+        get_column_index_from_name(const std::string &column_name) const;
+
+        /**
+         * Returns the column index of a column with the given name
+         * @p column_name. Returns an invalid unsigned int if no such
+         * column exists or no names were provided in the file.
+         */
+        unsigned int
+        maybe_get_column_index_from_name(const std::string &column_name) const;
+
+        /**
+         * Returns a string that contains the name of the column with index
+         * @p column_index. Returns an empty string if no such
+         * column exists or no name was provided in the file.
+         */
+        std::string
+        get_column_name_from_index(const unsigned int column_index) const;
+      protected:
+        /**
+         * Pointer to an object that reads and processes data we get from text
+         * files.
+         */
+        std_cxx11::unique_ptr<aspect::Utilities::AsciiDataLookup<1> > lookup;
+    };
+
+
+    /**
+     * This function computes the weighted average $\bar y$ of $y_i$  for a weighted p norm. This
+     * leads for a general p to:
+     * $\bar y = \left(\frac{\sum_{i=1}^k w_i y_i^p}{\sum_{i=1}^k w_i}\right)^{\frac{1}{p}}$.
+     * When p = 0 we take the geometric average:
+     * $\bar y = \exp\left(\frac{\sum_{i=1}^k w_i \log\left(y_i\right)}{\sum_{i=1}^k w_i}\right)$,
+     * and when $p \le -1000$ or $p \ge 1000$ we take the minimum and maximum norm respectively.
+     * This means that the smallest and largest value is respectively taken taken.
+     *
+     * This function has been set up to be very tolerant to strange values, such as negative weights.
+     * The only things we require in for the general p is that the sum of the weights and the sum of
+     * the weights times the values to the power p may not be smaller or equal to zero. Furthermore,
+     * when a value is zero, the exponent is smaller then one and the correspondent weight is non-zero,
+     * this corresponds to no resistance in a parallel system. This means that this 'path' will be followed,
+     * and we return zero.
+     *
+     * The implemented special cases (which are minimum (p <= -1000), harmonic average (p = -1), geometric
+     * average (p = 0), arithmetic average (p = 1), quadratic average (RMS) (p = 2), cubic average (p = 3)
+     * and maximum (p >= 1000) ) is, except for the harmonic and quadratic averages even more tolerant of
+     * negative values, because they only require the sum of weights to be non-zero.
+     */
+    double weighted_p_norm_average (const std::vector<double> &weights,
+                                    const std::vector<double> &values,
+                                    const double p);
+
+
+    /**
+     * This function computes the derivative ($\frac{\partial\bar y}{\partial x}$) of an average
+     * of the values $y_i(x)$ with regard to $x$, using $\frac{\partial y_i(x)}{\partial x}$.
+     * This leads for a general p to:
+     * $\frac{\partial\bar y}{\partial x} =
+     * \frac{1}{p}\left(\frac{\sum_{i=1}^k w_i y_i^p}{\sum_{i=1}^k w_i}\right)^{\frac{1}{p}-1}
+     * \frac{\sum_{i=1}^k w_i p y_i^{p-1} y'_i}{\sum_{i=1}^k w_i}$.
+     * When p = 0 we take the geometric average as a reference, which results in:
+     * $\frac{\partial\bar y}{\partial x} =
+     * \exp\left(\frac{\sum_{i=1}^k w_i \log\left(y_i\right)}{\sum_{i=1}^k w_i}\right)
+     * \frac{\sum_{i=1}^k\frac{w_i y'_i}{y_i}}{\sum_{i=1}^k w_i}$
+     * and when $p \le -1000$ or $p \ge 1000$ we take the min and max norm respectively.
+     * This means that the derivative is taken which has the min/max value.
+     *
+     * This function has, like the function weighted_p_norm_average been set up to be very tolerant to
+     * strange values, such as negative weights. The only things we require in for the general p is that
+     * the sum of the weights and the sum of the weights times the values to the power p may not be smaller
+     * or equal to zero. Furthermore, when a value is zero, the exponent is smaller then one and the
+     * correspondent weight is non-zero, this corresponds to no resistance in a parallel system. This means
+     * that this 'path' will be followed, and we return the corresponding derivative.
+     *
+     * The implemented special cases (which are minimum (p <= -1000), harmonic average (p = -1), geometric
+     * average (p = 0), arithmetic average (p = 1), and maximum (p >= 1000) ) is, except for the harmonic
+     * average even more tolerant of negative values, because they only require the sum of weights to be non-zero.
+     */
+    template <typename T>
+    T derivative_of_weighted_p_norm_average (const double averaged_parameter,
+                                             const std::vector<double> &weights,
+                                             const std::vector<double> &values,
+                                             const std::vector<T> &derivatives,
+                                             const double p);
+    /**
+     * This function computes a factor which can be used to make sure that the
+     * Jacobian remains positive definite.
+     *
+     * The goal of this function is to find a factor $\alpha$ so that
+     * $2\eta(\varepsilon(\mathbf u)) I \otimes I +  \alpha\left[a \otimes b + b \otimes a\right]$ remains a
+     * positive definite matrix. Here, $a=\varepsilon(\mathbf u)$ is the @p strain_rate
+     * and $b=\frac{\partial\eta(\varepsilon(\mathbf u),p)}{\partial \varepsilon}$ is the derivative of the viscosity
+     * with respect to the strain rate and is given by @p dviscosities_dstrain_rate. Since the viscosity $\eta$
+     * must be positive, there is always a value of $\alpha$ (possibly small) so that the result is a positive
+     * definite matrix. In the best case, we want to choose $\alpha=1$ because that corresponds to the full Newton step,
+     * and so the function never returns anything larger than one.
+     *
+     * The factor is defined by:
+     * $\frac{2\eta(\varepsilon(\mathbf u))}{\left[1-\frac{b:a}{\|a\| \|b\|} \right]^2\|a\|\|b\|}$. Alpha is
+     * reset to a maximum of one, and if it is smaller then one, a safety_factor scales the alpha to make
+     * sure that the 1-alpha won't get to close to zero.
+     */
+    template <int dim>
+    double compute_spd_factor(const double eta,
+                              const SymmetricTensor<2,dim> &strain_rate,
+                              const SymmetricTensor<2,dim> &dviscosities_dstrain_rate,
+                              const double SPD_safety_factor);
+
+    /**
+     * Converts an array of size dim to a Point of size dim.
+     */
+    template <int dim>
+    Point<dim> convert_array_to_point(const std_cxx11::array<double,dim> &array);
+
+    /**
+     * Converts a Point of size dim to an array of size dim.
+     */
+    template <int dim>
+    std_cxx11::array<double,dim> convert_point_to_array(const Point<dim> &point);
+
+    /**
+     * A class that represents a binary operator between two doubles. The type of
+     * operation is specified on construction time, and can be checked later
+     * by using the operator ==. The operator () executes the operation on two
+     * double parameters and returns the result. This class is helpful for
+     * user specified operations that are not known at compile time.
+     */
+    class Operator
+    {
+      public:
+        /**
+         * An enum of supported operations.
+         */
+        enum operation
+        {
+          uninitialized,
+          add,
+          subtract,
+          minimum,
+          maximum
+        };
+
+        /**
+         * The default constructor creates an invalid operation that will fail
+         * if ever executed.
+         */
+        Operator();
+
+        /**
+         * Construct the selected operator.
+         */
+        Operator(const operation op);
+
+        /**
+         * Execute the selected operation with the given parameters and
+         * return the result.
+         */
+        double operator() (const double x, const double y) const;
+
+        /**
+         * Return the comparison result between the current operation and
+         * the one provided as argument.
+         */
+        bool operator== (const operation op) const;
+
+      private:
+        /**
+         * The selected operation of this object.
+         */
+        operation op;
+    };
+
+    /**
+     * Create a vector of operator objects out of a list of strings. Each
+     * entry in the list must match one of the allowed operations.
+     */
+    std::vector<Operator> create_model_operator_list(const std::vector<std::string> &operator_names);
+
+    /**
+     * A function that returns a SymmetricTensor, whose entries are zero, except for
+     * the k'th component, which is set to one. If k is not on the main diagonal the
+     * resulting tensor is symmetrized.
+     */
+    template <int dim>
+    SymmetricTensor<2,dim> nth_basis_for_symmetric_tensors (const unsigned int k);
+
+    /*
+    * A class that represents a point in a chosen coordinate system.
+    */
+    template <int dim>
+    class NaturalCoordinate
+    {
+      public:
+        /**
+         * Constructor based on providing the geometry model as a pointer
+         */
+        NaturalCoordinate(Point<dim> &position,
+                          const GeometryModel::Interface<dim> &geometry_model);
+
+        /**
+         * Returns the coordinates in the given coordinate system, which may
+         * not be Cartesian.
+         */
+        std_cxx11::array<double,dim> &get_coordinates();
+
+        /**
+         * The coordinate that represents the 'surface' directions in the
+         * chosen coordinate system.
+         */
+        std_cxx11::array<double,dim-1> get_surface_coordinates() const;
+
+        /**
+         * The coordinate that represents the 'depth' direction in the chosen
+         * coordinate system.
+         */
+        double get_depth_coordinate() const;
+
+      private:
+        /**
+         * An enum which stores the the coordinate system of this natural
+         * point
+         */
+        Utilities::Coordinates::CoordinateSystem coordinate_system;
+
+        /**
+         * An array which stores the coordinates in the coordinates system
+         */
+        std::array<double,dim> coordinates;
     };
   }
 }

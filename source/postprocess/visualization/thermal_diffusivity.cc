@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,12 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
 #include <aspect/postprocess/visualization/thermal_diffusivity.h>
+#include <aspect/adiabatic_conditions/interface.h>
 
 
 
@@ -42,39 +43,31 @@ namespace aspect
       template <int dim>
       void
       ThermalDiffusivity<dim>::
-      compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
-                                         const std::vector<std::vector<Tensor<1,dim> > > &,
-                                         const std::vector<std::vector<Tensor<2,dim> > > &,
-                                         const std::vector<Point<dim> > &,
-                                         const std::vector<Point<dim> >                  &evaluation_points,
-                                         std::vector<Vector<double> >                    &computed_quantities) const
+      evaluate_vector_field(const DataPostprocessorInputs::Vector<dim> &input_data,
+                            std::vector<Vector<double> > &computed_quantities) const
       {
-        const unsigned int n_quadrature_points = uh.size();
+        const unsigned int n_quadrature_points = input_data.solution_values.size();
         Assert (computed_quantities.size() == n_quadrature_points,    ExcInternalError());
         Assert (computed_quantities[0].size() == 1,                   ExcInternalError());
-        Assert (uh[0].size() == this->introspection().n_components,           ExcInternalError());
+        Assert (input_data.solution_values[0].size() == this->introspection().n_components,           ExcInternalError());
 
-        MaterialModel::MaterialModelInputs<dim> in(n_quadrature_points,
-                                                   this->n_compositional_fields());
+        // Set use_strain_rates to false since we have no need for viscosity.
+        MaterialModel::MaterialModelInputs<dim> in(input_data,
+                                                   this->introspection(), false);
         MaterialModel::MaterialModelOutputs<dim> out(n_quadrature_points,
                                                      this->n_compositional_fields());
-
-        in.position = evaluation_points;
-        in.strain_rate.resize(0); // we do not need the viscosity
-        for (unsigned int q=0; q<n_quadrature_points; ++q)
-          {
-            in.pressure[q]=uh[q][this->introspection().component_indices.pressure];
-            in.temperature[q]=uh[q][this->introspection().component_indices.temperature];
-
-            for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-              in.composition[q][c] = uh[q][this->introspection().component_indices.compositional_fields[c]];
-
-          }
 
         this->get_material_model().evaluate(in, out);
 
         for (unsigned int q=0; q<n_quadrature_points; ++q)
-          computed_quantities[q](0) = out.thermal_conductivities[q] / (out.densities[q] * out.specific_heat[q]);
+
+          if (this->get_parameters().formulation_temperature_equation ==
+              Parameters<dim>::Formulation::TemperatureEquation::reference_density_profile)
+            computed_quantities[q](0) = out.thermal_conductivities[q] /
+                                        (this->get_adiabatic_conditions().density(in.position[q]) * out.specific_heat[q]);
+          else
+            computed_quantities[q](0) = out.thermal_conductivities[q] / (out.densities[q] * out.specific_heat[q]);
+
       }
     }
   }
@@ -91,7 +84,7 @@ namespace aspect
       ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(ThermalDiffusivity,
                                                   "thermal diffusivity",
                                                   "A visualization output object that generates output "
-                                                  "for the thermal diffusivity $\\kappa$=$\\frac{k}{\\rho c_p}$, "
+                                                  "for the thermal diffusivity $\\kappa$=$\\frac{k}{\\rho C_p}$, "
                                                   "with $k$ the thermal conductivity.")
     }
   }

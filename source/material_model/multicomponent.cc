@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -25,44 +25,11 @@
 
 #include <numeric>
 
-using namespace dealii;
 
 namespace aspect
 {
   namespace MaterialModel
   {
-    template <int dim>
-    const std::vector<double>
-    Multicomponent<dim>::
-    compute_volume_fractions( const std::vector<double> &compositional_fields) const
-    {
-      std::vector<double> volume_fractions( compositional_fields.size()+1);
-
-      //clip the compositional fields so they are between zero and one
-      std::vector<double> x_comp = compositional_fields;
-      for ( unsigned int i=0; i < x_comp.size(); ++i)
-        x_comp[i] = std::min(std::max(x_comp[i], 0.0), 1.0);
-
-      //sum the compositional fields for normalization purposes
-      double sum_composition = 0.0;
-      for ( unsigned int i=0; i < x_comp.size(); ++i)
-        sum_composition += x_comp[i];
-
-      if (sum_composition >= 1.0)
-        {
-          volume_fractions[0] = 0.0;  //background mantle
-          for ( unsigned int i=1; i <= x_comp.size(); ++i)
-            volume_fractions[i] = x_comp[i-1]/sum_composition;
-        }
-      else
-        {
-          volume_fractions[0] = 1.0 - sum_composition; //background mantle
-          for ( unsigned int i=1; i <= x_comp.size(); ++i)
-            volume_fractions[i] = x_comp[i-1];
-        }
-      return volume_fractions;
-    }
-
     template <int dim>
     double
     Multicomponent<dim>::
@@ -170,39 +137,7 @@ namespace aspect
     Multicomponent<dim>::
     reference_viscosity () const
     {
-      return viscosities[0]; //background
-    }
-
-    template <int dim>
-    double
-    Multicomponent<dim>::
-    reference_density () const
-    {
-      return densities[0];  //background
-    }
-
-    template <int dim>
-    double
-    Multicomponent<dim>::
-    reference_thermal_expansion_coefficient () const
-    {
-      return thermal_expansivities[0]; //background
-    }
-
-    template <int dim>
-    double
-    Multicomponent<dim>::
-    reference_cp () const
-    {
-      return specific_heats[0]; //background
-    }
-
-    template <int dim>
-    double
-    Multicomponent<dim>::
-    reference_thermal_diffusivity () const
-    {
-      return thermal_conductivities[0] /( densities[0]* specific_heats[0] ); //background
+      return viscosities[0]; // background
     }
 
     template <int dim>
@@ -233,7 +168,7 @@ namespace aspect
                              Patterns::List(Patterns::Double(0)),
                              "List of viscosities for background mantle and compositional fields,"
                              "for a total of N+1 values, where N is the number of compositional fields."
-                             "If only one value is given, then all use the same value. Units: $Pa s$");
+                             "If only one value is given, then all use the same value. Units: $Pa \\, s$");
           prm.declare_entry ("Thermal expansivities", "4.e-5",
                              Patterns::List(Patterns::Double(0)),
                              "List of thermal expansivities for background mantle and compositional fields,"
@@ -248,7 +183,7 @@ namespace aspect
                              Patterns::List(Patterns::Double(0)),
                              "List of thermal conductivities for background mantle and compositional fields,"
                              "for a total of N+1 values, where N is the number of compositional fields."
-                             "If only one value is given, then all use the same value. Units: $W/m/K$ ");
+                             "If only one value is given, then all use the same value. Units: $W/m/K$.");
           prm.declare_entry("Viscosity averaging scheme", "harmonic",
                             Patterns::Selection("arithmetic|harmonic|geometric|maximum composition"),
                             "When more than one compositional field is present at a point "
@@ -265,8 +200,8 @@ namespace aspect
     void
     Multicomponent<dim>::parse_parameters (ParameterHandler &prm)
     {
-      //not pretty, but we need to get the number of compositional fields before
-      //simulatoraccess has been initialized here...
+      // not pretty, but we need to get the number of compositional fields before
+      // simulator access has been initialized here...
       unsigned int n_foreground_fields;
       prm.enter_subsection ("Compositional fields");
       {
@@ -336,7 +271,7 @@ namespace aspect
                                    "This model is for use with an arbitrary number of compositional fields, where each field"
                                    " represents a rock type which can have completely different properties from the others."
                                    " However, each rock type itself has constant material properties.  The value of the "
-                                   " compositional field is interpreed as a volume fraction. If the sum of the fields is"
+                                   " compositional field is interpreted as a volume fraction. If the sum of the fields is"
                                    " greater than one, they are renormalized.  If it is less than one, material properties "
                                    " for ``background mantle'' make up the rest. When more than one field is present, the"
                                    " material properties are averaged arithmetically.  An exception is the viscosity,"

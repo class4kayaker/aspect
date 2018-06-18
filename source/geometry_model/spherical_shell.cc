@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2015 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,7 +14,7 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
@@ -23,8 +23,6 @@
 #include <aspect/geometry_model/initial_topography_model/zero_topography.h>
 
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
-#include <deal.II/grid/manifold_lib.h>
 #include <aspect/utilities.h>
 
 namespace aspect
@@ -32,11 +30,24 @@ namespace aspect
   namespace GeometryModel
   {
     template <int dim>
+    SphericalShell<dim>::SphericalShell()
+      :
+      spherical_manifold()
+#if !DEAL_II_VERSION_GTE(9,0,0)
+      , boundary_shell(),
+      straight_boundary()
+#endif
+    {}
+
+    template <int dim>
     void
     SphericalShell<dim>::
     create_coarse_mesh (parallel::distributed::Triangulation<dim> &coarse_grid) const
     {
-      AssertThrow (phi == 360 || phi == 90 || dim!=3, ExcNotImplemented());
+      AssertThrow (phi == 360 || phi == 90 || ((phi == 180) && (dim == 2)),
+                   ExcMessage ("The only opening angles that are allowed for "
+                               "this geometry are 90, 180, and 360 in 2d; "
+                               "and 90 and 360 in 3d."));
 
       if (phi == 360)
         {
@@ -80,27 +91,24 @@ namespace aspect
 
       // Use a manifold description for all cells. use manifold_id 99 in order
       // not to step on the boundary indicators used below
-      static const SphericalManifold<dim> spherical_manifold;
       coarse_grid.set_manifold (99, spherical_manifold);
 
-      for (typename Triangulation<dim>::active_cell_iterator
-           cell = coarse_grid.begin_active();
-           cell != coarse_grid.end(); ++cell)
-        cell->set_all_manifold_ids (99);
+      set_manifold_ids(coarse_grid);
 
-      // clear the manifold id from objects for which we have boundary
-      // objects (and need boundary objects because at the time of
-      // writing, only boundary objects provide normal vectors)
-      for (typename Triangulation<dim>::active_cell_iterator
-           cell = coarse_grid.begin_active();
-           cell != coarse_grid.end(); ++cell)
-        for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-          if (cell->at_boundary(f))
-            cell->face(f)->set_all_manifold_ids (numbers::invalid_manifold_id);
+      // Boundary objects are no longer necessary for deal.II 9.0,
+      // because everything is handled by the manifold.
+#if !DEAL_II_VERSION_GTE(9,0,0)
+      coarse_grid.signals.pre_refinement.connect (std_cxx11::bind (&SphericalShell<dim>::set_manifold_ids,
+                                                                   std_cxx11::cref(*this),
+                                                                   std_cxx11::ref(coarse_grid)));
+      coarse_grid.signals.post_refinement.connect (std_cxx11::bind (&SphericalShell<dim>::clear_manifold_ids,
+                                                                    std_cxx11::cref(*this),
+                                                                    std_cxx11::ref(coarse_grid)));
+
+      clear_manifold_ids(coarse_grid);
 
       // deal.II wants boundary objects even for the straight boundaries
       // when using manifolds in the interior:
-      static const StraightBoundary<dim> straight_boundary;
       std::set<types::boundary_id> ids = get_used_boundary_indicators();
       for (std::set<types::boundary_id>::iterator it = ids.begin();
            it!=ids.end(); ++it)
@@ -108,10 +116,40 @@ namespace aspect
           coarse_grid.set_boundary (*it, straight_boundary);
 
       // attach boundary objects to the curved boundaries:
-      static const HyperShellBoundary<dim> boundary_shell;
       coarse_grid.set_boundary (0, boundary_shell);
       coarse_grid.set_boundary (1, boundary_shell);
+#endif
     }
+
+
+
+    template <int dim>
+    void
+    SphericalShell<dim>::set_manifold_ids (parallel::distributed::Triangulation<dim> &triangulation) const
+    {
+      for (typename Triangulation<dim>::active_cell_iterator cell =
+             triangulation.begin_active(); cell != triangulation.end(); ++cell)
+        cell->set_all_manifold_ids (99);
+    }
+
+
+#if !DEAL_II_VERSION_GTE(9,0,0)
+    template <int dim>
+    void
+    SphericalShell<dim>::clear_manifold_ids (parallel::distributed::Triangulation<dim> &triangulation) const
+    {
+      // clear the manifold id from objects for which we have boundary
+      // objects (and need boundary objects because previous to deal.II 9.0,
+      // only boundary objects provide normal vectors)
+      for (typename Triangulation<dim>::active_cell_iterator
+           cell = triangulation.begin_active();
+           cell != triangulation.end(); ++cell)
+        for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
+          if (cell->at_boundary(f))
+            cell->face(f)->set_all_manifold_ids (numbers::invalid_manifold_id);
+    }
+#endif
+
 
 
     template <int dim>
@@ -154,8 +192,8 @@ namespace aspect
           case 2:
           {
             static const std::pair<std::string,types::boundary_id> mapping[]
-              = { std::pair<std::string,types::boundary_id> ("inner", 0),
-                  std::pair<std::string,types::boundary_id> ("outer", 1),
+              = { std::pair<std::string,types::boundary_id> ("bottom", 0),
+                  std::pair<std::string,types::boundary_id> ("top", 1),
                   std::pair<std::string,types::boundary_id> ("left",  2),
                   std::pair<std::string,types::boundary_id> ("right", 3)
                 };
@@ -173,8 +211,8 @@ namespace aspect
             if (phi == 360)
               {
                 static const std::pair<std::string,types::boundary_id> mapping[]
-                  = { std::pair<std::string,types::boundary_id>("inner", 0),
-                      std::pair<std::string,types::boundary_id>("outer", 1)
+                  = { std::pair<std::string,types::boundary_id>("bottom", 0),
+                      std::pair<std::string,types::boundary_id>("top",    1)
                     };
 
                 return std::map<std::string,types::boundary_id> (&mapping[0],
@@ -183,11 +221,11 @@ namespace aspect
             else if (phi == 90)
               {
                 static const std::pair<std::string,types::boundary_id> mapping[]
-                  = { std::pair<std::string,types::boundary_id>("inner", 0),
-                      std::pair<std::string,types::boundary_id>("outer", 1),
-                      std::pair<std::string,types::boundary_id>("east",  2),
-                      std::pair<std::string,types::boundary_id>("west",  3),
-                      std::pair<std::string,types::boundary_id>("south", 4)
+                  = { std::pair<std::string,types::boundary_id>("bottom", 0),
+                      std::pair<std::string,types::boundary_id>("top",    1),
+                      std::pair<std::string,types::boundary_id>("east",   2),
+                      std::pair<std::string,types::boundary_id>("west",   3),
+                      std::pair<std::string,types::boundary_id>("south",  4)
                     };
 
                 return std::map<std::string,types::boundary_id> (&mapping[0],
@@ -225,6 +263,12 @@ namespace aspect
       return std::min (std::max (R1-position.norm(), 0.), maximal_depth());
     }
 
+    template <int dim>
+    double
+    SphericalShell<dim>::height_above_reference_surface(const Point<dim> &position) const
+    {
+      return position.norm()-outer_radius();
+    }
 
 
     template <int dim>
@@ -311,6 +355,15 @@ namespace aspect
       return true;
     }
 
+
+    template <int dim>
+    aspect::Utilities::Coordinates::CoordinateSystem
+    SphericalShell<dim>::natural_coordinate_system() const
+    {
+      return aspect::Utilities::Coordinates::CoordinateSystem::spherical;
+    }
+
+
     template <int dim>
     void
     SphericalShell<dim>::declare_parameters (ParameterHandler &prm)
@@ -321,14 +374,28 @@ namespace aspect
         {
           prm.declare_entry ("Inner radius", "3481000",  // 6371-2890 in km
                              Patterns::Double (0),
-                             "Inner radius of the spherical shell. Units: m.");
+                             "Inner radius of the spherical shell. Units: m. "
+                             "\n\n"
+                             "\\note{The default value of 3,481,000 m equals the "
+                             "radius of a sphere with equal volume as Earth (i.e., "
+                             "6371 km) minus the average depth of the core-mantle "
+                             "boundary (i.e., 2890 km).}");
           prm.declare_entry ("Outer radius", "6336000",  // 6371-35 in km
                              Patterns::Double (0),
-                             "Outer radius of the spherical shell. Units: m.");
+                             "Outer radius of the spherical shell. Units: m. "
+                             "\n\n"
+                             "\\note{The default value of 6,336,000 m equals the "
+                             "radius of a sphere with equal volume as Earth (i.e., "
+                             "6371 km) minus the average depth of the mantle-crust "
+                             "interface (i.e., 35 km).}");
           prm.declare_entry ("Opening angle", "360",
                              Patterns::Double (0, 360),
                              "Opening angle in degrees of the section of the shell "
-                             "that we want to build. Units: degrees.");
+                             "that we want to build. "
+                             "The only opening angles that are allowed for "
+                             "this geometry are 90, 180, and 360 in 2d; "
+                             "and 90 and 360 in 3d. "
+                             "Units: degrees.");
 
           prm.declare_entry ("Cells along circumference", "0",
                              Patterns::Integer (0),
@@ -390,13 +457,24 @@ namespace aspect
                                    "Inner and outer radii are read from the parameter file "
                                    "in subsection 'Spherical shell'."
                                    "\n\n"
+                                   "Despite the name, this geometry does not imply the use of "
+                                   "a spherical coordinate system when used in 2d. Indeed, "
+                                   "in 2d the geometry is simply an annulus in a Cartesian "
+                                   "coordinate system and consequently would correspond to "
+                                   "a cross section of the fluid filled space between two "
+                                   "infinite cylinders where one has made the assumption that "
+                                   "the velocity in direction of the cylinder axes is zero. "
+                                   "This is consistent with the definition of what we consider "
+                                   "the two-dimension case given in "
+                                   "Section~\\ref{sec:meaning-of-2d}."
+                                   "\n\n"
                                    "The model assigns boundary indicators as follows: In 2d, "
                                    "inner and outer boundaries get boundary indicators zero "
                                    "and one, and if the opening angle set in the input file "
                                    "is less than 360, then left and right boundaries are "
                                    "assigned indicators two and three. These boundaries can "
-                                   "also be referenced using the symbolic names 'inner', 'outer' "
-                                   "and (if applicable) 'left', 'right'."
+                                   "also be referenced using the symbolic names `inner', `outer' "
+                                   "and (if applicable) `left', `right'."
                                    "\n\n"
                                    "In 3d, inner and "
                                    "outer indicators are treated as in 2d. If the opening "
@@ -404,7 +482,7 @@ namespace aspect
                                    "intersection of a spherical shell and the first octant, "
                                    "then indicator 2 is at the face $x=0$, 3 at $y=0$, "
                                    "and 4 at $z=0$. These last three boundaries can then also "
-                                   "be referred to as 'east', 'west' and 'south' symbolically "
+                                   "be referred to as `east', `west' and `south' symbolically "
                                    "in input files.")
   }
 }

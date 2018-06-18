@@ -4,8 +4,6 @@ set Use years in output instead of seconds = false
 set End time                               = 0.5
 set Output directory                       = refinement_switch 
 
-set Linear solver tolerance                = 1e-7
-set Temperature solver tolerance           = 1e-10
 
 set Pressure normalization                 = surface
 set Surface pressure                       = 0
@@ -21,7 +19,7 @@ subsection Geometry model
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = function
 
   subsection Function
@@ -33,7 +31,7 @@ end
 
 
 subsection Boundary temperature model
-  set Model name = box
+  set List of model names = box
 
   subsection Box
     set Bottom temperature = 1
@@ -44,15 +42,16 @@ subsection Boundary temperature model
 end
 
 
-subsection Model settings
+# The parameters below this comment were created by the update script
+# as replacement for the old 'Model settings' subsection. They can be
+# safely merged with any existing subsections with the same name.
+
+subsection Boundary temperature model
   set Fixed temperature boundary indicators   = bottom, top
+end
 
-  set Zero velocity boundary indicators       =
-  set Prescribed velocity boundary indicators =
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = left, right, bottom, top
-
-  set Include adiabatic heating               = false
-  set Include shear heating                   = false
 end
 
 
@@ -95,7 +94,7 @@ subsection Compositional fields
   set Names of fields           = heat
   set Number of fields          = 1                                                          
 end
-subsection Compositional initial conditions
+subsection Initial composition model
   set Model name = function
   subsection Function
 		set Function expression = if (y > 0.5, 1, 0)
@@ -116,4 +115,12 @@ end
 subsection Termination criteria
   set End step                  = 1  
   set Termination criteria      = end step
+end
+
+subsection Solver parameters
+  set Temperature solver tolerance = 1e-10
+
+  subsection Stokes solver parameters
+    set Linear solver tolerance = 1e-7
+  end
 end

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2013 by the authors of the ASPECT code.
+  Copyright (C) 2013 - 2017 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -14,13 +14,13 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
+  along with ASPECT; see the file LICENSE.  If not see
   <http://www.gnu.org/licenses/>.
 */
 
 
-#ifndef __aspect__boundary_composition_spherical_constant_h
-#define __aspect__boundary_composition_spherical_constant_h
+#ifndef _aspect_boundary_composition_spherical_constant_h
+#define _aspect_boundary_composition_spherical_constant_h
 
 #include <aspect/boundary_composition/interface.h>
 
@@ -36,6 +36,8 @@ namespace aspect
      * spherical shell geometry in which the composition at the inner and
      * outer surfaces (i.e. at the core-mantle and the mantle-
      * lithosphere/atmosphere boundaries) are constant.
+     * This class works for the sphere, spherical shell,
+     * chunk and ellipsoidal chunk geometries.
      *
      * @ingroup BoundaryCompositions
      */
