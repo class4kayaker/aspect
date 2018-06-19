@@ -315,15 +315,15 @@ namespace aspect
                              Patterns::Double (0),
                              "The value of the constant viscosity $\\eta_0$ of the solid matrix. "
                              "This viscosity may be modified by both temperature and porosity "
-                             "dependencies. Units: $Pa s$.");
+                             "dependencies. Units: $Pa \\, s$.");
           prm.declare_entry ("Reference bulk viscosity", "1e22",
                              Patterns::Double (0),
                              "The value of the constant bulk viscosity $\\xi_0$ of the solid matrix. "
                              "This viscosity may be modified by both temperature and porosity "
-                             "dependencies. Units: $Pa s$.");
+                             "dependencies. Units: $Pa \\, s$.");
           prm.declare_entry ("Reference melt viscosity", "10",
                              Patterns::Double (0),
-                             "The value of the constant melt viscosity $\\eta_f$. Units: $Pa s$.");
+                             "The value of the constant melt viscosity $\\eta_f$. Units: $Pa \\, s$.");
           prm.declare_entry ("Exponential melt weakening factor", "27",
                              Patterns::Double (0),
                              "The porosity dependence of the viscosity. Units: dimensionless.");
@@ -505,9 +505,9 @@ namespace aspect
                                    "material parameters required for the modelling of melt transport, "
                                    "including a source term for the porosity according to a simplified "
                                    "linear melting model similar to \\cite{schmeling2006}:\n"
-                                   "$\\phi_\\text{equilibrium} = \\frac{T-T_\\text{sol}}{T_\\text{liq}-T_\\text{sol}}$\n"
+                                   "$\\phi_{\\text{equilibrium}} = \\frac{T-T_{\\text{sol}}}{T_{\\text{liq}}-T_{\\text{sol}}}$\n"
                                    "with "
-                                   "$T_\\text{sol} = T_\\text{sol,0} + \\Delta T_p \\, p + \\Delta T_c \\, C$ \n"
-                                   "$T_\\text{liq} = T_\\text{sol}  + \\Delta T_\\text{sol-liq}$.")
+                                   "$T_{\\text{sol}} = T_{\\text{sol,0}} + \\Delta T_p \\, p + \\Delta T_c \\, C$ \n"
+                                   "$T_{\\text{liq}} = T_{\\text{sol}}  + \\Delta T_{\\text{sol-liq}}$.")
   }
 }

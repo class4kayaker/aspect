@@ -509,14 +509,14 @@ run_simulator(const std::string &input_as_string,
     }
   else if (output_plugin_graph)
     {
-      aspect::Simulator<dim> flow_problem(MPI_COMM_WORLD, prm);
+      aspect::Simulator<dim> simulator(MPI_COMM_WORLD, prm);
       if (i_am_proc_0)
-        flow_problem.write_plugin_graph (std::cout);
+        simulator.write_plugin_graph (std::cout);
     }
   else
     {
-      aspect::Simulator<dim> flow_problem(MPI_COMM_WORLD, prm);
-      flow_problem.run();
+      aspect::Simulator<dim> simulator(MPI_COMM_WORLD, prm);
+      simulator.run();
     }
 }
 
@@ -572,7 +572,12 @@ int main (int argc, char *argv[])
         }
       else if (arg=="-j" || arg =="--threads")
         {
+#ifdef ASPECT_USE_PETSC
+          std::cerr << "Using multiple threads (using -j) is not supported when using PETSc for linear algebra. Exiting." << std::endl;
+          return -1;
+#else
           use_threads = true;
+#endif
         }
       else
         {
@@ -584,13 +589,18 @@ int main (int argc, char *argv[])
         }
     }
 
+  // There might be remaining arguments for PETSc, only hand those over to
+  // the MPI initialization, but not the ones we parsed above.
+  int n_remaining_arguments = argc - current_argument;
+  char **remaining_arguments = (n_remaining_arguments > 0) ? &argv[current_argument] : NULL;
+
   try
     {
       // Note: we initialize this class inside the try/catch block and not
       // before, so that the destructor of this instance can react if we are
       // currently unwinding the stack if an unhandled exception is being
       // thrown to avoid MPI deadlocks.
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, use_threads ? numbers::invalid_unsigned_int : 1);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(n_remaining_arguments, remaining_arguments, use_threads ? numbers::invalid_unsigned_int : 1);
 
       deallog.depth_console(0);
 

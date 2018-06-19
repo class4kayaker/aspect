@@ -454,15 +454,15 @@ namespace aspect
                              Patterns::Double (0),
                              "The value of the constant viscosity $\\eta_0$ of the solid matrix. "
                              "This viscosity may be modified by both temperature and porosity "
-                             "dependencies. Units: $Pa s$.");
+                             "dependencies. Units: $Pa \\, s$.");
           prm.declare_entry ("Reference bulk viscosity", "1e22",
                              Patterns::Double (0),
                              "The value of the constant bulk viscosity $\\xi_0$ of the solid matrix. "
                              "This viscosity may be modified by both temperature and porosity "
-                             "dependencies. Units: $Pa s$.");
+                             "dependencies. Units: $Pa \\, s$.");
           prm.declare_entry ("Reference melt viscosity", "10",
                              Patterns::Double (0),
-                             "The value of the constant melt viscosity $\\eta_f$. Units: $Pa s$.");
+                             "The value of the constant melt viscosity $\\eta_f$. Units: $Pa \\, s$.");
           prm.declare_entry ("Exponential melt weakening factor", "27",
                              Patterns::Double (0),
                              "The porosity dependence of the viscosity. Units: dimensionless.");
@@ -798,7 +798,7 @@ namespace aspect
                                    "$\\eta(\\phi,T) = \\eta_0 e^{\\alpha(\\phi-\\phi_0)} e^{-\\beta(T-T_0)/T_0}$, "
                                    "$\\xi(\\phi,T) = \\xi_0 \\frac{\\phi_0}{\\phi} e^{-\\beta(T-T_0)/T_0}$, "
                                    "$k=k_0 \\phi^n (1-\\phi)^m$, "
-                                   "$\\rho=\\rho_0 (1 - \\alpha (T - T_\\text{adi})) e^{\\kappa p}$."
+                                   "$\\rho=\\rho_0 (1 - \\alpha (T - T_{\\text{adi}})) e^{\\kappa p}$."
                                    "\n\n"
                                    "The model is compressible only if this is specified in the input file, "
                                    "and contains compressibility for both solid and melt.")

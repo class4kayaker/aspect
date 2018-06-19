@@ -483,6 +483,10 @@ namespace aspect
                          "of the Stokes equation. This feature is likely only used when implementing force "
                          "vectors for manufactured solution problems and requires filling additional outputs "
                          "of type AdditionalMaterialOutputsStokesRHS.");
+      prm.declare_entry ("Enable elasticity", "false",
+                         Patterns::Bool (),
+                         "Whether to include the additional elastic terms on the right-hand side of "
+                         "the Stokes equation.");
     }
     prm.leave_subsection();
 
@@ -791,7 +795,7 @@ namespace aspect
                            "from the one used in the 2012 paper by Kronbichler, "
                            "Heister and Bangerth that describes ASPECT, see \\cite{KHB12}. "
                            "This parameter corresponds "
-                           "to the factor $\\alpha_\\text {max}$ in the formulas following equation (15) of "
+                           "to the factor $\\alpha_{\\text{max}}$ in the formulas following equation (15) of "
                            "the paper. After further experiments, we have also chosen to use a "
                            "different value than described there: It can be chosen as stated there for "
                            "uniformly refined meshes, but it needs to be chosen larger if the mesh has "
@@ -805,7 +809,7 @@ namespace aspect
                            "Heister and Bangerth that describes ASPECT, see \\cite{KHB12}. "
                            "Rather, the paper always uses "
                            "0, i.e. they specify the maximum dissipation $\\nu_h^\\text{max}$ as "
-                           "$\\nu_h^\\text{max}\\vert_K = \\alpha_\\text{max} h_K \\|\\mathbf u\\|_{\\infty,K}$. "
+                           "$\\nu_h^\\text{max}\\vert_K = \\alpha_{\\text{max}} h_K \\|\\mathbf u\\|_{\\infty,K}$. "
                            "Here, we use "
                            "$\\|\\lvert\\mathbf u\\rvert + \\gamma h_K \\lvert\\varepsilon (\\mathbf u)\\rvert\\|_{\\infty,K}$ "
                            "instead of $\\|\\mathbf u\\|_{\\infty,K}$. "
@@ -1182,6 +1186,7 @@ namespace aspect
       else AssertThrow(false, ExcNotImplemented());
 
       enable_additional_stokes_rhs = prm.get_bool ("Enable additional Stokes RHS");
+      enable_elasticity = prm.get_bool("Enable elasticity");
     }
     prm.leave_subsection ();
 
