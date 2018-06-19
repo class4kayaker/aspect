@@ -355,7 +355,7 @@ namespace aspect
     void xFEM_Heaviside<2>(const int degree,
                            const Tensor<1, 2, double> normal,
                            const double d,
-                           const std::vector<Point<2>> &points,
+                           const std::vector<Point<2> > &points,
                            std::vector<double> &values)
     {
       const int basis_count=4;
@@ -445,7 +445,7 @@ namespace aspect
     void xFEM_Heaviside<3>(const int degree,
                            const Tensor<1, 3, double> normal,
                            const double d,
-                           const std::vector<Point<3>> &points,
+                           const std::vector<Point<3> > &points,
                            std::vector<double> &values)
     {
       AssertThrow(false, ExcNotImplemented());
@@ -455,7 +455,7 @@ namespace aspect
     void xFEM_Heaviside_derivative_d<2>(const int degree,
                                         const Tensor<1, 2, double> normal,
                                         const double d,
-                                        const std::vector<Point<2>> &points,
+                                        const std::vector<Point<2> > &points,
                                         std::vector<double> &values)
     {
       const int basis_count=4;
@@ -543,7 +543,7 @@ namespace aspect
     void xFEM_Heaviside_derivative_d<3>(const int degree,
                                         const Tensor<1, 3, double> normal,
                                         const double d,
-                                        const std::vector<Point<3>> &points,
+                                        const std::vector<Point<3> > &points,
                                         std::vector<double> &values)
     {
       AssertThrow(false, ExcNotImplemented());
@@ -556,7 +556,7 @@ namespace aspect
                                              const double vol_frac,
                                              const double vol,
                                              const double epsilon,
-                                             const std::vector<Point<dim>> &points,
+                                             const std::vector<Point<dim> > &points,
                                              const std::vector<double> &weights)
     {
       double norm1=0.0;
@@ -622,7 +622,7 @@ namespace aspect
     double compute_fluid_volume_xFEM(const int degree,
                                      const Tensor<1, dim, double> normal,
                                      const double d,
-                                     const std::vector<Point<dim>> &points,
+                                     const std::vector<Point<dim> > &points,
                                      const std::vector<double> &weights)
     {
       std::vector<double> f_values(points.size());
@@ -668,12 +668,12 @@ namespace aspect
                                                          const double vol_frac, \
                                                          const double vol, \
                                                          const double epsilon, \
-                                                         const std::vector<Point<dim>> &points, \
+                                                         const std::vector<Point<dim> > &points, \
                                                          const std::vector<double> &weights); \
   template double compute_fluid_volume_xFEM<dim>(const int degree, \
                                                  const Tensor<1, dim, double> normal,\
                                                  const double d,\
-                                                 const std::vector<Point<dim>> &points,\
+                                                 const std::vector<Point<dim> > &points,\
                                                  const std::vector<double> &weights);
 
     ASPECT_INSTANTIATE(INSTANTIATE)
