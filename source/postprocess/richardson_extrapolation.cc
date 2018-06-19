@@ -42,8 +42,8 @@ namespace aspect
     {
       AssertThrow(dim==2,
                   ExcMessage("Richardson Extrapolation is currently only functional for dim=2."));
-      AssertThrow((this->get_parameters().initial_adaptive_refinement > 0 ||
-                   this->get_parameters().adaptive_refinement_interval > 0),
+      AssertThrow((this->get_parameters().initial_adaptive_refinement == 0 ||
+                   this->get_parameters().adaptive_refinement_interval == 0),
                   ExcMessage("Richardson Extrapolation is not compatible with AMR."));
 
       output_file_name = this->get_output_directory()
@@ -229,10 +229,10 @@ namespace aspect
     std::pair<std::string,std::string>
     RichardsonExtrapolation<dim>::execute (TableHandler &)
     {
-      std::ostringstream os;
-
       if ( this->get_time() == end_time)
         {
+          std::ostringstream os;
+
           if (Utilities::fexists(input_file_name))
             {
               /**
@@ -376,10 +376,14 @@ namespace aspect
 
           // Write out the current solution, interpolated at a higher resolved mesh.
           write_out_data();
-        }
 
-      return std::pair<std::string, std::string> ("Richardson Extrapolation L2 Error(V,P,T): ",
-                                                  os.str());
+          return std::pair<std::string, std::string> ("Richardson Extrapolation L2 Error(V,P,T): ",
+                                                      os.str());
+        }
+      else
+        {
+          return std::pair<std::string, std::string> ();
+        }
     }
 
 
