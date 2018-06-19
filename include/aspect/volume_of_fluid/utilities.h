@@ -22,6 +22,7 @@
 #define _aspect__volume_of_fluid_utilities_h
 
 #include <aspect/global.h>
+#include <deal.II/base/point.h>
 
 namespace aspect
 {
