@@ -26,6 +26,7 @@ def compute_convergence(filename):
                     else:
                         c_rate = math.log(od/nd, 2)
                         c_data.append("{:13.6g}|{:4.2f}".format(nd, c_rate))
+            print("|".join(c_data))
             oldline = line
 
 if __name__ == "__main__":
