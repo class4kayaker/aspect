@@ -223,7 +223,7 @@ namespace aspect
     std::pair<std::string,std::string>
     RichardsonExtrapolation<dim>::execute (TableHandler &)
     {
-      std::string info = "";
+      std::ostringstream os;
 
       if ( this->get_time() == end_time)
         {
@@ -348,16 +348,18 @@ namespace aspect
 
                 }
 
-              velocity_l2_error = std::sqrt(Utilities::MPI::sum(velocity_l2_error, this->get_mpi_communicator()));
-              pressure_l2_error = std::sqrt(Utilities::MPI::sum(pressure_l2_error, this->get_mpi_communicator()));
-              temperature_l2_error = std::sqrt(Utilities::MPI::sum(temperature_l2_error, this->get_mpi_communicator()));
+              double global_velocity_l2_error = std::sqrt(Utilities::MPI::sum(velocity_l2_error, this->get_mpi_communicator()));
+              double global_pressure_l2_error = std::sqrt(Utilities::MPI::sum(pressure_l2_error, this->get_mpi_communicator()));
+              double global_temperature_l2_error = std::sqrt(Utilities::MPI::sum(temperature_l2_error, this->get_mpi_communicator()));
               for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
                 compositional_field_l2_error[compositional_field_index] = std::sqrt(Utilities::MPI::sum(compositional_field_l2_error[compositional_field_index], this->get_mpi_communicator()));
 
               if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == 0)
                 {
                   std::ofstream error_log(data_output_file_name, std::ios_base::app);
-                  info = std::to_string(velocity_l2_error);
+                  os << std::scientific << global_velocity_l2_error
+                      << ", " << global_pressure_l2_error
+                      << ", " << global_temperature_l2_error;
                   error_log << std::setprecision(14) << velocity_l2_error << " " << pressure_l2_error << " " << temperature_l2_error;
                   for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
                     error_log << " " << compositional_field_l2_error[compositional_field_index];
@@ -370,8 +372,8 @@ namespace aspect
           write_out_data();
         }
 
-      return std::pair<std::string, std::string> ("Richardson Extrapolation: ",
-                                                  info);
+      return std::pair<std::string, std::string> ("Richardson Extrapolation L2 Error(V,P,T): ",
+                                                  os.str());
     }
 
 
@@ -396,14 +398,10 @@ namespace aspect
                              "Units: Years if the "
                              "'Use years in output instead of seconds' parameter is set; "
                              "seconds otherwise.");
-          prm.declare_entry("Input file name of interpolated data", "interpolated_data",
+          prm.declare_entry("File name prefix for interpolated data", "interpolated_data",
                             Patterns::Anything (),
                             "The file name containing the interpolated solution at the nodal values "
-                            "at the current grid resolution.");
-          prm.declare_entry("Output file name of interpolated data", "interpolated_data",
-                            Patterns::Anything (),
-                            "The file name containing the interpolated solution at the nodal values "
-                            "at the current grid resolution * 4 cells.");
+                            "at the current grid resolution+1.");
           prm.declare_entry("Output file name of errors", "Errors.dat",
                             Patterns::Anything(),
                             "A file name to append the computed little L2 error oo the interpolated "
@@ -429,8 +427,9 @@ namespace aspect
           if ( use_years == true)
             end_time *= year_in_seconds;
 
-          input_file_name = prm.get("Input file name of interpolated data");
-          output_file_name = prm.get("Output file name of interpolated data");
+          std::string file_prefix = prm.get("File name prefix for interpolated data");
+          input_file_name = file_prefix + "_" + Utilities::int_to_string(this->get_parameters().initial_global_refinement) +".dat";
+          output_file_name = file_prefix + "_" + Utilities::int_to_string(this->get_parameters().initial_global_refinement+1) +".dat";
           data_output_file_name = prm.get("Output file name of errors");
         }
         prm.leave_subsection();

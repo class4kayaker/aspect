@@ -13,7 +13,7 @@ set End time                               = 0
 set Output directory                       = output
 
 set Pressure normalization                 = volume
-set Nonlinear solver scheme                = Stokes only
+set Nonlinear solver scheme                = no Advection, iterated Stokes
 
 
 ############### Parameters describing the model
@@ -28,10 +28,9 @@ subsection Geometry model
 end
 
 
-subsection Model settings
-  set Prescribed velocity boundary indicators =
+
+subsection Boundary velocity model
   set Tangential velocity boundary indicators = left, right, bottom, top
-  set Zero velocity boundary indicators       =
 end
 
 
@@ -48,11 +47,11 @@ end
 ############### Parameters describing the temperature field
 
 subsection Boundary temperature model
-  set Model name = box
+  set List of model names = box
 end
 
 
-subsection Initial conditions
+subsection Initial temperature model
   set Model name = perturbed box
 end
 
@@ -68,7 +67,7 @@ end
 
 subsection Mesh refinement
   set Initial adaptive refinement              = 0
-  set Initial global refinement = 8
+  set Initial global refinement = 6
 end
 
 
@@ -78,7 +77,6 @@ subsection Postprocess
   set List of postprocessors = SolKzPostprocessor, visualization, richardson extrapolation
   subsection Richardson extrapolation
     set End time = 0
-    set Input file name of interpolated data = interpolated_values_7_onto_8
-    set Output file name of interpolated data =  interpolated_values_8_onto_9
+    set File name prefix for interpolated data = interpolated_values_4
   end
 end
