@@ -40,6 +40,12 @@ namespace aspect
     void
     RichardsonExtrapolation<dim>::initialize()
     {
+      AssertThrow(dim==2,
+                  ExcMessage("Richardson Extrapolation is currently only functional for dim=2."));
+      AssertThrow((this->get_parameters().initial_adaptive_refinement > 0 ||
+                   this->get_parameters().adaptive_refinement_interval > 0),
+                  ExcMessage("Richardson Extrapolation is not compatible with AMR."));
+
       output_file_name = this->get_output_directory()
                          + output_file_name + "_"
                          + Utilities::int_to_string(Utilities::MPI::this_mpi_process(this->get_mpi_communicator()))
@@ -358,8 +364,8 @@ namespace aspect
                 {
                   std::ofstream error_log(data_output_file_name, std::ios_base::app);
                   os << std::scientific << global_velocity_l2_error
-                      << ", " << global_pressure_l2_error
-                      << ", " << global_temperature_l2_error;
+                     << ", " << global_pressure_l2_error
+                     << ", " << global_temperature_l2_error;
                   error_log << std::setprecision(14) << velocity_l2_error << " " << pressure_l2_error << " " << temperature_l2_error;
                   for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
                     error_log << " " << compositional_field_l2_error[compositional_field_index];
