@@ -208,7 +208,8 @@ namespace aspect
           for (; itr_quadrature_points != quadrature_points.end();
                itr_quadrature_points++, itr_velocity++, itr_pressure++, itr_temperature++, quadrature_point_index++)
             {
-              interpolated_data_stream << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
+              interpolated_data_stream << std::scientific << std::setprecision(15)
+                                       << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
                                        << "\t" << (*itr_velocity)[0] << "\t" << (*itr_velocity)[1]
                                        << "\t" << *itr_pressure << "\t" << *itr_temperature;
               if (this->n_compositional_fields() != 0)
