@@ -241,10 +241,14 @@ namespace aspect
                */
               read_in_data();
 
+              double velocity_l1_error = 0;
+              double pressure_l1_error = 0;
+              double temperature_l1_error = 0;
+              std::vector<double> compositional_field_l1_error(this->n_compositional_fields());
               double velocity_l2_error = 0;
               double pressure_l2_error = 0;
               double temperature_l2_error = 0;
-              double *compositional_field_l2_error = new double[this->n_compositional_fields()];
+              std::vector<double> compositional_field_l2_error(this->n_compositional_fields());
               for (unsigned int i = 0; i < this->n_compositional_fields(); i++)
                 compositional_field_l2_error[i] = 0;
 
@@ -336,6 +340,9 @@ namespace aspect
                       Assert(false, ExcInternalError());
                     }
 
+                  velocity_l1_error += (velocity[index] - (*itr_velocity_input)).norm()*(jacobian_weights[index]);
+                  pressure_l1_error += abs(pressure[index] - (*itr_pressure_input))*(jacobian_weights[index]);
+                  temperature_l1_error += abs(temperature[index] - (*itr_temperature_input))*(jacobian_weights[index]);
                   velocity_l2_error += (velocity[index] - (*itr_velocity_input))*(velocity[index] - (*itr_velocity_input))*(jacobian_weights[index]);
                   pressure_l2_error += (pressure[index] - (*itr_pressure_input))*(pressure[index] - (*itr_pressure_input))*(jacobian_weights[index]);
                   temperature_l2_error += (temperature[index] - (*itr_temperature_input))*(temperature[index] - (*itr_temperature_input))*(jacobian_weights[index]);
@@ -345,21 +352,28 @@ namespace aspect
                   unsigned int compositional_field_index = 0;
 
                   for (; itr_compositional_fields != compositional_fields.end() && itr_compositional_fields_input != compositional_fields_input->end();
-                       itr_compositional_fields++, itr_compositional_fields_input++)
+                       itr_compositional_fields++, itr_compositional_fields_input++, compositional_field_index++)
                     {
+                      compositional_field_l1_error[compositional_field_index] += abs((*itr_compositional_fields)[index] - (*itr_compositional_fields_input)[quadrature_point_index]) *
+                                                                                 (jacobian_weights[index]);
                       compositional_field_l2_error[compositional_field_index] += ((*itr_compositional_fields)[index] - (*itr_compositional_fields_input)[quadrature_point_index]) *
                                                                                  ((*itr_compositional_fields)[index] - (*itr_compositional_fields_input)[quadrature_point_index]) *
                                                                                  (jacobian_weights[index]);
-                      compositional_field_index++;
                     }
 
                 }
 
+              double global_velocity_l1_error = Utilities::MPI::sum(velocity_l1_error, this->get_mpi_communicator());
+              double global_pressure_l1_error = Utilities::MPI::sum(pressure_l1_error, this->get_mpi_communicator());
+              double global_temperature_l1_error = Utilities::MPI::sum(temperature_l1_error, this->get_mpi_communicator());
               double global_velocity_l2_error = std::sqrt(Utilities::MPI::sum(velocity_l2_error, this->get_mpi_communicator()));
               double global_pressure_l2_error = std::sqrt(Utilities::MPI::sum(pressure_l2_error, this->get_mpi_communicator()));
               double global_temperature_l2_error = std::sqrt(Utilities::MPI::sum(temperature_l2_error, this->get_mpi_communicator()));
               for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
+              {
+                compositional_field_l1_error[compositional_field_index] = Utilities::MPI::sum(compositional_field_l1_error[compositional_field_index], this->get_mpi_communicator());
                 compositional_field_l2_error[compositional_field_index] = std::sqrt(Utilities::MPI::sum(compositional_field_l2_error[compositional_field_index], this->get_mpi_communicator()));
+              }
 
               if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == 0)
                 {
@@ -367,7 +381,10 @@ namespace aspect
                   os << std::scientific << global_velocity_l2_error
                      << ", " << global_pressure_l2_error
                      << ", " << global_temperature_l2_error;
-                  error_log << std::setprecision(14) << velocity_l2_error << " " << pressure_l2_error << " " << temperature_l2_error;
+                  error_log << std::setprecision(14) << global_velocity_l1_error << " " << global_pressure_l1_error << " " << global_temperature_l1_error;
+                  for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
+                    error_log << " " << compositional_field_l1_error[compositional_field_index];
+                  error_log << std::setprecision(14) << global_velocity_l2_error << " " << global_pressure_l2_error << " " << global_temperature_l2_error;
                   for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
                     error_log << " " << compositional_field_l2_error[compositional_field_index];
                   error_log << std::endl;
