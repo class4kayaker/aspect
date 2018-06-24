@@ -63,6 +63,8 @@ namespace aspect
 
           std::vector<types::global_dof_index>   local_dof_indices;
 
+          double volume;
+
           /**
            * Variables describing the values of the shape functions at the
            * quadrature points, as they are used in the advection assembly

@@ -100,7 +100,8 @@ namespace aspect
                                                                                  scratch.cell_i_d_values);
         }
 
-      // Obtain approximation to local interface
+      scratch.volume = 0.0;
+
       for (unsigned int q = 0; q< n_q_points; ++q)
         {
           // Init FE field vals
@@ -116,6 +117,7 @@ namespace aspect
                                             scratch.phi_field[j] *
                                             scratch.finite_element_values.JxW(q);
             }
+          scratch.volume += scratch.finite_element_values.JxW(q);
         }
 
       for (unsigned int face_no = 0; face_no < GeometryInfo<dim>::faces_per_cell; ++face_no)
@@ -163,7 +165,7 @@ namespace aspect
       // Currently assuming cartesian mapping, so cell->measure()
       // works, and the neighbor volume cannot be computed easily using
       // a sum in this call.
-      const double cell_vol = cell->measure();
+      const double cell_vol = scratch.volume;
 
       // volume fraction and interface values are constants, so can set from first value
       const double cell_volume_of_fluid = scratch.old_field_values[0];
@@ -280,9 +282,9 @@ namespace aspect
             {
               flux_volume_of_fluid = cell_volume_of_fluid;
             }
-          else if (face_flux < 0.0) // edge is upwind, currently assume zero inflow
+          else if (face_flux < 0.0) // edge is upwind
             {
-              flux_volume_of_fluid = boundary_fluid_flux/face_flux;
+              flux_volume_of_fluid = -boundary_fluid_flux/face_flux;
             }
           else // Cell is upwind, outflow boundary
             {
@@ -293,7 +295,15 @@ namespace aspect
             }
 
           // Add fluxes to RHS
-          data.local_rhs[0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
+          if (update_from_old)
+            {
+              data.local_matrix(0, 0) -= face_flux;
+              data.local_rhs[0] -= (flux_volume_of_fluid) * face_flux;
+            }
+          else
+            {
+              data.local_rhs[0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
+            }
         }
     }
 
@@ -317,7 +327,7 @@ namespace aspect
       // Currently assuming cartesian mapping, so cell->measure() works, we
       // also will need neighbor volume, which cannot be computed easily using
       // a sum in this call.
-      const double cell_vol = cell->measure();
+      const double cell_vol = scratch.volume;
 
       // vol fraction and interface values are constants, so can set from first value
       const double cell_volume_of_fluid = scratch.old_field_values[0];
@@ -520,8 +530,18 @@ namespace aspect
               data.face_contributions_mask[f_rhs_ind] = true;
 
               // fluxes to RHS
-              data.local_rhs [0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
-              data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid-neighbor_volume_of_fluid) * face_flux;
+              if (update_from_old)
+                {
+                  data.local_matrix(0, 0) -= face_flux;
+                  data.local_face_matrices_ext_ext[f_rhs_ind](0, 0) += face_flux;
+                  data.local_rhs [0] -= (flux_volume_of_fluid) * face_flux;
+                  data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid) * face_flux;
+                }
+              else
+                {
+                  data.local_rhs [0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
+                  data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid-neighbor_volume_of_fluid) * face_flux;
+                }
             }
           else
             {
@@ -646,8 +666,18 @@ namespace aspect
               if (flux_volume_of_fluid > 1.0)
                 flux_volume_of_fluid = 1.0;
 
-              data.local_rhs [0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
-              data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid-neighbor_volume_of_fluid) * face_flux;
+              if (update_from_old)
+                {
+                  data.local_matrix(0, 0) -= face_flux;
+                  data.local_face_matrices_ext_ext[f_rhs_ind](0, 0) += face_flux;
+                  data.local_rhs [0] -= (flux_volume_of_fluid) * face_flux;
+                  data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid) * face_flux;
+                }
+              else
+                {
+                  data.local_rhs [0] -= (flux_volume_of_fluid-cell_volume_of_fluid) * face_flux;
+                  data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid-neighbor_volume_of_fluid) * face_flux;
+                }
 
               // Limit to constant cases, otherwise announce error
               if (cell_volume_of_fluid > volume_fraction_threshold && cell_volume_of_fluid<1.0-volume_fraction_threshold)
