@@ -30,7 +30,7 @@ Number of degrees of freedom: 2,036 (578+81+289+576+64+192+256)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.416
-     Compositions min/max/mass:            -2.776e-17/1/0.4155
+     Compositions min/max/mass:            -1.388e-17/1/0.4155
 
 *** Timestep 3:  t=0.25 seconds
    Skipping temperature solve because RHS is zero.
@@ -39,8 +39,8 @@ Number of degrees of freedom: 2,036 (578+81+289+576+64+192+256)
 
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.383
-     Compositions min/max/mass:            -2.429e-17/1/0.3828
-     VoF Calculation(IEstL1/FEstL1):       1.29006506e-16 / 1.17093835e-17
+     Compositions min/max/mass:            -2.602e-17/1/0.3828
+     VoF Calculation(IEstL1/FEstL1):       1.37680123e-16 / 1.85398571e-17
 
 Termination requested by criterion: end time
 
