@@ -384,6 +384,7 @@ namespace aspect
                   error_log << std::setprecision(14) << global_velocity_l1_error << " " << global_pressure_l1_error << " " << global_temperature_l1_error;
                   for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
                     error_log << " " << compositional_field_l1_error[compositional_field_index];
+                  error_log << " ";
                   error_log << std::setprecision(14) << global_velocity_l2_error << " " << global_pressure_l2_error << " " << global_temperature_l2_error;
                   for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
                     error_log << " " << compositional_field_l2_error[compositional_field_index];
