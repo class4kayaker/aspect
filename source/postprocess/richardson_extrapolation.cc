@@ -207,6 +207,11 @@ namespace aspect
           refined_cell_location[i] = 2*((point[0]>0.5)?1:0)+
                                      ((point[1]>0.5)?1:0);
         }
+      unsigned int n_vof_fields = 0;
+      if (this->get_parameters().volume_of_fluid_tracking_enabled)
+        {
+          n_vof_fields = this->get_volume_of_fluid_handler().get_n_fields();
+        }
 
       // Declaring an iterator over all active cells on local mpi process
       typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active();
@@ -225,7 +230,7 @@ namespace aspect
           std::vector<Tensor<1,dim>> interpolated_velocity(quadrature_points.size());
           std::vector<std::vector<double>> interpolated_compositional_fields(this->n_compositional_fields(),
                                                                              std::vector<double>(quadrature_points.size()));
-          std::vector<std::vector<double>> interpolated_vof_fields(this->get_volume_of_fluid_handler().get_n_fields(),
+          std::vector<std::vector<double>> interpolated_vof_fields(n_vof_fields,
                                                                    std::vector<double>(quadrature_points.size()));
 
           fe_values[extractor_pressure].get_function_values(this->get_solution(), interpolated_pressure);
@@ -346,9 +351,11 @@ namespace aspect
                   compositional_field_l2_error[i] = 0;
                 }
               std::vector<double> vof_field_l1_error;
+              unsigned int n_vof_fields = 0;
               if (this->get_parameters().volume_of_fluid_tracking_enabled)
                 {
-                  vof_field_l1_error.resize(this->get_volume_of_fluid_handler().get_n_fields());
+                  n_vof_fields = this->get_volume_of_fluid_handler().get_n_fields();
+                  vof_field_l1_error.resize(n_vof_fields);
                   for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx)
                     {
                       vof_field_l1_error[idx] = 0.0;
@@ -394,7 +401,7 @@ namespace aspect
                   std::vector<double> pressure(fe_values.n_quadrature_points);
                   std::vector<Tensor<1,dim>> velocity(fe_values.n_quadrature_points);
                   std::vector<std::vector<double>> compositional_fields (this->n_compositional_fields(), std::vector<double> (fe_values.n_quadrature_points));
-                  std::vector<double> volume_fractions (this->get_volume_of_fluid_handler().get_n_fields());
+                  std::vector<double> volume_fractions (n_vof_fields);
 
                   const std::vector<Point<dim>>  quadrature_points = fe_values.get_quadrature_points();
                   const std::vector<double>  jacobian_weights = fe_values.get_JxW_values();
