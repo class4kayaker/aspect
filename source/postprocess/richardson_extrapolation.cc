@@ -24,6 +24,8 @@
 #include <deal.II/base/quadrature_lib.h>
 
 #include <aspect/global.h>
+#include <aspect/volume_of_fluid/handler.h>
+#include <aspect/volume_of_fluid/utilities.h>
 #include <math.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/grid/grid_tools.h>
@@ -71,9 +73,18 @@ namespace aspect
       pressure_input = new std::vector<double>;
       velocity_input = new std::vector<Tensor<1,dim>>;
       compositional_fields_input = new std::vector<std::vector<double>>;
+      vof_fields_input = new std::vector<std::vector<double>>;
+
 
       for (unsigned int compositional_field_index=0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
         compositional_fields_input->push_back(*(new std::vector<double>));
+      if (this->get_parameters().volume_of_fluid_tracking_enabled)
+        {
+          for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx)
+            {
+              vof_fields_input->push_back(*(new std::vector<double>));
+            }
+        }
 
       /**
        * Looping and reading over data.
@@ -96,6 +107,16 @@ namespace aspect
               double composition_value = 0;
               iss >> composition_value;
               itr_compositional_fields->push_back(composition_value);
+            }
+          if (this->get_parameters().volume_of_fluid_tracking_enabled)
+            {
+              std::vector<std::vector<double>>::iterator itr_volume_fraction_fields = vof_fields_input->begin();
+              for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx, ++itr_volume_fraction_fields)
+                {
+                  double volume_fraction_value = 0;
+                  iss >> volume_fraction_value;
+                  itr_volume_fraction_fields->push_back(volume_fraction_value);
+                }
             }
 
           quadrature_points_input->push_back(q_point);
@@ -125,7 +146,9 @@ namespace aspect
 
       for (int input_index = 0; itr_quadrature_points != quadrature_points_input->end(); input_index++, itr_quadrature_points++, itr_velocity++, itr_pressure++, itr_temperature++)
       {
-          debugging << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
+
+          debugging << std::scientific << std::setprecision(15)
+                    << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
                     << "\t" << (*itr_velocity)[0] << "\t" << (*itr_velocity)[1]
                     << "\t" << *itr_pressure << "\t" << *itr_temperature;
           typename std::vector<std::vector<double>>::const_iterator itr_compositional_fields_input = compositional_fields_input->begin();
@@ -165,6 +188,26 @@ namespace aspect
       const FEValuesExtractors::Scalar &extractor_temperature = this->introspection().extractors.temperature;
       const FEValuesExtractors::Vector &extractor_velocity = this->introspection().extractors.velocities;
 
+      std::vector<Point<dim>> vof_refined_unit_recenters(4);
+
+      for (unsigned int i=0; i<2; ++i)
+        {
+          for (unsigned int j=0; j<2; ++j)
+            {
+              vof_refined_unit_recenters[2*i+j][0] = -0.25+0.5*i;
+              vof_refined_unit_recenters[2*i+j][1] = -0.25+0.5*j;
+            }
+        }
+
+      std::vector<unsigned int> refined_cell_location(quadrature_rule.size());
+
+      for (unsigned int i=0; i< quadrature_rule.size(); ++i)
+        {
+          const Point<dim> &point = quadrature_rule.point(i);
+          refined_cell_location[i] = 2*((point[0]>0.5)?1:0)+
+                                     ((point[1]>0.5)?1:0);
+        }
+
       // Declaring an iterator over all active cells on local mpi process
       typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active();
       for (; cell != this->get_dof_handler().end();
@@ -182,6 +225,8 @@ namespace aspect
           std::vector<Tensor<1,dim>> interpolated_velocity(quadrature_points.size());
           std::vector<std::vector<double>> interpolated_compositional_fields(this->n_compositional_fields(),
                                                                              std::vector<double>(quadrature_points.size()));
+          std::vector<std::vector<double>> interpolated_vof_fields(this->get_volume_of_fluid_handler().get_n_fields(),
+                                                                   std::vector<double>(quadrature_points.size()));
 
           fe_values[extractor_pressure].get_function_values(this->get_solution(), interpolated_pressure);
           fe_values[extractor_temperature].get_function_values(this->get_solution(), interpolated_temperature);
@@ -196,6 +241,45 @@ namespace aspect
                 this->get_solution(),
                 *itr_compositional_fields);
               index++;
+            }
+
+          if (this->get_parameters().volume_of_fluid_tracking_enabled)
+            {
+              const std::vector<double> weights = fe_values.get_JxW_values();
+              double cell_vol = 0.0;
+              for (unsigned int i=0; i<quadrature_points.size(); ++i)
+                {
+                  cell_vol += weights[i];
+                }
+              for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx)
+                {
+                  const VolumeOfFluidField<dim> &field = this->get_volume_of_fluid_handler().field_struct_for_field_index(idx);
+                  const unsigned int volume_of_fluid_N_component =  field.reconstruction.first_component_index;
+                  const FEValuesExtractors::Vector volume_of_fluid_N_n = FEValuesExtractors::Vector(volume_of_fluid_N_component);
+                  const FEValuesExtractors::Scalar volume_of_fluid_N_d = FEValuesExtractors::Scalar(volume_of_fluid_N_component+dim);
+
+                  std::vector<Tensor<1,dim> > normal_values(quadrature_points.size());
+                  std::vector<double> d_values(quadrature_points.size());
+
+                  fe_values[volume_of_fluid_N_n].get_function_values(this->get_solution(), normal_values);
+                  fe_values[volume_of_fluid_N_d].get_function_values(this->get_solution(), d_values);
+
+                  const Tensor<1, dim, double> normal = normal_values[0];
+                  const double d = d_values[0];
+
+                  std::vector<double> volume_fractions(vof_refined_unit_recenters.size());
+
+                  for (unsigned int i=0; i<volume_fractions.size(); ++i)
+                    {
+                      const double d_r = d-normal*vof_refined_unit_recenters[i];
+
+                      volume_fractions[i] = VolumeOfFluid::compute_fluid_fraction<dim>(normal, 2.0*d_r);
+                    }
+                  for (unsigned int i=0; i<quadrature_points.size(); ++i)
+                    {
+                      interpolated_vof_fields[idx][i] = volume_fractions[refined_cell_location[i]];
+                    }
+                }
             }
 
           typename std::vector<double>::const_iterator itr_temperature = interpolated_temperature.begin();
@@ -218,6 +302,13 @@ namespace aspect
                   itr_compositional_fields = interpolated_compositional_fields.begin();
                   for (; itr_compositional_fields != interpolated_compositional_fields.end(); itr_compositional_fields++, count++)
                     interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index] << "\t";
+                }
+              if (this->get_parameters().volume_of_fluid_tracking_enabled)
+                {
+                  for (unsigned int i=0; i<this->get_volume_of_fluid_handler().get_n_fields(); ++i)
+                    {
+                      interpolated_data_stream << "\t" << interpolated_vof_fields[i][quadrature_point_index];
+                    }
                 }
               interpolated_data_stream << std::endl;
             }
@@ -250,7 +341,20 @@ namespace aspect
               double temperature_l2_error = 0;
               std::vector<double> compositional_field_l2_error(this->n_compositional_fields());
               for (unsigned int i = 0; i < this->n_compositional_fields(); i++)
-                compositional_field_l2_error[i] = 0;
+                {
+                  compositional_field_l1_error[i] = 0;
+                  compositional_field_l2_error[i] = 0;
+                }
+              std::vector<double> vof_field_l1_error;
+              if (this->get_parameters().volume_of_fluid_tracking_enabled)
+                {
+                  vof_field_l1_error.resize(this->get_volume_of_fluid_handler().get_n_fields());
+                  for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx)
+                    {
+                      vof_field_l1_error[idx] = 0.0;
+                    }
+                }
+
 
               const QGauss<dim> quadrature_formula(this->get_parameters().stokes_velocity_degree + 1);
 //            const QGauss<dim> quadrature_formula_for_pressure(this->get_fe().base_element(this->introspection().base_elements.pressure).degree);
@@ -290,6 +394,7 @@ namespace aspect
                   std::vector<double> pressure(fe_values.n_quadrature_points);
                   std::vector<Tensor<1,dim>> velocity(fe_values.n_quadrature_points);
                   std::vector<std::vector<double>> compositional_fields (this->n_compositional_fields(), std::vector<double> (fe_values.n_quadrature_points));
+                  std::vector<double> volume_fractions (this->get_volume_of_fluid_handler().get_n_fields());
 
                   const std::vector<Point<dim>>  quadrature_points = fe_values.get_quadrature_points();
                   const std::vector<double>  jacobian_weights = fe_values.get_JxW_values();
@@ -307,6 +412,21 @@ namespace aspect
                         this->get_solution(),
                         *itr_compositional_fields);
                       index++;
+                    }
+
+                  if (this->get_parameters().volume_of_fluid_tracking_enabled)
+                    {
+                      for (unsigned int index=0; index<this->get_volume_of_fluid_handler().get_n_fields(); ++index)
+                        {
+                          const VolumeOfFluidField<dim> &field = this->get_volume_of_fluid_handler().field_struct_for_field_index(index);
+                          const unsigned int volume_of_fluid_ind =  field.volume_fraction.first_component_index;
+                          const FEValuesExtractors::Scalar volume_of_fluid = FEValuesExtractors::Scalar(volume_of_fluid_ind);
+                          std::vector<double> volume_fraction_values(quadrature_points.size());
+                          fe_values[volume_of_fluid].get_function_values(this->get_solution(), volume_fraction_values);
+
+                          volume_fractions[index] = volume_fraction_values[0];
+                          index++;
+                        }
                     }
 
                   index = 0;
@@ -360,7 +480,17 @@ namespace aspect
                                                                                  ((*itr_compositional_fields)[index] - (*itr_compositional_fields_input)[quadrature_point_index]) *
                                                                                  (jacobian_weights[index]);
                     }
+                  if (this->get_parameters().volume_of_fluid_tracking_enabled)
+                    {
+                      typename std::vector<std::vector<double>>::iterator itr_volume_fraction_fields_input = vof_fields_input->begin();
+                      for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields();
+                           ++idx, ++itr_volume_fraction_fields_input)
+                        {
+                          vof_field_l1_error[idx] += abs(volume_fractions[idx]-(*itr_volume_fraction_fields_input)[quadrature_point_index]) *
+                                                     (jacobian_weights[index]);
+                        }
 
+                    }
                 }
 
               double global_velocity_l1_error = Utilities::MPI::sum(velocity_l1_error, this->get_mpi_communicator());
@@ -370,10 +500,17 @@ namespace aspect
               double global_pressure_l2_error = std::sqrt(Utilities::MPI::sum(pressure_l2_error, this->get_mpi_communicator()));
               double global_temperature_l2_error = std::sqrt(Utilities::MPI::sum(temperature_l2_error, this->get_mpi_communicator()));
               for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
-              {
-                compositional_field_l1_error[compositional_field_index] = Utilities::MPI::sum(compositional_field_l1_error[compositional_field_index], this->get_mpi_communicator());
-                compositional_field_l2_error[compositional_field_index] = std::sqrt(Utilities::MPI::sum(compositional_field_l2_error[compositional_field_index], this->get_mpi_communicator()));
-              }
+                {
+                  compositional_field_l1_error[compositional_field_index] = Utilities::MPI::sum(compositional_field_l1_error[compositional_field_index], this->get_mpi_communicator());
+                  compositional_field_l2_error[compositional_field_index] = std::sqrt(Utilities::MPI::sum(compositional_field_l2_error[compositional_field_index], this->get_mpi_communicator()));
+                }
+              if (this->get_parameters().volume_of_fluid_tracking_enabled)
+                {
+                  for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx)
+                    {
+                      vof_field_l1_error[idx] =Utilities::MPI::sum(vof_field_l1_error[idx], this->get_mpi_communicator());
+                    }
+                }
 
               if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == 0)
                 {
@@ -388,6 +525,13 @@ namespace aspect
                   error_log << std::setprecision(14) << global_velocity_l2_error << " " << global_pressure_l2_error << " " << global_temperature_l2_error;
                   for (unsigned int compositional_field_index = 0; compositional_field_index < this->n_compositional_fields(); compositional_field_index++)
                     error_log << " " << compositional_field_l2_error[compositional_field_index];
+                  if (this->get_parameters().volume_of_fluid_tracking_enabled)
+                    {
+                      for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx)
+                        {
+                          error_log << " " << vof_field_l1_error[idx];
+                        }
+                    }
                   error_log << std::endl;
                   error_log.close();
                 }

@@ -102,6 +102,7 @@ namespace aspect
         std::vector<double> *pressure_input;
         std::vector<Tensor<1,dim>> *velocity_input;
         std::vector<std::vector<double>> *compositional_fields_input;
+        std::vector<std::vector<double>> *vof_fields_input;
     };
   }
 }
