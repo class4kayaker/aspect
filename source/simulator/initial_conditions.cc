@@ -29,7 +29,6 @@
 #include <deal.II/base/function.h>
 
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/constraint_matrix.h>
 #include <deal.II/grid/tria_iterator.h>
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/fe/fe_values.h>

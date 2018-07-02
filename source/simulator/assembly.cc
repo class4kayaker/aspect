@@ -35,7 +35,9 @@
 #include <deal.II/base/work_stream.h>
 #include <deal.II/base/signaling_nan.h>
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/constraint_matrix.h>
+#if !DEAL_II_VERSION_GTE(9,1,0)
+#  include <deal.II/lac/constraint_matrix.h>
+#endif
 #include <deal.II/grid/tria_iterator.h>
 #include <deal.II/grid/filtered_iterator.h>
 #include <deal.II/dofs/dof_accessor.h>
@@ -206,7 +208,14 @@ namespace aspect
           std_cxx14::make_unique<aspect::Assemblers::AdvectionSystemInteriorFace<dim> >());
       }
 
-    if (parameters.use_discontinuous_temperature_discretization)
+    if (parameters.fixed_heat_flux_boundary_indicators.size() != 0)
+      {
+        assemblers->advection_system_on_boundary_face.push_back(
+          std_cxx14::make_unique<aspect::Assemblers::AdvectionSystemBoundaryHeatFlux<dim> >());
+      }
+
+    if (parameters.use_discontinuous_temperature_discretization
+        || parameters.fixed_heat_flux_boundary_indicators.size() != 0)
       {
         assemblers->advection_system_assembler_on_face_properties[0].need_face_material_model_data = true;
         assemblers->advection_system_assembler_on_face_properties[0].need_face_finite_element_evaluation = true;
@@ -301,8 +310,7 @@ namespace aspect
     data.extract_stokes_dof_indices(scratch.local_dof_indices, introspection, finite_element);
 
     // Prepare the data structures for assembly
-    scratch.finite_element_values.reinit (cell);
-    scratch.cell = cell;
+    scratch.reinit(cell);
     data.local_matrix = 0;
 
     compute_material_model_input_values (current_linearization_point,
@@ -528,8 +536,7 @@ namespace aspect
     data.extract_stokes_dof_indices (scratch.local_dof_indices, introspection, finite_element);
 
     // Prepare the data structures for assembly
-    scratch.finite_element_values.reinit (cell);
-    scratch.cell = cell;
+    scratch.reinit(cell);
 
     if (rebuild_stokes_matrix)
       data.local_matrix = 0;
@@ -585,11 +592,10 @@ namespace aspect
       {
         // then also work on possible face terms. if necessary, initialize
         // the material model data on faces
-        for (scratch.face_number=0; scratch.face_number<GeometryInfo<dim>::faces_per_cell; ++scratch.face_number)
-          if (cell->at_boundary(scratch.face_number))
+        for (unsigned int face_number=0; face_number<GeometryInfo<dim>::faces_per_cell; ++face_number)
+          if (cell->at_boundary(face_number))
             {
-              scratch.face_finite_element_values.reinit (cell, scratch.face_number);
-
+              scratch.reinit(cell, face_number);
               if (assemblers->stokes_system_assembler_on_boundary_face_properties.need_face_material_model_data)
                 {
                   const bool need_viscosity = rebuild_stokes_matrix |
@@ -805,8 +811,7 @@ namespace aspect
 
     const unsigned int solution_component = advection_field.component_index(introspection);
 
-    scratch.finite_element_values.reinit (cell);
-    scratch.cell = cell;
+    scratch.reinit(cell);
 
     // get all dof indices on the current cell, then extract those
     // that correspond to the solution_field we are interested in
@@ -852,7 +857,12 @@ namespace aspect
     for (unsigned int i=0; i<assemblers->advection_system.size(); ++i)
       assemblers->advection_system[i]->create_additional_material_model_outputs(scratch.material_model_outputs);
 
-    heating_model_manager.create_additional_material_model_outputs(scratch.material_model_outputs);
+    heating_model_manager.create_additional_material_model_inputs_and_outputs(scratch.material_model_inputs,
+                                                                              scratch.material_model_outputs);
+    material_model->fill_additional_material_model_inputs(scratch.material_model_inputs,
+                                                          current_linearization_point,
+                                                          scratch.finite_element_values,
+                                                          introspection);
 
     material_model->evaluate(scratch.material_model_inputs,
                              scratch.material_model_outputs);
@@ -957,12 +967,17 @@ namespace aspect
                                                      scratch.face_material_model_inputs);
 
                 for (unsigned int i=0; i<assemblers->advection_system_on_boundary_face.size(); ++i)
-                  assemblers->advection_system_on_boundary_face[i]->create_additional_material_model_outputs(scratch.material_model_outputs);
+                  assemblers->advection_system_on_boundary_face[i]->create_additional_material_model_outputs(scratch.face_material_model_outputs);
 
                 for (unsigned int i=0; i<assemblers->advection_system_on_interior_face.size(); ++i)
-                  assemblers->advection_system_on_interior_face[i]->create_additional_material_model_outputs(scratch.material_model_outputs);
+                  assemblers->advection_system_on_interior_face[i]->create_additional_material_model_outputs(scratch.face_material_model_outputs);
 
-                heating_model_manager.create_additional_material_model_outputs(scratch.material_model_outputs);
+                heating_model_manager.create_additional_material_model_inputs_and_outputs(scratch.face_material_model_inputs,
+                                                                                          scratch.face_material_model_outputs);
+                material_model->fill_additional_material_model_inputs(scratch.face_material_model_inputs,
+                                                                      current_linearization_point,
+                                                                      *scratch.face_finite_element_values,
+                                                                      introspection);
 
                 material_model->evaluate(scratch.face_material_model_inputs,
                                          scratch.face_material_model_outputs);

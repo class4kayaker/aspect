@@ -191,7 +191,7 @@ namespace aspect
       for (unsigned int i=0; i<model_names.size(); ++i)
         {
           // create boundary temperature objects
-          boundary_temperature_objects.push_back (std_cxx11::shared_ptr<Interface<dim> >
+          boundary_temperature_objects.push_back (std::shared_ptr<Interface<dim> >
                                                   (std_cxx11::get<dim>(registered_plugins)
                                                    .create_plugin (model_names[i],
                                                                    "Boundary temperature::Model names")));
@@ -262,7 +262,7 @@ namespace aspect
 
 
     template <int dim>
-    const std::vector<std_cxx11::shared_ptr<Interface<dim> > > &
+    const std::vector<std::shared_ptr<Interface<dim> > > &
     Manager<dim>::get_active_boundary_temperature_conditions () const
     {
       return boundary_temperature_objects;
@@ -322,10 +322,12 @@ namespace aspect
                            Patterns::List (Patterns::Anything()),
                            "A comma separated list of names denoting those boundaries "
                            "on which the temperature is fixed and described by the "
-                           "boundary temperature object selected in its own section "
-                           "of this input file. All boundary indicators used by the geometry "
+                           "boundary temperature object selected in the 'List of model names' "
+                           "parameter. All boundary indicators used by the geometry "
                            "but not explicitly listed here will end up with no-flux "
-                           "(insulating) boundary conditions."
+                           "(insulating) boundary conditions, or, if they are listed in the "
+                           "'Fixed heat flux boundary indicators', with Neumann boundary "
+                           "conditions."
                            "\n\n"
                            "The names of the boundaries listed here can either be "
                            "numbers (in which case they correspond to the numerical "

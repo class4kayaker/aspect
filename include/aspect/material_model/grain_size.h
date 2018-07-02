@@ -128,8 +128,8 @@ namespace aspect
            * computed for each substep and then averaged.
            */
           std_cxx11::array<std::pair<double, unsigned int>,2>
-          enthalpy_derivatives(const std::vector<double> temperatures,
-                               const std::vector<double> pressures,
+          enthalpy_derivatives(const std::vector<double> &temperatures,
+                               const std::vector<double> &pressures,
                                const unsigned int n_substeps = 1) const;
 
           double
@@ -558,7 +558,7 @@ namespace aspect
          * material data files. There is one pointer/object per compositional
          * field provided.
          */
-        std::vector<std_cxx1x::shared_ptr<MaterialModel::Lookup::MaterialLookup> > material_lookup;
+        std::vector<std::shared_ptr<MaterialModel::Lookup::MaterialLookup> > material_lookup;
     };
 
   }

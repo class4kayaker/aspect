@@ -33,7 +33,6 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/signaling_nan.h>
-#include <deal.II/lac/constraint_matrix.h>
 #include <deal.II/lac/block_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>
 #include <deal.II/grid/grid_tools.h>
@@ -165,11 +164,12 @@ namespace aspect
     gravity_model (GravityModel::create_gravity_model<dim>(prm)),
     prescribed_stokes_solution (PrescribedStokesSolution::create_prescribed_stokes_solution<dim>(prm)),
     adiabatic_conditions (AdiabaticConditions::create_adiabatic_conditions<dim>(prm)),
+    boundary_heat_flux (BoundaryHeatFlux::create_boundary_heat_flux<dim>(prm)),
 
     time (numbers::signaling_nan<double>()),
-    time_step (0),
-    old_time_step (0),
-    timestep_number (0),
+    time_step (numbers::signaling_nan<double>()),
+    old_time_step (numbers::signaling_nan<double>()),
+    timestep_number (numbers::invalid_unsigned_int),
     nonlinear_iteration (numbers::invalid_unsigned_int),
 
     triangulation (mpi_communicator,
@@ -268,6 +268,11 @@ namespace aspect
     // Create a boundary temperature manager
     boundary_temperature_manager.initialize_simulator (*this);
     boundary_temperature_manager.parse_parameters (prm);
+
+    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(boundary_heat_flux.get()))
+      sim->initialize_simulator (*this);
+    boundary_heat_flux->parse_parameters (prm);
+    boundary_heat_flux->initialize ();
 
     // Create a boundary composition manager
     boundary_composition_manager.initialize_simulator (*this);
@@ -615,7 +620,7 @@ namespace aspect
     // that end up in the bilinear form. we update those that end up in
     // the constraints object when calling compute_current_constraints()
     // above
-    for (typename std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryTraction::Interface<dim> > >::iterator
+    for (typename std::map<types::boundary_id,std::shared_ptr<BoundaryTraction::Interface<dim> > >::iterator
          p = boundary_traction.begin();
          p != boundary_traction.end(); ++p)
       p->second->update ();
@@ -702,9 +707,10 @@ namespace aspect
         }
     }
 
-    // If there is a fixed boundary temperature,
+    // If there is a fixed boundary temperature or heat flux,
     // update the temperature boundary condition.
     boundary_temperature_manager.update();
+    boundary_heat_flux->update();
 
     // if using continuous temperature FE, do the same for the temperature variable:
     // evaluate the current boundary temperature and add these constraints as well
@@ -788,7 +794,8 @@ namespace aspect
     for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
       {
         const AdvectionField adv_field (AdvectionField::composition(c));
-        if (adv_field.advection_method(introspection)==Parameters<dim>::AdvectionFieldMethod::fem_field)
+        if (adv_field.advection_method(introspection)==Parameters<dim>::AdvectionFieldMethod::fem_field
+            || adv_field.advection_method(introspection)==Parameters<dim>::AdvectionFieldMethod::fem_melt_field)
           {
             have_fem_compositional_field = true;
             break;
@@ -1524,6 +1531,12 @@ namespace aspect
           break;
         }
 
+        case NonlinearSolver::first_timestep_only_single_Stokes:
+        {
+          solve_first_timestep_only_single_stokes();
+          break;
+        }
+
         default:
           Assert (false, ExcNotImplemented());
       }
@@ -1562,9 +1575,7 @@ namespace aspect
       }
     else
       {
-        time                      = parameters.start_time;
-        timestep_number           = 0;
-        time_step = old_time_step = 0;
+        time = parameters.start_time;
 
         // Instead of calling global_refine(n) we flag all cells for
         // refinement and then allow the mesh refinement plugins to unflag
@@ -1596,27 +1607,41 @@ namespace aspect
       {
         TimerOutput::Scope timer (computing_timer, "Setup initial conditions");
 
-        // Add topography to box models after all initial refinement
-        // is completed.
-        if (pre_refinement_step == parameters.initial_adaptive_refinement)
-          signals.pre_set_initial_state (triangulation);
+        timestep_number           = 0;
+        time_step = old_time_step = 0;
 
-        set_initial_temperature_and_compositional_fields ();
-        compute_initial_pressure_field ();
+        if (! parameters.skip_setup_initial_conditions_on_initial_refinement
+            ||
+            ! (pre_refinement_step < parameters.initial_adaptive_refinement))
+          {
+            // Add topography to box models after all initial refinement
+            // is completed.
+            if (pre_refinement_step == parameters.initial_adaptive_refinement)
+              signals.pre_set_initial_state (triangulation);
 
-        signals.post_set_initial_state (*this);
+            set_initial_temperature_and_compositional_fields ();
+            compute_initial_pressure_field ();
+
+            signals.post_set_initial_state (*this);
+          }
       }
 
     // start the principal loop over time steps:
     do
       {
-        start_timestep ();
+        // Only solve if we are not in pre-refinement, or we do not want to skip
+        // solving in pre-refinement.
+        if (! (parameters.skip_solvers_on_initial_refinement
+               && pre_refinement_step < parameters.initial_adaptive_refinement))
+          {
+            start_timestep ();
 
-        // then do the core work: assemble systems and solve
-        solve_timestep ();
+            // then do the core work: assemble systems and solve
+            solve_timestep ();
+          }
 
         // see if we have to start over with a new adaptive refinement cycle
-        // at the beginning of the simulation
+        // at the beginning of the simulation.
         if (timestep_number == 0)
           {
             const bool initial_refinement_done = maybe_do_initial_refinement(max_refinement_level);

@@ -250,7 +250,7 @@ namespace aspect
           && outputs.template get_additional_output<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> >() == NULL)
         {
           outputs.additional_outputs.push_back(
-            std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> >
+            std::shared_ptr<MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> >
             (new MaterialModel::AdditionalMaterialOutputsStokesRHS<dim> (n_points)));
         }
 
@@ -263,7 +263,7 @@ namespace aspect
           outputs.template get_additional_output<MaterialModel::ElasticOutputs<dim> >() == NULL)
         {
           outputs.additional_outputs.push_back(
-            std_cxx11::shared_ptr<MaterialModel::ElasticOutputs<dim> >
+            std::shared_ptr<MaterialModel::ElasticOutputs<dim> >
             (new MaterialModel::ElasticOutputs<dim> (n_points)));
         }
 
@@ -608,8 +608,6 @@ namespace aspect
           !=
           this->get_boundary_traction().end())
         {
-          scratch.face_finite_element_values.reinit (scratch.cell, scratch.face_number);
-
           for (unsigned int q=0; q<scratch.face_finite_element_values.n_quadrature_points; ++q)
             {
               const Tensor<1,dim> traction

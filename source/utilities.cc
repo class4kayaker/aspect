@@ -31,6 +31,12 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/signaling_nan.h>
 
+#if DEAL_II_VERSION_GTE(9,0,0)
+#include <deal.II/base/patterns.h>
+#else
+#include <deal.II/base/parameter_handler.h>
+#endif
+
 #include <aspect/geometry_model/box.h>
 #include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/geometry_model/chunk.h>
@@ -53,6 +59,233 @@ namespace aspect
    */
   namespace Utilities
   {
+
+
+
+    std::vector<double> parse_map_to_double_array (const std::string &initial_field_array,
+                                                   const std::vector<std::string> &list_of_field_names,
+                                                   const bool allow_background_field,
+                                                   const std::string &field_name)
+
+    {
+      // Determine the total number of fields. If a background
+      // field is required, then this number equals the
+      // number of given keys plus one for the background
+      // field. Otherwise, the total number of fields is
+      // equal to the number of keys.
+      const unsigned int n_fields = (allow_background_field ?
+                                     list_of_field_names.size() + 1 :
+                                     list_of_field_names.size());
+
+      // Array of field values to be returned.
+      std::vector<double> x_mapped_values (n_fields,std::numeric_limits<double>::quiet_NaN());
+
+      // Split the comma separated values
+      const std::vector<std::string> x_mapped_field_entries = dealii::Utilities::split_string_list(initial_field_array, ',');
+
+
+      // Parse the string depending on what Pattern we are dealing with
+      // ---------------------------------------------------------------
+
+      // Split the list by comma delimited Map components,
+      // then by colon delimited string descriptor and value.
+      if (Patterns::Map(Patterns::Anything(),Patterns::Double(),1,n_fields).match(initial_field_array))
+        {
+
+          // Ensure there are values for all fields
+          AssertThrow ( (x_mapped_field_entries.size() == n_fields)
+                        || (x_mapped_field_entries.size() == 1),
+                        ExcMessage ("The number of "
+                                    + field_name
+                                    + " in the list must equal one of the following values:\n"
+                                    "1 (one value for all fields, including background, using the keyword=`all') \n"
+                                    "or the number of fields plus 1 "
+                                    "(one value for each field plus the background)."));
+
+          // Split each mapped entry into string and value
+          for (std::vector<std::string>::const_iterator p = x_mapped_field_entries.begin();
+               p != x_mapped_field_entries.end(); ++p)
+            {
+              // Look for the two special keyword descriptors:
+              //    all --> assign the associated value to all fields
+              //    background (or bg) --> assign associated value to
+              //                           the background
+              // All other keywords are used to assign the correct
+              // value to the correct position of the property array,
+              // and should match the list of field names, such as,
+              // for example, those found in the Compositional fields
+              // subsection.
+              //
+              // The user must input a background value.
+              //
+              // each entry must have the format:
+              // <id> : <value>
+
+
+              // First, split each mapped entry into string and value
+              const std::vector<std::string> split_parts = Utilities::split_string_list (*p, ':');
+
+              // Ensure that each entry has the correct form.
+              AssertThrow (split_parts.size() == 2,
+                           ExcMessage ("The format for mapped "
+                                       + field_name
+                                       + "requires that each entry has the "
+                                       "form `<id> : <value>' "
+                                       ", but the entry <"
+                                       + *p
+                                       + "> does not appear to follow this pattern."));
+
+              // The easy part: get the field names
+              const std::string keyword = split_parts[0];
+
+              // Handle the case when there is one entry in the list.
+              // The keyword "all" MUST be found.
+              if (x_mapped_field_entries.size() == 1)
+                {
+                  // Check that 'all' was used
+                  AssertThrow (keyword == "all",
+                               ExcMessage ("There is only one "
+                                           + field_name
+                                           + " value given. The keyword `all' is "
+                                           "expected but is not found. Please"
+                                           "check your "
+                                           + field_name
+                                           + " list."));
+
+                  // Assign all the elements to the "all" value
+                  for (unsigned int field_index=0; field_index<n_fields; ++field_index)
+                    {
+                      x_mapped_values[field_index] = Utilities::string_to_double(split_parts[1]);
+                    }
+                }
+
+              // Handle multiple entries
+              else if (x_mapped_field_entries.size()>1)
+                {
+                  // Ensure that the special keyword "all" was not used when multiple entries exist.
+                  AssertThrow (keyword != "all",
+                               ExcMessage ("There are multiple "
+                                           + field_name
+                                           + " values found, the keyword `all' is not "
+                                           "allowed. Please check your "
+                                           + field_name
+                                           + " list."));
+
+                  // Continue with placing values into the correct positions according to
+                  // the order of names passed to this function in the argument list_of_field_names.
+                  if (allow_background_field && (keyword == "background" || keyword == "bg"))
+                    {
+                      // Overwrite the default x_mapped_values to user input.
+                      // Element_0 is reserved for the background.
+                      x_mapped_values[0] = Utilities::string_to_double(split_parts[1]);
+                    }
+                  else
+                    {
+                      // Ensure that each non-special keyword found is also contained in
+                      // the list of field names, and insert the associated
+                      // values to the correct index position.
+                      for (unsigned int field_index=0; field_index<list_of_field_names.size(); ++field_index)
+                        {
+                          if (keyword == list_of_field_names[field_index])
+                            {
+                              const unsigned int map_index = (allow_background_field ?
+                                                              field_index + 1 :
+                                                              field_index);
+
+                              // Throw an error if a match was already found...there can be only one
+                              AssertThrow (std::isnan(x_mapped_values[map_index]) == true,
+                                           ExcMessage ("The keyword <"
+                                                       + keyword
+                                                       + "> in "
+                                                       + field_name
+                                                       + " is listed multiple times. "
+                                                       "Check that you have only one value for "
+                                                       "each field id in your list."
+                                                       "\n\n"
+                                                       "One example of where to check this is if "
+                                                       "Compositional fields are used, "
+                                                       "then check the id list "
+                                                       "from `set Names of fields' in the"
+                                                       "Compositional fields subsection. "
+                                                       "Alternatively, if `set Names of fields' "
+                                                       "is not set, the default names are "
+                                                       "C_1, C_2, ..., C_n."));
+
+                              // We passed the check above, so capture the value
+                              x_mapped_values[map_index] = Utilities::string_to_double(split_parts[1]);
+                            }
+                        }
+                    }
+                }
+            }
+
+          // Go through one more time to make sure everything was set.
+          // If a background is required, start at index one, i.e.,
+          // excluding the background field, because we will treat
+          // that separately below.
+          const unsigned int start_index = (allow_background_field ?
+                                            1 :
+                                            0);
+          const unsigned int list_index_offset = (allow_background_field ?
+                                                  -1 :
+                                                  0);
+
+          for (unsigned int field_index=start_index; field_index<n_fields; ++field_index)
+            {
+              AssertThrow (std::isnan(x_mapped_values[field_index]) == false,
+                           ExcMessage ("The keyword from <"
+                                       + list_of_field_names[field_index+list_index_offset]
+                                       + "> in "
+                                       + field_name
+                                       + " does not match any entries "
+                                       "from the list of field names. "
+                                       "Check that you have a value for "
+                                       "each field id in your list.\n\n"
+                                       "One example of where to check this is if "
+                                       "Compositional fields are used, "
+                                       "then check the id list "
+                                       "from `set Names of fields' in the"
+                                       "Compositional fields subsection. "
+                                       "Alternatively, if `set Names of fields' "
+                                       "is not set, the default names are "
+                                       "C_1, C_2, ..., C_n."));
+
+            }
+          // When required, ensure that the special keyword "background" or "bg" has an
+          // assigned value along with all the other names from list_of_field_names.
+          if (allow_background_field == true)
+            {
+              AssertThrow (std::isnan(x_mapped_values[0]) == false,
+                           ExcMessage ("The background field must be set in "
+                                       + field_name
+                                       + ". Set this value with the keyword id "
+                                       "`background' or `bg' with the format "
+                                       "`<id> : <value>'."));
+            }
+
+        }
+
+      else if (Patterns::List(Patterns::Double(),1,n_fields).match(initial_field_array))
+        {
+          // Handle the older format of a comma separated list of doubles, with no keywords
+          x_mapped_values = possibly_extend_from_1_to_N (dealii::Utilities::string_to_double(dealii::Utilities::split_string_list(initial_field_array)),
+                                                         n_fields,
+                                                         field_name);
+        }
+      else
+        {
+          // No Patterns matches were found!
+          AssertThrow (false,
+                       ExcMessage ("The required format for field <"
+                                   + field_name
+                                   + "> was not found. Specify a comma separated "
+                                   "list of `<double>' or `<id> : <double>'."));
+        }
+      return x_mapped_values;
+    }
+
+
+
     /**
      * Split the set of DoFs (typically locally owned or relevant) in @p whole_set into blocks
      * given by the @p dofs_per_block structure.
@@ -323,6 +556,60 @@ namespace aspect
       }
 
 
+      template <int dim>
+      Tensor<1, dim>
+      spherical_to_cartesian_vector(const Tensor<1, dim> &spherical_vector,
+                                    const Point<dim> &position)
+      {
+        Tensor<1, dim> cartesian_vector;
+
+        const std_cxx11::array<double, dim> r_phi_theta = cartesian_to_spherical_coordinates(position);
+
+        switch (dim)
+          {
+            case 2:
+            {
+              const double phi = r_phi_theta[1];
+
+              const double u_r   = spherical_vector[0];
+              const double u_phi = spherical_vector[1];
+
+              cartesian_vector[0] = std::cos(phi)*u_r
+                                    - std::sin(phi)*u_phi; // X
+              cartesian_vector[1] = std::sin(phi)*u_r
+                                    + std::cos(phi)*u_phi; // Y
+
+              break;
+            }
+            case 3:
+            {
+              const double phi   = r_phi_theta[1];
+              const double theta = r_phi_theta[2];
+
+              const double u_r     = spherical_vector[0];
+              const double u_phi   = spherical_vector[1];
+              const double u_theta = spherical_vector[2];
+
+              cartesian_vector[0] = std::cos(phi)*std::sin(theta)*u_r
+                                    - std::sin(phi)*u_theta
+                                    - std::cos(phi)*std::cos(theta)*u_phi; // X
+              cartesian_vector[1] = std::sin(phi)*std::sin(theta)*u_r
+                                    + std::cos(phi)*u_theta
+                                    - std::sin(phi)*std::cos(theta)*u_phi; // Y
+              cartesian_vector[2] = std::cos(theta)*u_r
+                                    + std::sin(theta)*u_phi;                 // Z
+              break;
+            }
+
+            default:
+              Assert (false, ExcNotImplemented());
+              break;
+          }
+
+        return cartesian_vector;
+      }
+
+
 
       CoordinateSystem
       string_to_coordinate_system(const std::string &coordinate_system)
@@ -479,31 +766,59 @@ namespace aspect
 
       for (unsigned int i = 0; i < n_poly_points; ++i)
         {
-          // Create vector along the polygon line segment
-          Tensor<1,2> vector_segment = shifted_point_list[i] - point_list[i];
-          // Create vector from point to the second segment point
-          Tensor<1,2> vector_point_segment = point - point_list[i];
-
-          // Compute dot products to get angles
-          const double c1 = vector_point_segment * vector_segment;
-          const double c2 = vector_segment * vector_segment;
-
-          // point lies closer to not-shifted polygon point, but perpendicular base line lies outside segment
-          if (c1 <= 0.0)
-            distances[i] = (Tensor<1,2> (point_list[i] - point)).norm();
-          // point lies closer to shifted polygon point, but perpendicular base line lies outside segment
-          else if (c2 <= c1)
-            distances[i] = (Tensor<1,2> (shifted_point_list[i] - point)).norm();
-          // perpendicular base line lies on segment
-          else
-            {
-              const Point<2> point_on_segment = point_list[i] + (c1/c2) * vector_segment;
-              distances[i] = (Tensor<1,2> (point - point_on_segment)).norm();
-            }
+          const std::array<Point<2>,2 > list = {point_list[i], shifted_point_list[i]};
+          distances[i] = distance_to_line(list, point);
         }
 
       // Return the minimum of the distances of the point to all polygon segments
       return *std::min_element(distances.begin(),distances.end()) * sign;
+    }
+
+    double
+    distance_to_line(const std::array<dealii::Point<2>,2 > &point_list,
+                     const dealii::Point<2> &point)
+    {
+
+      /**
+       * This code is based on http://geomalgorithms.com/a02-_lines.html#Distance-to-Infinite-Line,
+       * and therefore requires the following copyright notice:
+       *
+       * Copyright 2000 softSurfer, 2012 Dan Sunday
+       * This code may be freely used and modified for any purpose
+       * providing that this copyright notice is included with it.
+       * SoftSurfer makes no warranty for this code, and cannot be held
+       * liable for any real or imagined damage resulting from its use.
+       * Users of this code must verify correctness for their application.
+       *
+       */
+
+      const unsigned int n_poly_points = point_list.size();
+      AssertThrow(n_poly_points == 2, ExcMessage("A list of points for a line segment should consist of 2 points."));
+
+      // Create vector along the polygon line segment P0 to P1
+      const Tensor<1,2> vector_segment = point_list[1] - point_list[0];
+      // Create vector from point P to the second segment point
+      const Tensor<1,2> vector_point_segment = point - point_list[0];
+
+      // Compute dot products to get angles
+      const double c1 = vector_point_segment * vector_segment;
+
+      // Point P's perpendicular base line lies outside segment, before P0.
+      // Return distance between points P and P0.
+      if (c1 <= 0.0)
+        return (Tensor<1,2> (point_list[0] - point)).norm();
+
+      const double c2 = vector_segment * vector_segment;
+
+      // Point P's perpendicular base line lies outside segment, after P1.
+      // Return distance between points P and P1.
+      if (c2 <= c1)
+        return (Tensor<1,2> (point_list[1] - point)).norm();
+
+      // Point P's perpendicular base line lies on the line segment.
+      // Return distance between point P and the base point.
+      const Point<2> point_on_segment = point_list[0] + (c1/c2) * vector_segment;
+      return (Tensor<1,2> (point - point_on_segment)).norm();
     }
 
     template <int dim>
@@ -605,7 +920,7 @@ namespace aspect
 
       if (Utilities::MPI::this_mpi_process(comm) == 0)
         {
-          // set file size to an invalid size (signalling an error if we can not read it)
+          // set file size to an invalid size (signaling an error if we can not read it)
           unsigned int filesize = numbers::invalid_unsigned_int;
 
           std::ifstream filestream(filename.c_str());
@@ -1501,9 +1816,10 @@ namespace aspect
     void
     AsciiDataBase<dim>::declare_parameters (ParameterHandler  &prm,
                                             const std::string &default_directory,
-                                            const std::string &default_filename)
+                                            const std::string &default_filename,
+                                            const std::string &subsection_name)
     {
-      prm.enter_subsection ("Ascii data model");
+      prm.enter_subsection (subsection_name);
       {
         prm.declare_entry ("Data directory",
                            default_directory,
@@ -1540,9 +1856,10 @@ namespace aspect
 
     template <int dim>
     void
-    AsciiDataBase<dim>::parse_parameters (ParameterHandler &prm)
+    AsciiDataBase<dim>::parse_parameters (ParameterHandler &prm,
+                                          const std::string &subsection_name)
     {
-      prm.enter_subsection("Ascii data model");
+      prm.enter_subsection (subsection_name);
       {
         // Get the path to the data files. If it contains a reference
         // to $ASPECT_SOURCE_DIR, replace it by what CMake has given us
@@ -1584,13 +1901,13 @@ namespace aspect
            boundary_id = boundary_ids.begin();
            boundary_id != boundary_ids.end(); ++boundary_id)
         {
-          std_cxx11::shared_ptr<Utilities::AsciiDataLookup<dim-1> > lookup;
+          std::shared_ptr<Utilities::AsciiDataLookup<dim-1> > lookup;
           lookup.reset(new Utilities::AsciiDataLookup<dim-1> (components,
-                                                              Utilities::AsciiDataBase<dim>::scale_factor));
+                                                              this->scale_factor));
           lookups.insert(std::make_pair(*boundary_id,lookup));
 
           lookup.reset(new Utilities::AsciiDataLookup<dim-1> (components,
-                                                              Utilities::AsciiDataBase<dim>::scale_factor));
+                                                              this->scale_factor));
           old_lookups.insert(std::make_pair(*boundary_id,lookup));
 
 
@@ -1608,15 +1925,14 @@ namespace aspect
           this->get_pcout() << std::endl << "   Loading Ascii data boundary file "
                             << filename << "." << std::endl << std::endl;
 
-          if (Utilities::fexists(filename))
-            lookups.find(*boundary_id)->second->load_file(filename,this->get_mpi_communicator());
-          else
-            AssertThrow(false,
-                        ExcMessage (std::string("Ascii data file <")
-                                    +
-                                    filename
-                                    +
-                                    "> not found!"));
+
+          AssertThrow(Utilities::fexists(filename),
+                      ExcMessage (std::string("Ascii data file <")
+                                  +
+                                  filename
+                                  +
+                                  "> not found!"));
+          lookups.find(*boundary_id)->second->load_file(filename,this->get_mpi_communicator());
 
           // If the boundary condition is constant, switch off time_dependence
           // immediately. If not, also load the second file for interpolation.
@@ -1738,7 +2054,7 @@ namespace aspect
     AsciiDataBoundary<dim>::create_filename (const int filenumber,
                                              const types::boundary_id boundary_id) const
     {
-      std::string templ = Utilities::AsciiDataBase<dim>::data_directory + Utilities::AsciiDataBase<dim>::data_file_name;
+      std::string templ = this->data_directory + this->data_file_name;
 
       const std::string boundary_name = this->get_geometry_model().translate_id_to_symbol_name(boundary_id);
 
@@ -1810,7 +2126,7 @@ namespace aspect
               const bool load_both_files = std::abs(current_file_number - old_file_number) >= 1;
 
               for (typename std::map<types::boundary_id,
-                   std_cxx11::shared_ptr<Utilities::AsciiDataLookup<dim-1> > >::iterator
+                   std::shared_ptr<Utilities::AsciiDataLookup<dim-1> > >::iterator
                    boundary_id = lookups.begin();
                    boundary_id != lookups.end(); ++boundary_id)
                 update_data(boundary_id->first,load_both_files);
@@ -1938,13 +2254,15 @@ namespace aspect
     void
     AsciiDataBoundary<dim>::declare_parameters (ParameterHandler  &prm,
                                                 const std::string &default_directory,
-                                                const std::string &default_filename)
+                                                const std::string &default_filename,
+                                                const std::string &subsection_name)
     {
       Utilities::AsciiDataBase<dim>::declare_parameters(prm,
                                                         default_directory,
-                                                        default_filename);
+                                                        default_filename,
+                                                        subsection_name);
 
-      prm.enter_subsection ("Ascii data model");
+      prm.enter_subsection (subsection_name);
       {
         prm.declare_entry ("Data file time step", "1e6",
                            Patterns::Double (0),
@@ -1977,11 +2295,13 @@ namespace aspect
 
     template <int dim>
     void
-    AsciiDataBoundary<dim>::parse_parameters (ParameterHandler &prm)
+    AsciiDataBoundary<dim>::parse_parameters (ParameterHandler &prm,
+                                              const std::string &subsection_name)
     {
-      Utilities::AsciiDataBase<dim>::parse_parameters(prm);
+      Utilities::AsciiDataBase<dim>::parse_parameters(prm,
+                                                      subsection_name);
 
-      prm.enter_subsection("Ascii data model");
+      prm.enter_subsection(subsection_name);
       {
         data_file_time_step             = prm.get_double ("Data file time step");
         first_data_file_model_time      = prm.get_double ("First data file model time");
@@ -2013,23 +2333,21 @@ namespace aspect
                                "a spherical shell, chunk or box geometry."));
 
       lookup.reset(new Utilities::AsciiDataLookup<dim> (components,
-                                                        Utilities::AsciiDataBase<dim>::scale_factor));
+                                                        this->scale_factor));
 
-      const std::string filename = Utilities::AsciiDataBase<dim>::data_directory
-                                   + Utilities::AsciiDataBase<dim>::data_file_name;
+      const std::string filename = this->data_directory + this->data_file_name;
 
       this->get_pcout() << std::endl << "   Loading Ascii data initial file "
                         << filename << "." << std::endl << std::endl;
 
-      if (Utilities::fexists(filename))
-        lookup->load_file(filename,this->get_mpi_communicator());
-      else
-        AssertThrow(false,
-                    ExcMessage (std::string("Ascii data file <")
-                                +
-                                filename
-                                +
-                                "> not found!"));
+
+      AssertThrow(Utilities::fexists(filename),
+                  ExcMessage (std::string("Ascii data file <")
+                              +
+                              filename
+                              +
+                              "> not found!"));
+      lookup->load_file(filename, this->get_mpi_communicator());
     }
 
     template <int dim>
@@ -2062,20 +2380,17 @@ namespace aspect
     void
     AsciiDataProfile<dim>::initialize (const MPI_Comm &communicator)
     {
-      lookup.reset(new Utilities::AsciiDataLookup<1> (Utilities::AsciiDataBase<dim>::scale_factor));
+      lookup.reset(new Utilities::AsciiDataLookup<1> (this->scale_factor));
 
-      const std::string filename = Utilities::AsciiDataBase<dim>::data_directory
-                                   + Utilities::AsciiDataBase<dim>::data_file_name;
+      const std::string filename = this->data_directory + this->data_file_name;
 
-      if (Utilities::fexists(filename))
-        lookup->load_file(filename,communicator);
-      else
-        AssertThrow(false,
-                    ExcMessage (std::string("Ascii data file <")
-                                +
-                                filename
-                                +
-                                "> not found!"));
+      AssertThrow(Utilities::fexists(filename),
+                  ExcMessage (std::string("Ascii data file <")
+                              +
+                              filename
+                              +
+                              "> not found!"));
+      lookup->load_file(filename,communicator);
     }
 
 
@@ -2573,6 +2888,14 @@ namespace aspect
     }
 
     template <int dim>
+    NaturalCoordinate<dim>::NaturalCoordinate(const std_cxx11::array<double, dim> &coord,
+                                              const Utilities::Coordinates::CoordinateSystem &coord_system) :
+      coordinate_system (coord_system), coordinates (coord)
+    {}
+
+
+
+    template <int dim>
     std_cxx11::array<double,dim> &NaturalCoordinate<dim>::get_coordinates()
     {
       return coordinates;
@@ -2689,6 +3012,11 @@ namespace aspect
 
     template std_cxx11::array<double,2> Coordinates::cartesian_to_spherical_coordinates<2>(const Point<2> &position);
     template std_cxx11::array<double,3> Coordinates::cartesian_to_spherical_coordinates<3>(const Point<3> &position);
+
+    template Tensor<1,2> Coordinates::spherical_to_cartesian_vector<2>(const Tensor<1,2> &spherical_vector,
+                                                                       const Point<2> &position);
+    template Tensor<1,3> Coordinates::spherical_to_cartesian_vector<3>(const Tensor<1,3> &spherical_vector,
+                                                                       const Point<3> &position);
 
 
     template std_cxx11::array<double,2> Coordinates::WGS84_coordinates<2>(const Point<2> &position);

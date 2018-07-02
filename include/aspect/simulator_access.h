@@ -34,11 +34,29 @@
 #include <deal.II/fe/fe.h>
 #include <deal.II/fe/mapping_q.h>
 
+#if !DEAL_II_VERSION_GTE(9,1,0)
+#  include <deal.II/lac/constraint_matrix.h>
+#else
+#  include <deal.II/lac/affine_constraints.h>
+#endif
+
 
 
 namespace aspect
 {
   using namespace dealii;
+
+#if DEAL_II_VERSION_GTE(9,1,0)
+  /**
+   * The ConstraintMatrix class was deprecated in deal.II 9.1 in favor
+   * of AffineConstraints. To make the name available for ASPECT
+   * nonetheless, use a `using` declaration. This injects the name
+   * into the `aspect` namespace, where it is visible before the
+   * deprecated name in the `dealii` namespace, thereby suppressing
+   * the deprecation message.
+   */
+  using ConstraintMatrix = class dealii::AffineConstraints<double>;
+#endif
 
   // forward declarations:
   template <int dim> class Simulator;
@@ -64,6 +82,11 @@ namespace aspect
   namespace BoundaryTemperature
   {
     template <int dim> class Manager;
+    template <int dim> class Interface;
+  }
+
+  namespace BoundaryHeatFlux
+  {
     template <int dim> class Interface;
   }
 
@@ -551,12 +574,19 @@ namespace aspect
 
       /**
        * Return an reference to the manager of the boundary temperature models.
-       * This can then i.e. be used to get the names of the initial temperature
+       * This can then, for example, be used to get the names of the initial temperature
        * models used in a computation, or to compute the initial temperature
        * for a given position.
        */
       const BoundaryTemperature::Manager<dim> &
       get_boundary_temperature_manager () const;
+
+      /**
+       * Return a reference to the object that describes heat flux
+       * boundary conditions.
+       */
+      const BoundaryHeatFlux::Interface<dim> &
+      get_boundary_heat_flux () const;
 
       /**
        * Return whether the current model has a boundary composition object
@@ -579,7 +609,7 @@ namespace aspect
 
       /**
        * Return an reference to the manager of the boundary composition models.
-       * This can then i.e. be used to get the names of the boundary composition
+       * This can then, for example, be used to get the names of the boundary composition
        * models used in a computation, or to compute the boundary composition
        * for a given position.
        */
@@ -590,7 +620,7 @@ namespace aspect
        * Return a reference to the object that describes traction
        * boundary conditions.
        */
-      const std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryTraction::Interface<dim> > > &
+      const std::map<types::boundary_id,std::shared_ptr<BoundaryTraction::Interface<dim> > > &
       get_boundary_traction () const;
 
       /**
@@ -605,7 +635,7 @@ namespace aspect
 
       /**
        * Return a reference to the manager of the initial temperature models.
-       * This can then i.e. be used to get the names of the initial temperature
+       * This can then, for example, be used to get the names of the initial temperature
        * models used in a computation, or to compute the initial temperature
        * for a given position.
        */
@@ -622,7 +652,7 @@ namespace aspect
 
       /**
        * Return a pointer to the manager of the initial composition model.
-       * This can then i.e. be used to get the names of the initial composition
+       * This can then, for example, be used to get the names of the initial composition
        * models used in a computation.
        */
       const InitialComposition::Manager<dim> &
@@ -634,6 +664,13 @@ namespace aspect
        */
       const std::set<types::boundary_id> &
       get_fixed_temperature_boundary_indicators () const;
+
+      /**
+       * Return a set of boundary indicators that describes which of the
+       * boundaries have a fixed heat flux.
+       */
+      const std::set<types::boundary_id> &
+      get_fixed_heat_flux_boundary_indicators () const;
 
       /**
        * Return a set of boundary indicators that describes which of the
@@ -655,12 +692,12 @@ namespace aspect
        * @deprecated: Use get_boundary_velocity_manager() instead.
        */
       DEAL_II_DEPRECATED
-      const std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >
+      const std::map<types::boundary_id,std::shared_ptr<BoundaryVelocity::Interface<dim> > >
       get_prescribed_boundary_velocity () const;
 
       /**
        * Return an reference to the manager of the boundary velocity models.
-       * This can then i.e. be used to get the names of the boundary velocity
+       * This can then, for example, be used to get the names of the boundary velocity
        * models used in a computation, or to compute the boundary velocity
        * for a given position.
        */
@@ -669,7 +706,7 @@ namespace aspect
 
       /**
        * Return a pointer to the manager of the heating model.
-       * This can then i.e. be used to get the names of the heating models
+       * This can then, for example, be used to get the names of the heating models
        * used in a computation.
        */
       const HeatingModel::Manager<dim> &
@@ -677,7 +714,7 @@ namespace aspect
 
       /**
        * Return a reference to the manager of the mesh refinement strategies.
-       * this can then i.e. be used to get the names of the active refinement
+       * this can then, for example, be used to get the names of the active refinement
        * strategies for such purposes as confirming that a particular one has
        * been included.
        */

@@ -27,7 +27,6 @@
 #include <aspect/parameters.h>
 
 #include <deal.II/base/parameter_handler.h>
-#include <deal.II/lac/constraint_matrix.h>
 
 #include <boost/signals2.hpp>
 

@@ -48,7 +48,7 @@ namespace aspect
   declare_parameters (ParameterHandler &prm)
   {
     prm.declare_entry ("Dimension", "2",
-                       Patterns::Integer (2,4),
+                       Patterns::Integer (2,3),
                        "The number of space dimensions you want to run this program in. "
                        "ASPECT can run in 2 and 3 space dimensions.");
     prm.declare_entry ("Additional shared libraries", "",
@@ -56,7 +56,7 @@ namespace aspect
                        "A list of names of additional shared libraries that should be loaded "
                        "upon starting up the program. The names of these files can contain absolute "
                        "or relative paths (relative to the directory in which you call ASPECT). "
-                       "In fact, file names that are do not contain any directory "
+                       "In fact, file names that do not contain any directory "
                        "information (i.e., only the name of a file such as <myplugin.so> "
                        "will not be found if they are not located in one of the directories "
                        "listed in the \\texttt{LD_LIBRARY_PATH} environment variable. In order "
@@ -165,7 +165,8 @@ namespace aspect
     const std::string allowed_solver_schemes = "single Advection, single Stokes|iterated Advection and Stokes|"
                                                "single Advection, iterated Stokes|no Advection, iterated Stokes|"
                                                "iterated Advection and Newton Stokes|single Advection, no Stokes|"
-                                               "IMPES|iterated IMPES|iterated Stokes|Newton Stokes|Stokes only|Advection only";
+                                               "IMPES|iterated IMPES|iterated Stokes|Newton Stokes|Stokes only|Advection only|"
+                                               "first timestep only, single Stokes";
 
     prm.declare_entry ("Nonlinear solver scheme", "single Advection, single Stokes",
                        Patterns::Selection (allowed_solver_schemes),
@@ -188,6 +189,9 @@ namespace aspect
                        "The `iterated Advection and Newton Stokes' scheme iterates by alternating the solution "
                        "of the temperature, composition and Stokes equations, using Picard iterations for the "
                        "temperature and composition, and Newton iterations for the Stokes system. "
+                       "The `first timestep only, single Stokes' scheme solves the Stokes equations exactly "
+                       "once, at the first time step. No nonlinear iterations are done, and the temperature and "
+                       "composition systems are not solved. "
                        "The `IMPES' scheme is deprecated and only allowed for reasons of backwards "
                        "compatibility. It is the same as `single Advection, single Stokes' ."
                        "The `iterated IMPES' scheme is deprecated and only allowed for reasons of "
@@ -306,7 +310,7 @@ namespace aspect
                            "time or nonlinear step should be solved. The absolute tolerance will "
                            "then be $\\| M x_0 - F \\| \\cdot \\text{tol}$, where $x_0 = (0,p_0)$ "
                            "is the initial guess of the pressure, $M$ is the system matrix, "
-                           "F is the right-hand side, and tol is the parameter specified here. "
+                           "$F$ is the right-hand side, and tol is the parameter specified here. "
                            "We include the initial guess of the pressure "
                            "to remove the dependency of the tolerance on the static pressure. "
                            "A given tolerance value of 1 would "
@@ -346,6 +350,14 @@ namespace aspect
                            "If this value is set too low for the size of the problem, the Stokes solver will "
                            "not converge and return an error message pointing out that the user didn't allow "
                            "a sufficiently large number of iterations for the iterative solver to converge.");
+
+        prm.declare_entry("GMRES solver restart length", "50",
+                          Patterns::Integer(1),
+                          "This is the number of iterations that define the GMRES solver restart length. "
+                          "Increasing this parameter helps with convergence issues arising from high localized "
+                          "viscosity jumps in the domain. Be aware that increasing this number increases the "
+                          "memory usage of the Stokes solver, and makes individual Stokes iterations more "
+                          "expensive.");
 
         prm.declare_entry ("Linear solver A block tolerance", "1e-2",
                            Patterns::Double(0,1),
@@ -554,6 +566,36 @@ namespace aspect
     }
     prm.leave_subsection();
 
+    prm.enter_subsection ("Boundary heat flux model");
+    {
+      prm.declare_entry ("Fixed heat flux boundary indicators", "",
+                         Patterns::List (Patterns::Anything()),
+                         "A comma separated list of names denoting those boundaries "
+                         "on which the heat flux is fixed and described by the "
+                         "boundary heat flux object selected in the 'Model name' parameter. "
+                         "All boundary indicators used by the geometry but not explicitly "
+                         "listed here or in the list of 'Fixed temperature boundary indicators' "
+                         "in the 'Boundary temperature model' will end up with no-flux "
+                         "(insulating) boundary conditions."
+                         "\n\n"
+                         "The names of the boundaries listed here can either be "
+                         "numbers (in which case they correspond to the numerical "
+                         "boundary indicators assigned by the geometry object), or they "
+                         "can correspond to any of the symbolic names the geometry object "
+                         "may have provided for each part of the boundary. You may want "
+                         "to compare this with the documentation of the geometry model you "
+                         "use in your model."
+                         "\n\n"
+                         "This parameter only describes which boundaries have a fixed "
+                         "heat flux, but not what heat flux should hold on these "
+                         "boundaries. The latter piece of information needs to be "
+                         "implemented in a plugin in the BoundaryHeatFlux "
+                         "group, unless an existing implementation in this group "
+                         "already provides what you want.");
+    }
+    prm.leave_subsection();
+
+
     prm.enter_subsection ("Nullspace removal");
     {
       prm.declare_entry ("Remove nullspace", "",
@@ -642,6 +684,16 @@ namespace aspect
                          "Whether or not the postprocessors should be executed after "
                          "each of the initial adaptive refinement cycles that are run at "
                          "the start of the simulation.");
+      prm.declare_entry ("Skip solvers on initial refinement", "false",
+                         Patterns::Bool (),
+                         "Whether or not solvers should be executed during the initial "
+                         "adaptive refinement cycles that are run at the start of the "
+                         "simulation.");
+      prm.declare_entry ("Skip setup initial conditions on initial refinement", "false",
+                         Patterns::Bool (),
+                         "Whether or not the initial conditions should be set up during the "
+                         "the adaptive refinement cycles that are run at the start of the "
+                         "simulation.");
     }
     prm.leave_subsection();
 
@@ -876,7 +928,7 @@ namespace aspect
                          Patterns::List(Patterns::Anything()),
                          "A user-defined name for each of the compositional fields requested.");
       prm.declare_entry ("Compositional field methods", "",
-                         Patterns::List (Patterns::Selection("field|particles|static")),
+                         Patterns::List (Patterns::Selection("field|particles|static|melt field")),
                          "A comma separated list denoting the solution method of each "
                          "compositional field. Each entry of the list must be "
                          "one of the currently implemented field types: "
@@ -905,6 +957,16 @@ namespace aspect
                          "this way, then it does not evolve at all. Its values are "
                          "simply set to the initial conditions, and will then "
                          "never change."
+                         "\n"
+                         "\\item ``melt field'': If a compositional field is marked with this "
+                         "method, then its values are computed in each time step by "
+                         "advecting along the values of the previous time step using the "
+                         "melt velocity, and applying reaction rates to it. In other words, "
+                         "this corresponds to the usual notion of a composition field as "
+                         "mentioned in Section~\\ref{sec:compositional}, except that it is "
+                         "advected with the melt velocity instead of the solid velocity. "
+                         "This method can only be chosen if melt transport is active in the "
+                         "model."
                          "\\end{itemize}");
       prm.declare_entry ("Mapped particle properties", "",
                          Patterns::Map (Patterns::Anything(),
@@ -1011,6 +1073,8 @@ namespace aspect
         nonlinear_solver = NonlinearSolver::iterated_Advection_and_Newton_Stokes;
       else if (solver_scheme == "single Advection, no Stokes" || solver_scheme == "Advection only")
         nonlinear_solver = NonlinearSolver::single_Advection_no_Stokes;
+      else if (solver_scheme == "first timestep only, single Stokes")
+        nonlinear_solver = NonlinearSolver::first_timestep_only_single_Stokes;
       else
         AssertThrow (false, ExcNotImplemented());
     }
@@ -1028,6 +1092,7 @@ namespace aspect
         n_expensive_stokes_solver_steps = prm.get_integer ("Maximum number of expensive Stokes solver steps");
         linear_solver_A_block_tolerance = prm.get_double ("Linear solver A block tolerance");
         linear_solver_S_block_tolerance = prm.get_double ("Linear solver S block tolerance");
+        stokes_gmres_restart_length     = prm.get_integer("GMRES solver restart length");
       }
       prm.leave_subsection ();
       prm.enter_subsection ("AMG parameters");
@@ -1125,7 +1190,18 @@ namespace aspect
         for (unsigned int i=0; i<additional_refinement_times.size(); ++i)
           additional_refinement_times[i] *= year_in_seconds;
 
+      skip_solvers_on_initial_refinement = prm.get_bool("Skip solvers on initial refinement");
+      skip_setup_initial_conditions_on_initial_refinement = prm.get_bool("Skip setup initial conditions on initial refinement");
+
+      if (skip_setup_initial_conditions_on_initial_refinement == true && skip_solvers_on_initial_refinement == false)
+        AssertThrow(false, ExcMessage("Cannot execute solvers if no initial conditions are set up. "
+                                      "You must set skip_solvers_on_initial_refinement to true."));
+
       run_postprocessors_on_initial_refinement = prm.get_bool("Run postprocessors on initial refinement");
+
+      if (skip_setup_initial_conditions_on_initial_refinement == true && run_postprocessors_on_initial_refinement == true)
+        AssertThrow(false, ExcMessage("Cannot run postprocessors if no initial conditions are set up. "
+                                      "You must set run_postprocessors_on_initial_refinement to false."));
     }
     prm.leave_subsection ();
 
@@ -1185,7 +1261,7 @@ namespace aspect
         Utilities::split_string_list(prm.get("Remove nullspace"));
       AssertThrow(Utilities::has_unique_entries(nullspace_names),
                   ExcMessage("The list of strings for the parameter "
-                             "'Model settings/Remove nullspace' contains entries more than once. "
+                             "'Nullspace removal/Remove nullspace' contains entries more than once. "
                              "This is not allowed. Please check your parameter file."));
 
       for (unsigned int i=0; i<nullspace_names.size(); ++i)
@@ -1394,10 +1470,17 @@ namespace aspect
             compositional_field_methods[i] = AdvectionFieldMethod::particles;
           else if (x_compositional_field_methods[i] == "static")
             compositional_field_methods[i] = AdvectionFieldMethod::static_field;
+          else if (x_compositional_field_methods[i] == "melt field")
+            compositional_field_methods[i] = AdvectionFieldMethod::fem_melt_field;
           else
             AssertThrow(false,ExcNotImplemented());
         }
 
+      if (std::find(compositional_field_methods.begin(), compositional_field_methods.end(), AdvectionFieldMethod::fem_melt_field)
+          != compositional_field_methods.end())
+        AssertThrow (this->include_melt_transport,
+                     ExcMessage ("The advection method 'melt field' can only be selected if melt "
+                                 "transport is used in the simulation."));
 
       const std::vector<std::string> x_mapped_particle_properties
         = Utilities::split_string_list
@@ -1542,7 +1625,7 @@ namespace aspect
         }
       catch (const std::string &error)
         {
-          AssertThrow (false, ExcMessage ("While parsing the entry <Model settings/Free surface "
+          AssertThrow (false, ExcMessage ("While parsing the entry <Free surface/Free surface "
                                           "boundary indicators>, there was an error. Specifically, "
                                           "the conversion function complained as follows: "
                                           + error));
@@ -1624,7 +1707,7 @@ namespace aspect
             }
           catch (const std::string &error)
             {
-              AssertThrow (false, ExcMessage ("While parsing the entry <Model settings/Prescribed "
+              AssertThrow (false, ExcMessage ("While parsing the entry <Boundary traction model/Prescribed "
                                               "traction indicators>, there was an error. Specifically, "
                                               "the conversion function complained as follows: "
                                               + error));
@@ -1639,6 +1722,27 @@ namespace aspect
           // finally, put it into the list
           prescribed_traction_boundary_indicators[boundary_id] =
             std::pair<std::string,std::string>(comp,value);
+        }
+    }
+    prm.leave_subsection ();
+
+    prm.enter_subsection ("Boundary heat flux model");
+    {
+      try
+        {
+          const std::vector<types::boundary_id> x_fixed_heat_flux_boundary_indicators
+            = geometry_model.translate_symbolic_boundary_names_to_ids(Utilities::split_string_list
+                                                                      (prm.get ("Fixed heat flux boundary indicators")));
+          fixed_heat_flux_boundary_indicators
+            = std::set<types::boundary_id> (x_fixed_heat_flux_boundary_indicators.begin(),
+                                            x_fixed_heat_flux_boundary_indicators.end());
+        }
+      catch (const std::string &error)
+        {
+          AssertThrow (false, ExcMessage ("While parsing the entry <Boundary heat flux model/Fixed heat flux "
+                                          "boundary indicators>, there was an error. Specifically, "
+                                          "the conversion function complained as follows: "
+                                          + error));
         }
     }
     prm.leave_subsection ();
@@ -1668,6 +1772,7 @@ namespace aspect
     AdiabaticConditions::declare_parameters<dim> (prm);
     BoundaryVelocity::Manager<dim>::declare_parameters (prm);
     BoundaryTraction::declare_parameters<dim> (prm);
+    BoundaryHeatFlux::declare_parameters<dim> (prm);
   }
 }
 

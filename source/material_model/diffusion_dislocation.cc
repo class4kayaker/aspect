@@ -101,7 +101,7 @@ namespace aspect
       for (unsigned int j=0; j < volume_fractions.size(); ++j)
         {
           // Power law creep equation
-          // edot_ii_i = A_i * stress_ii_i^{n_i} * d^{-m} \exp\left(-\frac{E_i^* + PV_i^*}{n_iRT}\right)
+          // edot_ii_i = A_i * stress_ii_i^{n_i} * d^{-m} \exp\left(-\frac{E_i^\ast + PV_i^\ast}{n_iRT}\right)
           // where ii indicates the square root of the second invariant and
           // i corresponds to diffusion or dislocation creep
 
@@ -560,9 +560,9 @@ namespace aspect
                                    "\\[\\eta_{\\text{eff}} = \\left(\\frac{1}{\\eta_{\\text{eff}}^\\text{diff}}+ "
                                    "\\frac{1}{\\eta_{\\text{eff}}^\\text{dis}}\\right)^{-1}\\] "
                                    "where "
-                                   "\\[\\eta_{\\text{i}} = 0.5 A^{-\\frac{1}{n_i}} d^\\frac{m_i}{n_i} "
+                                   "\\[\\eta_{\\text{i}} = \\frac{1}{2} A^{-\\frac{1}{n_i}} d^\\frac{m_i}{n_i} "
                                    "\\dot{\\varepsilon_i}^{\\frac{1-n_i}{n_i}} "
-                                   "\\exp\\left(\\frac{E_i^* + PV_i^*}{n_iRT}\\right)\\] "
+                                   "\\exp\\left(\\frac{E_i^\\ast + PV_i^\\ast}{n_iRT}\\right)\\] "
                                    "\n\n"
                                    "where $d$ is grain size, $i$ corresponds to diffusion or dislocation creep, "
                                    "$\\dot{\\varepsilon}$ is the square root of the second invariant of the "

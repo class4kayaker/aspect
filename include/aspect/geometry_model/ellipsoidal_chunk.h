@@ -27,11 +27,6 @@
 #include <aspect/simulator_access.h>
 #include <deal.II/grid/manifold.h>
 
-/**
- * This geometry model implements an (3d) ellipsoidal chunk geometry where two of the axis have
- * the same length. The ellipsoidal chunk can be a non-coordinate parallel part of the ellipsoid.
- * @author This plugin is a joined effort of Menno Fraters, D Sarah Stamps and Wolfgang Bangerth
- */
 
 namespace aspect
 {
@@ -41,6 +36,11 @@ namespace aspect
 
     /**
      * A class that describes a geometry for an ellipsoid such as the WGS84 model of the earth.
+     *
+     * This geometry model implements a (3d) ellipsoidal chunk geometry where two of the axis have
+     * the same length. The ellipsoidal chunk can be a non-coordinate parallel part of the ellipsoid.
+     *
+     * @author This plugin is a joined effort of Menno Fraters, D. Sarah Stamps and Wolfgang Bangerth
      */
     template <int dim>
     class EllipsoidalChunk : public Interface<dim>, public SimulatorAccess<dim>
@@ -348,21 +348,6 @@ namespace aspect
          * Construct manifold object Pointer to an object that describes the geometry.
          */
         EllipsoidalChunkGeometry   manifold;
-
-        static void set_manifold_ids (Triangulation<dim> &triangulation)
-        {
-          for (typename Triangulation<dim>::active_cell_iterator cell =
-                 triangulation.begin_active(); cell != triangulation.end(); ++cell)
-            cell->set_all_manifold_ids (15);
-        }
-
-
-        static void clear_manifold_ids (Triangulation<dim> &triangulation)
-        {
-          for (typename Triangulation<dim>::active_cell_iterator cell =
-                 triangulation.begin_active(); cell != triangulation.end(); ++cell)
-            cell->set_all_manifold_ids (numbers::invalid_manifold_id);
-        }
 
         void
         set_boundary_ids(parallel::distributed::Triangulation<dim> &coarse_grid) const;

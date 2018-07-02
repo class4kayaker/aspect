@@ -69,7 +69,8 @@ namespace aspect
         single_Advection_iterated_Stokes,
         no_Advection_iterated_Stokes,
         iterated_Advection_and_Newton_Stokes,
-        single_Advection_no_Stokes
+        single_Advection_no_Stokes,
+        first_timestep_only_single_Stokes
       };
     };
 
@@ -105,7 +106,8 @@ namespace aspect
       {
         fem_field,
         particles,
-        static_field
+        static_field,
+        fem_melt_field
       };
     };
 
@@ -334,6 +336,7 @@ namespace aspect
     unsigned int                   max_nonlinear_iterations_in_prerefinement;
     unsigned int                   n_cheap_stokes_solver_steps;
     unsigned int                   n_expensive_stokes_solver_steps;
+    unsigned int                   stokes_gmres_restart_length;
     double                         temperature_solver_tolerance;
     double                         composition_solver_tolerance;
     bool                           use_operator_splitting;
@@ -375,7 +378,7 @@ namespace aspect
     /**
      * This variable determines whether additional terms related to elastic forces
      * are added to the Stokes equation.
-    */
+     */
     bool                           enable_elasticity;
 
     /**
@@ -398,6 +401,12 @@ namespace aspect
     std::map<types::boundary_id, std::pair<std::string,std::string> > prescribed_traction_boundary_indicators;
 
     /**
+     * A set of boundary ids on which the boundary_heat_flux objects
+     * will be applied.
+     */
+    std::set<types::boundary_id> fixed_heat_flux_boundary_indicators;
+
+    /**
      * Selection of operations to perform to remove nullspace from velocity
      * field.
      */
@@ -418,6 +427,8 @@ namespace aspect
     unsigned int                   min_grid_level;
     std::vector<double>            additional_refinement_times;
     unsigned int                   adaptive_refinement_interval;
+    bool                           skip_solvers_on_initial_refinement;
+    bool                           skip_setup_initial_conditions_on_initial_refinement;
     bool                           run_postprocessors_on_initial_refinement;
     bool                           run_postprocessors_on_nonlinear_iterations;
     /**
@@ -504,7 +515,7 @@ namespace aspect
      * @{
      */
     bool                           free_surface_enabled;
-    std::set<types::boundary_id> free_surface_boundary_indicators;
+    std::set<types::boundary_id>   free_surface_boundary_indicators;
     /**
      * @}
      */

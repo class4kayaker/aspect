@@ -23,6 +23,7 @@
 #include <aspect/global.h>
 #include <aspect/utilities.h>
 #include <aspect/simulator_access.h>
+#include <aspect/geometry_model/interface.h>
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -79,14 +80,14 @@ namespace aspect
 
             if (this->include_melt_transport())
               {
-                solution_names.push_back ("p_f");
-                solution_names.push_back ("p_c_bar");
+                solution_names.emplace_back("p_f");
+                solution_names.emplace_back("p_c_bar");
                 for (unsigned int i=0; i<dim; ++i)
-                  solution_names.push_back ("u_f");
+                  solution_names.emplace_back("u_f");
               }
-            solution_names.push_back ("p");
+            solution_names.emplace_back("p");
 
-            solution_names.push_back ("T");
+            solution_names.emplace_back("T");
             for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
               solution_names.push_back (this->introspection().name_for_compositional_index(c));
 
@@ -359,7 +360,7 @@ namespace aspect
       internal::BaseVariablePostprocessor<dim> base_variables;
       base_variables.initialize_simulator (this->get_simulator());
 
-      std_cxx1x::shared_ptr<internal::FreeSurfacePostprocessor<dim> > free_surface_variables;
+      std::shared_ptr<internal::FreeSurfacePostprocessor<dim> > free_surface_variables;
 
       // create a DataOut object on the heap; ownership of this
       // object will later be transferred to a different thread
@@ -383,8 +384,8 @@ namespace aspect
       // add the computed quantity as well. keep a list of
       // pointers to data vectors created by cell data visualization
       // postprocessors that will later be deleted
-      std::list<std_cxx11::shared_ptr<Vector<float> > > cell_data_vectors;
-      for (typename std::list<std_cxx11::shared_ptr<VisualizationPostprocessors::Interface<dim> > >::const_iterator
+      std::list<std::shared_ptr<Vector<float> > > cell_data_vectors;
+      for (typename std::list<std::shared_ptr<VisualizationPostprocessors::Interface<dim> > >::const_iterator
            p = postprocessors.begin(); p!=postprocessors.end(); ++p)
         {
           try
@@ -414,7 +415,7 @@ namespace aspect
                                       "on the current processor."));
 
                   // store the pointer, then attach the vector to the DataOut object
-                  cell_data_vectors.push_back (std_cxx11::shared_ptr<Vector<float> >
+                  cell_data_vectors.push_back (std::shared_ptr<Vector<float> >
                                                (cell_data.second));
 
                   data_out.add_data_vector (*cell_data.second,
@@ -752,7 +753,10 @@ namespace aspect
           // now also see about the file format we're supposed to write in
           prm.declare_entry ("Output format", "vtu",
                              Patterns::Selection (DataOutBase::get_output_format_names ()),
-                             "The file format to be used for graphical output.");
+                             "The file format to be used for graphical output. The list "
+                             "of possible output formats that can be given here is documented "
+                             "in the appendix of the manual where the current parameter "
+                             "is described.");
 
           prm.declare_entry ("Number of grouped files", "16",
                              Patterns::Integer(0),
@@ -976,7 +980,7 @@ namespace aspect
                               "dealii::DataPostprocessor or "
                               "VisualizationPostprocessors::CellDataVectorCreator!?"));
 
-          postprocessors.push_back (std_cxx11::shared_ptr<VisualizationPostprocessors::Interface<dim> >
+          postprocessors.push_back (std::shared_ptr<VisualizationPostprocessors::Interface<dim> >
                                     (viz_postprocessor));
 
           if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*postprocessors.back()))
@@ -1090,7 +1094,7 @@ namespace aspect
       // loop over all of the viz postprocessors and collect what
       // they want. don't worry about duplicates, the postprocessor
       // manager will filter them out
-      for (typename std::list<std_cxx11::shared_ptr<VisualizationPostprocessors::Interface<dim> > >::const_iterator
+      for (typename std::list<std::shared_ptr<VisualizationPostprocessors::Interface<dim> > >::const_iterator
            p = postprocessors.begin();
            p != postprocessors.end(); ++p)
         {
