@@ -82,6 +82,16 @@ namespace aspect
       const FEValuesExtractors::Scalar &extractor_temperature = this->introspection().extractors.temperature;
       const FEValuesExtractors::Vector &extractor_velocity = this->introspection().extractors.velocities;
 
+      // Write header
+      interpolated_data_stream << "X_X" << "\t" << "X_Y"
+                               << "\t" << "V_X" << "\t" << "V_Y"
+                               << "P" << "\t" << "T";
+      for (auto name: this->introspection().get_composition_names())
+        {
+          interpolated_data_stream << "\t" << "C_" << name;
+        }
+      interpolated_data_stream << std::endl;
+
       // Declaring an iterator over all active cells on local mpi process
       typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active();
       for (; cell != this->get_dof_handler().end();
@@ -168,6 +178,16 @@ namespace aspect
       const FEValuesExtractors::Scalar &extractor_pressure = this->introspection().extractors.pressure;
       const FEValuesExtractors::Scalar &extractor_temperature = this->introspection().extractors.temperature;
       const FEValuesExtractors::Vector &extractor_velocity = this->introspection().extractors.velocities;
+     
+      // Write header
+      interpolated_data_stream << "X_X" << "\t" << "X_Y"
+                               << "\t" << "V_X" << "\t" << "V_Y"
+                               << "P" << "\t" << "T";
+      for (auto name: this->introspection().get_composition_names())
+        {
+          interpolated_data_stream << "\t" << "C_" << name;
+        }
+      interpolated_data_stream << std::endl;
 
       // Declaring an iterator over all active cells on local mpi process
       typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active();
