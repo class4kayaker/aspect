@@ -84,6 +84,7 @@ namespace aspect
 
       // Write header
       interpolated_data_stream << "X_X" << "\t" << "X_Y"
+                               << "\t" << "W"
                                << "\t" << "V_X" << "\t" << "V_Y"
                                << "P" << "\t" << "T";
       for (auto name: this->introspection().get_composition_names())
@@ -137,6 +138,7 @@ namespace aspect
             {
               interpolated_data_stream << std::scientific << std::setprecision(15)
                                        << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
+                                       << "\t" << fe_values.JxW(quadrature_point_index);
                                        << "\t" << (*itr_velocity)[0] << "\t" << (*itr_velocity)[1]
                                        << "\t" << *itr_pressure << "\t" << *itr_temperature;
               if (this->n_compositional_fields() != 0)
@@ -178,9 +180,10 @@ namespace aspect
       const FEValuesExtractors::Scalar &extractor_pressure = this->introspection().extractors.pressure;
       const FEValuesExtractors::Scalar &extractor_temperature = this->introspection().extractors.temperature;
       const FEValuesExtractors::Vector &extractor_velocity = this->introspection().extractors.velocities;
-     
+
       // Write header
       interpolated_data_stream << "X_X" << "\t" << "X_Y"
+                               << "\t" << "W"
                                << "\t" << "V_X" << "\t" << "V_Y"
                                << "P" << "\t" << "T";
       for (auto name: this->introspection().get_composition_names())
@@ -234,6 +237,7 @@ namespace aspect
             {
               interpolated_data_stream << std::scientific << std::setprecision(15)
                                        << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
+                                       << "\t" << fe_values.JxW(quadrature_point_index);
                                        << "\t" << (*itr_velocity)[0] << "\t" << (*itr_velocity)[1]
                                        << "\t" << *itr_pressure << "\t" << *itr_temperature;
               if (this->n_compositional_fields() != 0)
