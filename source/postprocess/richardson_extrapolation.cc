@@ -138,7 +138,7 @@ namespace aspect
             {
               interpolated_data_stream << std::scientific << std::setprecision(15)
                                        << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
-                                       << "\t" << fe_values.JxW(quadrature_point_index);
+                                       << "\t" << fe_values.JxW(quadrature_point_index)
                                        << "\t" << (*itr_velocity)[0] << "\t" << (*itr_velocity)[1]
                                        << "\t" << *itr_pressure << "\t" << *itr_temperature;
               if (this->n_compositional_fields() != 0)
@@ -237,7 +237,7 @@ namespace aspect
             {
               interpolated_data_stream << std::scientific << std::setprecision(15)
                                        << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
-                                       << "\t" << fe_values.JxW(quadrature_point_index);
+                                       << "\t" << fe_values.JxW(quadrature_point_index)
                                        << "\t" << (*itr_velocity)[0] << "\t" << (*itr_velocity)[1]
                                        << "\t" << *itr_pressure << "\t" << *itr_temperature;
               if (this->n_compositional_fields() != 0)
