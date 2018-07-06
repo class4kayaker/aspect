@@ -86,7 +86,7 @@ namespace aspect
       interpolated_data_stream << "X_X" << "\t" << "X_Y"
                                << "\t" << "W"
                                << "\t" << "V_X" << "\t" << "V_Y"
-                               << "P" << "\t" << "T";
+                               << "\t" << "P" << "\t" << "T";
       for (auto name: this->introspection().get_composition_names())
         {
           interpolated_data_stream << "\t" << "C_" << name;
@@ -185,7 +185,7 @@ namespace aspect
       interpolated_data_stream << "X_X" << "\t" << "X_Y"
                                << "\t" << "W"
                                << "\t" << "V_X" << "\t" << "V_Y"
-                               << "P" << "\t" << "T";
+                               << "\t" << "P" << "\t" << "T";
       for (auto name: this->introspection().get_composition_names())
         {
           interpolated_data_stream << "\t" << "C_" << name;
