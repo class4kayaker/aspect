@@ -32,7 +32,6 @@
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/fe/component_mask.h>
 
-#include <aspect/geometry_model/interface.h>
 #include <aspect/coordinate_systems.h>
 
 
@@ -73,6 +72,56 @@ namespace aspect
     possibly_extend_from_1_to_N (const std::vector<T> &values,
                                  const unsigned int N,
                                  const std::string &id_text);
+
+
+
+    /**
+     * This function takes a string argument that is interpreted as a map
+     * of the form "key1 : value1, key2 : value2, etc", and then parses
+     * it to return a vector of these values where the values are ordered
+     * in the same order as a given set of keys.
+     *
+     * This function also considers a number of special cases:
+     * - If the input string consists of only a comma separated
+     *   set of values "value1, value2, value3, ..." (i.e., without
+     *   the "keyx :" part), then the input string is interpreted
+     *   as if it had had the form "key1 : value1, key2 : value2, ..."
+     *   where "key1", "key2", ... are exactly the keys provided by the
+     *   @p list_of_keys in the same order as provided. In this situation,
+     *   if a background field is required, the background value is
+     *   assigned to the first element of the output vector.
+     * - Whether or not a background field is required depends on
+     *   the parameter being parsed. Requiring a background field
+     *   increases the size of the output vector by 1. For example,
+     *   some Material models require background fields, but input
+     *   files may not.
+     * - Three special keys are recognized:
+     *      all --> Assign the associated value to all fields.
+     *              Only one value is allowed in this case.
+     *      background (or bg) --> Assign associated value to
+     *                             the background.
+     *
+     * @param[in] key_value_map The string representation of the map
+     *   to be parsed.
+     * @param[in] list_of_keys A list of valid key names that are allowed
+     *   to appear in the map. The order of these keys determines the order
+     *   of values that are returned by this function.
+     * @param[in] allow_background_field If true, expect N+1 values and allow
+     *   setting of the background using "background" or "bg".
+     * @param[in] field_name A name that identifies the type of information
+     *   that is being parsed by this function and that is used in generating
+     *   error messages if the map does not conform to the expected format.
+     *
+     * @return A vector of values that are parsed from the map, provided
+     *   in the order in which the keys appear in the @p list_of_keys argument.
+     */
+    std::vector<double>
+    parse_map_to_double_array (const std::string &key_value_map,
+                               const std::vector<std::string> &list_of_keys,
+                               const bool allow_background_field,
+                               const std::string &field_name);
+
+
 
     /**
      * Given a vector @p var_declarations expand any entries of the form
@@ -147,6 +196,17 @@ namespace aspect
       spherical_to_cartesian_coordinates(const std_cxx11::array<double,dim> &scoord);
 
       /**
+       * Given a vector defined in the radius, phi and theta directions, return
+       * a vector defined in Cartesian coordinates. If the dimension is set to 2
+       * theta is omitted. Position is given as a Point in Cartesian coordinates.
+       */
+      template <int dim>
+      Tensor<1,dim>
+      spherical_to_cartesian_vector(const Tensor<1,dim> &spherical_vector,
+                                    const Point<dim> &position);
+
+
+      /**
        * Returns ellipsoidal coordinates of a Cartesian point. The returned array
        * is filled with phi, theta and radius.
        *
@@ -159,7 +219,7 @@ namespace aspect
 
       /**
        * Return the Cartesian point of a ellipsoidal position defined by phi,
-       * phi and radius.
+       * theta and radius.
        */
       template <int dim>
       Point<3>
@@ -196,6 +256,17 @@ namespace aspect
     double
     signed_distance_to_polygon(const std::vector<Point<2> > &point_list,
                                const dealii::Point<2> &point);
+
+
+    /**
+     * Given a 2d point and a list of two points that define a line, compute the smallest
+     * distance of the point to the line segment. When the point's perpendicular
+     * base does not lie on the line segment, the smallest distance to the segment's end
+     * points is calculated.
+     */
+    double
+    distance_to_line(const std::array<dealii::Point<2>,2 > &point_list,
+                     const dealii::Point<2> &point);
 
     /**
      * Given a vector @p v in @p dim dimensional space, return a set
@@ -615,13 +686,15 @@ namespace aspect
         void
         declare_parameters (ParameterHandler  &prm,
                             const std::string &default_directory,
-                            const std::string &default_filename);
+                            const std::string &default_filename,
+                            const std::string &subsection_name = "Ascii data model");
 
         /**
          * Read the parameters from the parameter file.
          */
         void
-        parse_parameters (ParameterHandler &prm);
+        parse_parameters (ParameterHandler &prm,
+                          const std::string &subsection_name = "Ascii data model");
 
         /**
          * Directory in which the data files are present.
@@ -697,13 +770,15 @@ namespace aspect
         void
         declare_parameters (ParameterHandler  &prm,
                             const std::string &default_directory,
-                            const std::string &default_filename);
+                            const std::string &default_filename,
+                            const std::string &subsection_name = "Ascii data model");
 
         /**
          * Read the parameters from the parameter file.
          */
         void
-        parse_parameters (ParameterHandler &prm);
+        parse_parameters (ParameterHandler &prm,
+                          const std::string &subsection_name = "Ascii data model");
 
       protected:
 
@@ -776,13 +851,13 @@ namespace aspect
          * data we get from text files.
          */
         std::map<types::boundary_id,
-            std_cxx11::shared_ptr<aspect::Utilities::AsciiDataLookup<dim-1> > > lookups;
+            std::shared_ptr<aspect::Utilities::AsciiDataLookup<dim-1> > > lookups;
 
         /**
          * Map between the boundary id and the old data objects.
          */
         std::map<types::boundary_id,
-            std_cxx11::shared_ptr<aspect::Utilities::AsciiDataLookup<dim-1> > > old_lookups;
+            std::shared_ptr<aspect::Utilities::AsciiDataLookup<dim-1> > > old_lookups;
 
         /**
          * Handles the update of the data in lookup.
@@ -840,7 +915,7 @@ namespace aspect
          * Pointer to an object that reads and processes data we get from text
          * files.
          */
-        std_cxx11::shared_ptr<aspect::Utilities::AsciiDataLookup<dim> > lookup;
+        std::shared_ptr<aspect::Utilities::AsciiDataLookup<dim> > lookup;
     };
 
     /**
@@ -1079,10 +1154,17 @@ namespace aspect
     {
       public:
         /**
-         * Constructor based on providing the geometry model as a pointer
+         * Constructor based on providing the geometry model as a pointer.
          */
         NaturalCoordinate(Point<dim> &position,
                           const GeometryModel::Interface<dim> &geometry_model);
+
+        /**
+         * Constructor based on providing the coordinates and associated
+         * coordinate system.
+         */
+        NaturalCoordinate(const std_cxx11::array<double, dim> &coord,
+                          const Utilities::Coordinates::CoordinateSystem &coord_system);
 
         /**
          * Returns the coordinates in the given coordinate system, which may

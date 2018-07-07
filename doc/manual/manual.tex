@@ -7,6 +7,20 @@
 \usepackage{subfigure}
 \usepackage{textpos}
 
+% This adds space between the Appendix number (e.g., A.101) and the title.
+
+\renewcommand{\numberline}[1]{#1~}
+
+% If your page numbers stick out into the righthand margin but using lengths 
+% appropriate to your document. See the Introduction to the "The tocloft 
+% package" for additional information.
+
+\makeatletter
+ \renewcommand{\@pnumwidth}{1.75em} 
+ \renewcommand{\@tocrmarg}{3.25em}
+\makeatother
+
+
 % use a larger page size; otherwise, it is difficult to have complete
 % code listings and output on a single page
 \usepackage{fullpage}
@@ -55,7 +69,7 @@
 % files in the aspect tree without having to specify the
 % location relative to the directory where the pdf actually
 % resides
-\usepackage[colorlinks,linkcolor=blue,urlcolor=blue,citecolor=blue,baseurl=../]{hyperref}
+\usepackage[colorlinks,linkcolor=blue,urlcolor=blue,citecolor=blue,destlabel=true,baseurl=../]{hyperref}
 
 \newcommand{\dealii}{{\textsc{deal.II}}}
 \newcommand{\pfrst}{{\normalfont\textsc{p4est}}}
@@ -164,14 +178,18 @@ COMPUTATIONAL INFRASTRUCTURE FOR GEODYNAMICS (CIG)
     Martin Kronbichler,
     Marine Lasbleis,
     Shangxin Liu,
+    Hannah Mark,
     Elvira Mulyukova,
+    Bob Myhill,
     John Naliboff,
+    Bart Niday,
     Jonathan Perry-Houts,
     Elbridge Gerry Puckett,
     Tahiry Rajaonarison,
     Ian Rose,
     D.~Sarah Stamps,
     Cedric Thieulot,
+    Wanying Wang, 
     Iris van Zelst,
     Siqi Zhang \\
 \vspace{1.0em}
@@ -304,7 +322,7 @@ what exactly to cite and suggestions for acknowledgments,
 please see
 {\bf \url{https://aspect.geodynamics.org/cite.html}}.
 
-Also see \cite{aspect-doi-v1.5.0,aspect-doi-v2.0.0,aspectmanual,KHB12,heister_aspect_methods2}.
+Also see \cite{aspect-doi-v1.5.0,aspect-doi-v2.0.0,aspect-doi-v2.0.1,aspectmanual,KHB12,heister_aspect_methods2}.
 
 
 \subsection{Acknowledgments}
@@ -332,7 +350,7 @@ which is supported by the National Science Foundation award EAR-1550901.
   \end{center}
 }
 
-\section{Equations, models, coefficients}
+\section{Geodynamic modeling assumptions and numerical methods in \aspect{}}
 \label{sec:models}
 
 \subsection{Basic equations}
@@ -853,6 +871,103 @@ Units $\frac{\textrm{J}}{\textrm{kg}\cdot\textrm{K}} =
   or in any other way that seems appropriate to the user.
 \end{itemize}
 
+\subsubsection{Coefficient self-consistency}
+\label{sec:coefficient_self_consistency}
+\textit{This section was contributed by Bob Myhill.}
+
+\newcommand {\pddc}[3]{\left( \frac{\partial #1}{\partial #2} \right)_{#3}}
+\newcommand {\pddsq}[3]{\left( \frac{\partial^2 #1}{\partial {#2}^2}  \right)_{#3}}
+\newcommand {\pddsqc}[3]{\frac{\partial^2 #1}{\partial {#2} \partial {#3}}}
+\newcommand {\pddcbc}[3]{\frac{\partial^3 #1}{\partial {#2}^2 \partial {#3}}}
+
+The coefficients in the previous section may at first appear independent.
+However, there are thermodynamic relations between these properties which must be
+satisfied in any self-consistent material model.
+The following section describes the relations required for thermodynamic
+consistency, and presents some suggested ways by which consistency can be assured.
+
+In order to derive the relationships between different material properties, we must
+introduce a thermodynamic potential known as the specific Gibbs free energy
+$\mathcal{G}(p, T)$ [\textit{J/kg}]. The word ``specific'' indicates that the energy is
+given per unit mass, rather than volume or number of atoms/molecules. This potential is
+equal to the maximum amount of non-expansion work that can be extracted from a
+thermodynamically closed system. At equilibrium conditions and fixed temperature and
+pressure, the Gibbs free energy is minimized. The following equations provide the
+definitions and relationships between thermodynamic properties in terms of the specific
+Gibbs free energy:
+\begin{eqnarray}
+  S &=& -\pddc{\mathcal{G}}{T}{p} \\
+  \frac{1}{\rho} &=& \pddc{\mathcal{G}}{p}{T} \label{eq:mm_density} \\
+  \frac{\alpha}{\rho} &=& \pddsqc{\mathcal{G}}{p}{T} \label{eq:mm_alpha_g} \\
+  \beta_T &=& -\rho \pddsq{\mathcal{G}}{p}{T} \label{eq:mm_betaT_g} \\
+  C_p &=& -T \pddsq{\mathcal{G}}{T}{p} \label{eq:mm_isobaric_heat_capacity} \\
+  \beta_S &=& \beta_T - \frac{\alpha^2 T}{\rho C_p} \label{eq:mm_isentropic_compressibility} \\
+  \frac{C_V}{C_p} &=& \frac{\beta_S}{\beta_T} \\
+  \gamma &=& \frac{\alpha }{\beta_T \rho C_V} 
+\end{eqnarray}
+\noindent where $S$ is the specific entropy, $C_p$ and $C_V$ are the specific isobaric
+and isenchoric heat capacities, $\beta_T$ and $\beta_S$ are the isothermal and isotropic
+compressibilities, and $\gamma$ is the thermodynamic Gr\"{u}neisen parameter. The subscript
+indicates the thermodynamic variable ($p$ or $T$) that is held constant.
+
+Thermodynamically self-consistent material models must obey the explicit and implicit relations
+between the different properties \emph{at all pressures and temperatures}. Explicit relations
+are here defined as those between properties and their derivatives, such as that between
+density and thermal expansivity. Implicit relations involve mixed pressure and temperature
+derivatives, and derive from the symmetry of second derivatives. The following paragraphs
+list the relations most relevant for the construction of thermodynamically-consistent material
+models in \aspect{}.
+
+\paragraph{Consistency in $\boldsymbol{\rho}$-$\boldsymbol{\alpha}$ and $\boldsymbol{\rho}$-$\boldsymbol{\beta_T}$}
+Using the chain rule to combine~\eqref{eq:mm_density},~\eqref{eq:mm_alpha_g}
+and~\eqref{eq:mm_betaT_g} yields the more familiar definitions of $\alpha$ and $\beta_T$:
+\begin{eqnarray}
+  \alpha &=& -\frac{1}{\rho} \pddc{\rho}{T}{p} \label{eq:mm_thermal_expansivity} \\
+  \beta_T &=& \frac{1}{\rho} \pddc{\rho}{p}{T} \label{eq:mm_isothermal_compressibility}
+\end{eqnarray}
+
+\paragraph{Isobaric heat capacity}
+
+We start by taking the partial derivative of the isobaric heat
+capacity~\eqref{eq:mm_isobaric_heat_capacity} with respect to pressure at constant temperature:
+\begin{eqnarray}
+  \pddc{C_p}{p}{T} &=& -T \pddcbc{\mathcal{G}}{T}{p} \\
+  &=& -T\pddc{\left(\alpha / \rho \right)}{T}{p} \label{eq:heat_capacity_p_dependence}
+\end{eqnarray}
+From this expression it becomes clear that if $\alpha / \rho$ has any temperature dependence,
+the heat capacity \emph{cannot} be globally constant. One way to solve this issue is to define
+heat capacity at constant pressure, and then integrate~\eqref{eq:heat_capacity_p_dependence}
+with respect to pressure:
+\begin{equation}
+  C_p(p, T) = C_p(p_{\textrm{ref}}, T) -T \int_{p_{\textrm{ref}}}^p \pddc{\left(\alpha / \rho \right)}{T}{p} dp
+\end{equation}
+There is no guarantee that this expression will have a simple form. 
+
+\paragraph{Isentropic gradient}
+The material properties also define the slope of the adiabat (the change in temperature with
+pressure at constant entropy) at all pressures and temperatures. Using the cyclic relation,
+we can define this in terms of partial differentials of the entropy with respect to pressure
+and temperature:
+\begin{eqnarray}
+  \pddc{T}{p}{S} &=& - \pddc{T}{S}{p} \pddc{S}{p}{T} \\
+  &=& - \left( \frac{T}{C_p} \right) \left( - \frac{\alpha}{\rho} \right) \\
+  &=& \frac{\alpha T}{\rho C_p} \label{eq:mm_isentropic_gradient}
+\end{eqnarray}
+This expression does not pose a constraint on the material properties, but in order to be
+self-consistent, the adiabat must be computed following this relation.
+
+For complex material models, obtaining analytical functions which obey all these relations
+may be a non-trivial exercise. Furthermore, it is often not immediately clear when a
+given formulation is thermodynamically inconsistent. Indeed, there are many equations
+of state which exist in the thermodynamic literature which do not obey these relations! 
+
+\emph{A final note of warning: some compressible formulations in \aspect{}
+  (Section~\ref{sec:mass-conservation-approximation}) use the isothermal compressibility,
+  while others use the isentropic compressibility. Fully self-consistent material models must
+  either specify what approximation of the compressible equations they are consistent with
+  (see Section~\ref{sec:approximate-equations}), or have a switch so that they use the correct
+  compressibility for each of the different approximations. The conversion between isothermal
+  and isentropic compressibilities is given in ~\eqref{eq:mm_isentropic_compressibility}.}
 
 \subsection{Dimensional or non-dimensionalized equations?}
 \label{sec:non-dimensional}
@@ -870,18 +985,11 @@ simulation onto the screen, it typically does so by using a postfix such as
 \texttt{m/s} to indicate a velocity or \texttt{W/m\^{}2} to indicate a heat
 flux.
 
-\note{For convenience, output quantities are sometimes provided
-  in units meters per \textit{year} instead of meters per \textit{second}
-  (velocities) or in \textit{years} instead of \textit{seconds} (the current
-  time, the time step size); this
-  conversion happens at the time output is generated, and is not part of the
-  solution process. Whether this conversion should happen is determined by the
-  flag ``\texttt{Use years in output instead of seconds}'' in the input file,
-\index[prmindex]{Use years in output instead of seconds}
-\index[prmindexfull]{Use years in output instead of seconds}
-  see Section~\ref{parameters:global}. Obviously, this conversion from seconds
-  to years only makes sense if the model is described in physical units rather
-  than in non-dimensionalized form, see below.}
+\note{For mantle convection simulations, it is often convenient to work with 
+time units of \textit{years} instead of \textit{seconds}. The flag 
+``\texttt{Use years in output instead of seconds}'' (Section~\ref{parameters:global}) 
+in the input file determines how input and output parameters with units of time or 
+velocity are interpreted. For details, see Section~\ref{sec:years-or-seconds} below.}
 
 That said, in reality, \aspect{} has no preferred system of
 units as long as every material constant, geometry, time, etc., are all
@@ -982,7 +1090,30 @@ the other hand, ensuring numerical stability is not something users should have
 to be concerned about, and is taken care of in the implementation of \aspect{}'s
 core (see the corresponding section in \cite{KHB12}).
 
+\subsubsection{Years or seconds?}
+\label{sec:years-or-seconds}
 
+All internal calculations in \aspect{} are performed using time units of seconds. 
+Input quantities with units of time or velocity are assumed to be in 
+seconds or meters per second, and output quantities with units of time or velocity 
+will also be in seconds or meters per second, unless the input parameter 
+\texttt{Use years in output instead of seconds} is \texttt{true} 
+(see Section~\ref{parameters:global}).
+
+This parameter is somewhat deceptively named, as it influences how \aspect{} 
+treats inputs as well as outputs. For example, if \texttt{Use years in output instead 
+of seconds} is \texttt{true}, input values for \texttt{Start time}, 
+\texttt{End time}, and \texttt{Maximum time step} are assumed to be in years 
+instead of seconds. When the flag is set, \aspect{} converts input time and velocity 
+units to MKS internally, computes solutions, and converts time and velocity outputs 
+back to years and meters per year during postprocessing.
+
+By default, \texttt{Use years in output instead of seconds} is \texttt{true}, 
+since \aspect{} is designed primarily for models described in physical units rather 
+than in non-dimensionalized form, and years are often more intuitive time units 
+for mantle convection problems (see Section~\ref{sec:non-dimensional}). For non-
+dimensional models the flag should be set to \texttt{false} since conversions 
+between years and seconds do not make sense for non-dimensional quantities. 
 
 \subsection{Static or dynamic pressure?}
 \label{sec:pressure-static-dyn}
@@ -2726,19 +2857,20 @@ The development version of \aspect{} can be downloaded by executing the command
 If {\texttt{\$DEAL\_II\_DIR}} points to your \dealii{} installation, you can configure
 \aspect{} by running
 \begin{verbatim}
- cmake .
+ mkdir build; cd build; cmake ..
 \end{verbatim}
 in the \aspect{} directory created by the {\texttt{git clone}} command above.
 If you did not set {\texttt{\$DEAL\_II\_DIR}} you have to supply cmake with the location:
 \begin{verbatim}
- cmake -DDEAL_II_DIR=/u/username/deal-installed/ .
+ cmake -DDEAL_II_DIR=/u/username/deal-installed/ ..
 \end{verbatim}
 
-An alternative would be to configure \aspect{} as an out-of-source build. 
-You would need to create a separate build directory and
-specify \aspect{}'s source directory using \texttt{cmake PATH\_TO\_ASPECT\_SOURCE}
-from within the build directory. The
-instructions in the following sections assume an in-source build.
+This will create an ``out-of-source`` build, where the build directory is
+different from the source directory. While in-source builds (where you run
+\texttt{cmake .} in your source directory), are supported, we strongly
+recommend an out-of-source build as described above. Specifically, running
+the whole test suite (see Section~\ref{sec:running_tests}) is only supported
+this way.
 
 \subsubsection{Compiling \aspect{} and generating documentation}
 \label{sec:compiling}
@@ -2750,8 +2882,10 @@ can compile it by typing
 \end{verbatim}
 on the command line (or \texttt{make -jN} if you have multiple processors in
 your machine, where \texttt{N} is the number of processors). This builds the
-\aspect{} executable which will reside in
-the main directory and will be named \texttt{./aspect}. If you intend to
+\aspect{} executable which will reside in the \texttt{build} directory
+and will be named \texttt{aspect}. To run \aspect{} from the main source directory
+you would need to reference it as \texttt{./build/aspect}.
+If you intend to
 modify \aspect{} for your own experiments, you may want to also generate
 documentation about the source code. This can be done using the command
 \begin{verbatim}
@@ -2772,15 +2906,15 @@ point for exploring the documentation.
 \label{sec:running-overview}
 
 After compiling \aspect{} as described above, you should have an executable
-file in the main directory. It can be called as follows:
+file in the build directory. It can be called in the build directory as follows:
 \begin{verbatim}
   ./aspect parameter-file.prm
 \end{verbatim}
 or, if you want to run the program in parallel, using something like
 \begin{verbatim}
-  mpirun -np 32 ./aspect parameter-file.prm
+  mpirun -np 4 ./aspect parameter-file.prm
 \end{verbatim}
-to run with 32 processors. In either case, the argument denotes the (path and)
+to run with 4 processors. In either case, the argument denotes the (path and)
 name of a file that contains input parameters.%
 \footnote{As a special case, if you call \aspect{} with an argument that
 consists of two dashes, ``\texttt{--}'', then the arguments will be read from
@@ -2808,7 +2942,10 @@ in Section~\ref{sec:cookbooks-benchmarks} are located in the \texttt{benchmarks}
 directory. A full description of all parameters one can specify in these files
 is given in Section~\ref{sec:parameters}.
 
-Running \aspect{} with an input file will produce output that will look
+Running \aspect{} with an input file
+\footnote{For example by running \texttt{./aspect ../cookbooks/convection-box.prm} in
+your build directory.}
+will produce output that will look
 something like this (numbers will all be different, of course):
 \begin{lstlisting}[frame=single,language=ksh]
 -----------------------------------------------------------------------------
@@ -3712,7 +3849,7 @@ a smaller tolerance. The default value of these tolerances are chosen so that
 the approximation is typically sufficient. You can make \aspect{} run faster if
 you choose these tolerances larger.
 The parameters you can adjust are all listed in
-Section~\ref{parameters:global} and are located at the top level of the input
+Section~\ref{parameters:Solver_20parameters} and are located in the \texttt{Solver parameters} subsection of the input
 file. In particular, the parameters you want to look at are \texttt{Linear
 solver tolerance}, \texttt{Temperature solver tolerance} and
 \texttt{Composition solver tolerance}.
@@ -4028,9 +4165,17 @@ syntax is mostly self-explanatory in that it allows to use the usual symbols
 \texttt{x}, \texttt{y} and \texttt{z} to reference coordinates (unless a
 particular plugin uses different variables, such as the depth), the symbol
 \texttt{t} for time in many situations, and allows you to use all of the
-typical mathematical functions such as sine and cosine. Another common case is
-an if-statement that has the general form
-\texttt{if(condition, true-expression, false-expression)}. For more examples of
+typical mathematical functions such as sine and cosine. Based on the muparser 
+library, deal.II supports additional functions, including \texttt{|} (the logical OR), \texttt{\&} (the logical AND),
+\texttt{int()}, \texttt{ceil()}, \texttt{floor()}, \texttt{cot()}, 
+\texttt{csc()}, \texttt{sec()}, \texttt{pow()}, \texttt{log()}, 
+\texttt{erfc()}, \texttt{rand()}, and \texttt{rand\_seed()}. 
+For more detailed information, see 
+\url{http://www.dealii.org/developer/doxygen/deal.II/classFunctionParser.html#details}. 
+A common case is an if-statement that has the general form
+\texttt{if(condition, true-expression, false-expression)}. As an example, 
+the statement ``if $1<x<4$ then output 1, else output 0'' can be expressed as
+\texttt{if(1<x \&\& x<4, 1, 0)}. For more examples of
 the syntax understood, reference the documentation of the muparser library
 linked to above.
 
@@ -4313,7 +4458,7 @@ is well understood:
   We will investigate some of this behavior at the end of this section.
 
   \item For certain values of the Rayleigh number, very accurate values for the
-  heat flux through the bottom and top boundaries are available in the literate.
+  heat flux through the bottom and top boundaries are available in the literature.
   For example, Blankenbach \textit{et al.} report a non-dimensional heat flux of
   $4.884409 \pm 0.00001$, see \cite{BBC89}. We will compare our results against
   this value below.
@@ -4557,10 +4702,10 @@ pattern. On the other hand, for values $Ra<Ra_c\approx 780$, any movement of
 the fluid dies down exponentially and we end up with a situation where the fluid
 doesn't move and heat is transported from the bottom to the top only through
 heat conduction. This can be explained by considering that the Rayleigh number
-in a box of unit extent is defined as $Ra=\frac{\rho_0 g\alpha\Delta T}{\eta k}$. A small
-Rayleigh number means that the viscosity is too large (i.e., the buoyancy given
-by the product of the magnitude of gravity times the density anomalies caused by temperature
--- $\rho_0 \alpha \Delta T$ -- is not strong enough to overcome friction forces within the fluid).
+in a box is defined as $Ra=\frac{\rho_0 g\alpha\Delta T h^3}{\eta k}$. A small
+Rayleigh number below $Ra_c$ means that the buoyancy forces 
+caused by temperature variations 
+-- $\rho_0 \alpha \Delta T$ -- are not strong enough to overcome friction forces within the fluid, that is, the viscosity is too high.
 
 On the other hand, if the Rayleigh number is large (i.e., the viscosity is
 small or the buoyancy large) then the fluid develops an unsteady convection
@@ -4597,7 +4742,7 @@ top and bottom boundaries (right) as a function of time at $Ra=10^6$.}
 \end{figure}
 
 We illustrate these situations in
-Fig.s~\ref{fig:convection-box-fields-different-Ra} and
+Figs.~\ref{fig:convection-box-fields-different-Ra} and
 \ref{fig:convection-box-stats-different-Ra}. The first shows the temperature
 field at the end of a simulation for $Ra=10^2$ (below $Ra_c$) and at $Ra=10^6$.
 Obviously, for the right picture, the mesh is not fine enough to accurately
@@ -5340,7 +5485,7 @@ postprocessing section, using the \texttt{density} visualization plugin:
 \end{figure}
 
 Results of this model are visualized in
-Fig.s~\ref{fig:composition-active-composition} and \ref{fig:composition-active-temperature}. What is visible is
+Figs.~\ref{fig:composition-active-composition} and \ref{fig:composition-active-temperature}. What is visible is
 that over the course of the simulation, the material that starts at the bottom
 of the domain remains there. This can only happen if the circulation is
 significantly affected by the high density material once the interface starts
@@ -6815,7 +6960,7 @@ velocity in Fig.~\ref{fig:simple-shell-2d-rms}), the shear heating becomes
 largely irrelevant and the cooling of the mantle indeed begins.
 
 Whether this is really the case is of course easily verified: The right panels
-of Fig.s~\ref{fig:simple-shell-2d-heatflux}
+of Figs.~\ref{fig:simple-shell-2d-heatflux}
 and \ref{fig:simple-shell-2d-temperature} show heat fluxes and average
 temperatures for a model where we have switched off the shear heating by setting
 
@@ -8269,13 +8414,13 @@ the current directory.
 
 Here we use \aspect{} to numerically reproduce the results of a linear stability analysis for the onset of convection in a fluid layer heated from below. This exercise was assigned to students at Portland State University as a first step towards setting up a nominally Earth-like mantle convection model. Hence, representative length scales and transport properties for Earth are used. This cookbook consists of a jupyter notebook (\texttt{benchmarks/onset-of-convection/onset-of-convection.ipynb}) that is used to run \aspect{} and analyze the results of several calculations. To use this code, you must compile \aspect{} and give the path to the executable in the notebook as \texttt{aspect\_bin}. 
 
-The linear stability analysis for the onset of convection appears in Turcotte and Schubert \cite{TS14} (section 6.19). The linear stability analysis assumes the Boussinesq approximation and makes predictions for the growth rate (vertical velocity) of instabilities and the critical Rayleigh number $Ra_{cr}$ above which convection will occur. $Ra_{cr}$ depends only on the dimensionless wavelength of the perturbation, which is assumed to be equal to the width of the domain. The domain has height $b$ and width $\lambda$ and the perturbation is described by
+The linear stability analysis for the onset of convection appears in Turcotte and Schubert \cite{TS14} (section 6.19). The linear stability analysis assumes the Boussinesq approximation and makes predictions for the growth rate (vertical velocity) of instabilities and the critical Rayleigh number $Ra_c$ above which convection will occur. $Ra_c$ depends only on the dimensionless wavelength of the perturbation, which is assumed to be equal to the width of the domain. The domain has height $b$ and width $\lambda$ and the perturbation is described by
 \begin{align*}
 T'(x,y) = T_0'\cos\left(\frac{2\pi x}{\lambda}\right)\sin\left(\frac{\pi y}{b} \right),
 \end{align*}
-where $T_0'$ is the amplitude of the perturbation. Note that because we place the bottom boundary of the domain at $y=0$ and the top at $y=b$, the perturbation vanishes at the top and bottom boundaries. This departs slightly from the setup in \cite{TS14}, where the top and bottom boundaries of the domain are at $y=\pm b/2$. The analytic expression for the critical Rayleigh number, $Ra_{cr}$ is given in Turcotte and Schubert \cite{TS14} equation (6.319):
+where $T_0'$ is the amplitude of the perturbation. Note that because we place the bottom boundary of the domain at $y=0$ and the top at $y=b$, the perturbation vanishes at the top and bottom boundaries. This departs slightly from the setup in \cite{TS14}, where the top and bottom boundaries of the domain are at $y=\pm b/2$. The analytic expression for the critical Rayleigh number, $Ra_c$ is given in Turcotte and Schubert \cite{TS14} equation (6.319):
 \begin{align*}
-Ra_{cr}=\frac{\left(\pi^2+\frac{4\pi^2 b^2}{\lambda^2}\right)^3}{\frac{4\pi^2 b^2}{\lambda^2}}.
+Ra_c=\frac{\left(\pi^2+\frac{4\pi^2 b^2}{\lambda^2}\right)^3}{\frac{4\pi^2 b^2}{\lambda^2}}.
 \end{align*}
 The linear stability analysis also makes a prediction for the dimensionless growth rate of the instability $\alpha'$ (Turcotte and Schubert \cite{TS14}, equation (6.315)). The maximum vertical velocity is given by
 \begin{align*}
@@ -8290,13 +8435,13 @@ and
 \alpha'=\frac{\kappa}{b^2}\left[\frac{\rho_0 g \alpha b^3 \Delta T}{\mu \kappa}\left(\frac{\frac{4\pi^2 b^2}{\lambda^2}}{\left(\frac{4\pi^2 b^2}{\lambda^2}+\pi^2\right)^2}\right) -\left(\pi^2+\frac{4\pi^2b^2}{\lambda^2}\right)\right].
 \end{align*}
 
-We use bisection to determine $Ra_{cr}$ for specific choices of the domain geometry, keeping the depth $b$ constant and varying the domain width $\lambda$. If the vertical velocity increases from the first to the second timetsp, the system is unstable to convection. Otherwise, it is stable and convection will not occur. Each calculation is terminated after the second timestep. Fig.~\ref{fig:onset-1} shows the numerically-determined threshold for the onset of convection, which can be compared directly with the theoretical prediction (green curve) and Fig.~6.39 of \cite{TS14}. The relative error between the numerically-determined value of $Ra_{cr}$ and the analytic solution are shown in the right panel of Fig.~\ref{fig:onset-1}.
+We use bisection to determine $Ra_c$ for specific choices of the domain geometry, keeping the depth $b$ constant and varying the domain width $\lambda$. If the vertical velocity increases from the first to the second timetsp, the system is unstable to convection. Otherwise, it is stable and convection will not occur. Each calculation is terminated after the second timestep. Fig.~\ref{fig:onset-1} shows the numerically-determined threshold for the onset of convection, which can be compared directly with the theoretical prediction (green curve) and Fig.~6.39 of \cite{TS14}. The relative error between the numerically-determined value of $Ra_c$ and the analytic solution are shown in the right panel of Fig.~\ref{fig:onset-1}.
 
 \begin{figure}
  \includegraphics[width=0.49\textwidth]{cookbooks/benchmarks/onset-of-convection/racr.png}
  \hfill
  \includegraphics[width=0.49\textwidth]{cookbooks/benchmarks/onset-of-convection/racr_error.png}
- \caption{Left: Comparison of numerically-determined and theoretical values for $Ra_{cr}$. Red circles indicate numerical simulations unstable to convection, black circles indicate simulations that are stable. The green dashed curve indicates the theoretical prediction. Right: Relative error in determination of $Ra_{cr}$. The dashed red line indicates the error tolerance used in bisection procedure.}
+ \caption{Left: Comparison of numerically-determined and theoretical values for $Ra_c$. Red circles indicate numerical simulations unstable to convection, black circles indicate simulations that are stable. The green dashed curve indicates the theoretical prediction. Right: Relative error in determination of $Ra_c$. The dashed red line indicates the error tolerance used in bisection procedure.}
  \label{fig:onset-1}
 \end{figure}
 
@@ -8797,9 +8942,9 @@ pressure). Following \cite{busa13}, the viscosity $\mu$ is given by the smoothly
   \mu = \exp\left\{1 - \beta\left[x (1-x) + y(1-y) + z(1-z)\right]\right\}.
   \label{eq:burstedde-mu}
 \end{equation}
-The maximum of this function is $\mu = e$, for example at $(x,y,z)=(0,0,0)$, and the minimum of this function is $\mu = \exp \Big( 1-\frac{3\beta}{4}\Big)$ at $(x,y,z) = (0.5,0.5,0.5)$. The viscosity ratio $\mu^*$ is then given by 
+The maximum of this function is $\mu = e$, for example at $(x,y,z)=(0,0,0)$, and the minimum of this function is $\mu = \exp \Big( 1-\frac{3\beta}{4}\Big)$ at $(x,y,z) = (0.5,0.5,0.5)$. The viscosity ratio $\mu^\ast$ is then given by 
 \begin{equation}
-  \mu^* = \frac{\exp\Big(1-\frac{3\beta}{4}\Big)}{\exp(1)} = \exp\Big(\frac{-3\beta}{4}\Big).
+  \mu^\ast = \frac{\exp\Big(1-\frac{3\beta}{4}\Big)}{\exp(1)} = \exp\Big(\frac{-3\beta}{4}\Big).
 \end{equation}
 Hence, by varying $\beta$ between 1 and 20, a difference of up to 7 orders of
 magnitude viscosity is obtained. $\beta$ will be one of the parameters that
@@ -9913,6 +10058,55 @@ If we increase the resolution by a factor of 4 (right panel), we see that that e
 
 The results shown here can be reproduced using the bash scripts \texttt{run.sh} in the corresponding benchmark folders. 
 
+\subsubsection{The Tosi et al.~benchmarks}
+\label{sec:benchmark-tosii}
+
+\textit{This section was contributed by Anne Glerum.}
+
+This section discusses the viscoplastic thermal convection benchmarks described by Tosi et al.~\cite{T15}.  The five benchmarks extend those of Blankenbach et al.~\cite{BBC89} with temperature-, pressure- and strain rate-dependent rheology. As the \aspect{} results are published in the original paper, we limit ourselves to a brief description of the setup and results of the first 2 benchmark cases. 
+
+All five benchmarks solve for Boussinesq convection in a box of $1 \times 1$ dimensions with free slip boundary conditions. The initial temperature distribution considers a linear depth profile with a slight perturbation to start convection. Top and bottom boundaries are set to a fixed temperature value. The parameters shared between the benchmark cases can be found in \url{benchmarks/tosi_et_al_2015_gcubed/Tosi_base.prm}. The other input files describe the variations on this base model, which pertain to the rheological description. The specific rheologies used are implemented in \url{benchmarks/tosi_et_al_2015_gcubed/tosi.cc} and describe a linear and a plastic component of the viscosity:
+\begin{align}
+  \eta_\text{linear}(T,z) &= \exp(-\ln(\eta_T) T + \ln(\eta_Z) z)
+  \label{eq:tosi-benchmark-lin-visc} \\
+  \eta_\text{plastic}(\dot\epsilon) &= \eta^\ast + \frac{\sigma_y}{\sqrt(\dot\epsilon:\dot\epsilon)}
+  \label{eq:tosi-benchmark-plast-visc}
+\end{align}
+where $\eta^\ast$ is the constant effective viscosity at high stresses and $\sigma_y$ the yield stress.
+
+\paragraph{Case 1: Temparature-dependent convection.}
+\label{sec:benchmark-tosi-case-1}
+
+The first benchmark considers a viscosity that only depends on temperature (Eq. \eqref{eq:tosi-benchmark-lin-visc}, with $\gamma_Z=0$). When run to steady-state, this produces one convection cell with a high viscosity, stagnant lid insulating the fluid below (see Fig. 1 of \cite{T15}). In \cite{T15}, results of different codes are compared by looking at the average temperature, the Nusselt number at the top and bottom of the domain, the RMS velocity at the top boundary and in the whole domain, and the maximum velocity at the surface. These quantities can be queried by using several of the \aspect{} postprocessors, but the additional postprocessor in \url{benchmarks/tosi_et_al_2015_gcubed/tosi.cc} is needed to compute the average rate of work done against gravity, the average rate of viscous dissipation, and the error between them. Differences between these diagnostic quantities of the 11 codes that participated in the benchmark effort are smaller than 5\% for their preferred mesh resolution.
+
+\paragraph{Case 2: Viscoplastic convection.}
+\label{sec:benchmark-tosi-case-2}
+Case 2 includes a strain rate-dependent component in the viscosity, which is harmonically averaged with the linear component (see also the code snippet below):
+
+\begin{equation}
+  \eta(T,\epsilon,z) = 2 \left(\frac{1}{\eta_\text{linear}}+\frac{1}{\eta_\text{plastic}}\right)^{-1}
+  \label{eq:tosi-benchmark-ave-visc}
+\end{equation}
+
+\lstinputlisting[language=prmfile]{cookbooks/benchmarks/tosi/tosi_benchmark_2.prm}
+
+This rheology leads to mobile-lid convection, with the descending cold lid cooling the cell's interior (Fig. 2 of \cite{T15}).
+
+By changing the input parameters shown in the code snippet, we obtain the other benchmark cases.
+Case 3 includes a depth-dependent component for the viscosity, but no strain rate-dependence, i.e. it uses Eq. \eqref{eq:tosi-benchmark-lin-visc}. Case 4 considers a full temperature-, depth- and strain rate-dependent viscosity, while in case 5 the yield stress is varied to investigate the transitions from mobile-lid to periodic to stagnant-lid convection regimes.
+The input files referenced above implement these specific cases. As mentioned before, the \aspect{} results are presented in \cite{T15} together with the results of several other finite element, finite volume, and spectral codes. Figure~\ref{fig:tosi-benchmark-results} shows one example of the resolved temperature and viscosity fields for case 1. 	
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=0.31\textwidth]{cookbooks/benchmarks/tosi/Case1_6_T.png}
+    \includegraphics[width=0.31\textwidth]{cookbooks/benchmarks/tosi/Case1_6_visc.png}
+    \includegraphics[width=0.31\textwidth]{cookbooks/benchmarks/tosi/Case1_6_vel.png}
+  \end{center}
+  \caption{\it Temperature and viscosity field in steady-state for case 1 of \cite{T15}.}
+  \label{fig:tosi-benchmark-results}
+\end{figure}
+
+
 \section{Extending and contributing to \aspect}
 \label{sec:extending}
 
@@ -10490,8 +10684,9 @@ and you have to create the subfolder for your figures and code snippets in the
 To give you some guidelines on how to write the section in the manual, you can follow this general structure:
 \begin{itemize}
 \item Start with a short description of what feature the cookbook introduces or what
-  the model setup is meant to accomplish. If the setup comes from a publication, make sure
-  to mention that and include the reference.
+  the model setup is meant to accomplish, including the relevant physics. 
+  Specifically, this paragraph should also address the question of what motivates the model. 
+  If the setup comes from a publication, make sure to mention that and include the reference.
 \item If the model uses a new plugin, describe the new feature this plugin introduces
   and how this is implemented in the code. Ideally, this paragraph includes essential code
   snippets from the plugin file that complement and illustrate the description in the text.
@@ -10503,16 +10698,31 @@ To give you some guidelines on how to write the section in the manual, you can f
   \end{verbatim}
   to insert the code in the manual.tex file.
 \item Explain what the important input parameters in this setup are, what values you
-  set them to and why. Ideally, this description includes snippets from
+  set them to and why. This paragraph should give an overview of your model setup, 
+  including the initial conditions, boundary conditions, geometry, etc., and anything that 
+  is special about the setup. Ideally, this description includes snippets from
   the input file. You can place these snippets in the subfolder you created in the
   \href{doc/manual/cookbooks/.}{doc/manual/cookbooks}
-  directory and include them in the manual.tex file using a command like
+  directory and include them in the \texttt{manual.tex} file using a command like
   \begin{verbatim}
-  \lstinputlisting[language=prmfile]{cookbooks/subfolder_name/input_snippet.prm}!
+  \lstinputlisting[language=prmfile]{cookbooks/subfolder_name/input_snippet.prm}
   \end{verbatim}
 \item Show the model results in form of figures and/or plots, accompanied by an explanation
   of what happens in the model. This can also include a link to an animation of the model
-  you made and uploaded somewhere, for example on youtube.
+  you made and uploaded somewhere, for example on YouTube.
+  When creating figures or animations, you should think about the color scale that you use. 
+  Some colormaps -- like the rainbow color palette that is still the default in some 
+  visualization tools -- can obscure features present in the data and introduce 
+  artifacts, because the rainbow color scale is not perceptually uniform. For more background on this topic, 
+  there is a great summary on \url{https://matplotlib.org/users/colormaps.html}. 
+  To state some of their recommendations here, in most cases it is best to choose a perceptually uniform color palette. 
+  For representing information that has ordering, they recommend sequential color palettes 
+  that change in lightness/color incrementally like ``viridis'', ``inferno'', ``plasma'' and ``magma''. 
+  For representing data that deviates around zero, they recommend diverging color palettes
+  where two different colors change in lightness and meet at an unsaturated color in the middle 
+  such as ``BrBG'' and ``RdBu''. 
+  If you use a recent version of Paraview or VisIt, these color palettes are included with the preset
+  color maps under the names given above, and you may want to choose one of these options rather than the default. 
 \item Finally, mention some ways the users could modify or extend the cookbook, such as
   parameters to vary to get new and interesting results, or to better understand
   the numerical methods or the physical processes occurring in the model. These can just be
@@ -10593,10 +10803,11 @@ struct MaterialModelOutputs
 }
 \end{lstlisting}
 The variables refer to the coefficients $\eta,C_p,k,\rho$ in
-equations \eqref{eq:stokes-1}--\eqref{eq:temperature}, each as a function of
-temperature, pressure, position, compositional fields and, in the case of the viscosity, the strain
-rate (all handed in by MaterialModelInputs). Implementations of evaluate() may of course choose to ignore
-dependencies on any of these arguments.
+equations \eqref{eq:stokes-1}--\eqref{eq:temperature}, each as a function of temperature,
+pressure, position, compositional fields and, in the case of the viscosity, the strain rate
+(all handed in by MaterialModelInputs). Implementations of evaluate() may of course choose to
+ignore dependencies on any of these arguments. In writing a new material model, you should
+consider coefficient self-consistency (Section~\ref{sec:coefficient_self_consistency}).
 
 The remaining functions are used in postprocessing as well as
 handling run-time parameters. The exact meaning of these member functions is
@@ -10641,6 +10852,7 @@ Older versions of \aspect{} used to have individual functions like
 above. This old interface is no longer supported, restructure your plugin to
 implement \texttt{evaluate()} instead (even if this function only calls the old
 functions).
+
 
 \subsubsection{Heating models}
 \label{sec:heating-models}
@@ -12274,7 +12486,7 @@ resources:
   \addcontentsline{toc}{section}{\numberline{}References}
   \myRefname
 }
-\bibliographystyle{alpha}
+\bibliographystyle{abbrvurl}
 \bibliography{manual}
 
 

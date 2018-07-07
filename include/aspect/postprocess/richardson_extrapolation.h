@@ -66,43 +66,27 @@ namespace aspect
         parse_parameters (ParameterHandler &prm);
 
         /**
-         * Read in the solution data. Currently, we read in an ascii input file.
-         * Ideally, we read from a binary file.
+         * Write out the solution data at current mesh scale. Again, this is
+         * written out into an ascii file and instead, should be written out in
+         * binary format.
          */
         void
-        read_in_data();
+        write_out_coarse_data();
 
         /**
-         * Write out the solution data. Again, this is written out into an ascii
-         * file and instead, should be written out in binary format.
+         * Write out the solution data at mesh scale for one more level of
+         * refinement. Again, this is written out into an ascii file and
+         * instead, should be written out in binary format.
          */
         void
-        write_out_data();
-
-        /**
-         *  Function that computes the error between interpolated (read in) values
-         *  with the current solution at current nodal points.
-         */
-        void
-        compute_error ();
+        write_out_refined_data();
       private:
         /**
          * Run time parameters.
          */
-        std::string input_file_name;
-        std::string output_file_name;
-        std::string data_output_file_name;
+        std::string coarse_file_name;
+        std::string refined_file_name;
         double end_time;
-
-        /**
-         * Data structure to store read in interpolated solution.
-         */
-        std::vector<Point<dim>> *quadrature_points_input;
-        std::vector<double> *temperature_input;
-        std::vector<double> *pressure_input;
-        std::vector<Tensor<1,dim>> *velocity_input;
-        std::vector<std::vector<double>> *compositional_fields_input;
-        std::vector<std::vector<double>> *vof_fields_input;
     };
   }
 }

@@ -110,6 +110,13 @@ namespace aspect
     {}
 
 
+    template <int dim>
+    void
+    Interface<dim>::
+    create_additional_material_model_inputs(MaterialModel::MaterialModelInputs<dim> & /*inputs*/) const
+    {}
+
+
     // ------------------------------ Manager -----------------------------
 
     template <int dim>
@@ -122,7 +129,7 @@ namespace aspect
     bool
     Manager<dim>::adiabatic_heating_enabled() const
     {
-      return find_heating_model<HeatingModel::AdiabaticHeating<dim> >() != NULL;
+      return has_matching_heating_model<HeatingModel::AdiabaticHeating<dim> >() ;
     }
 
 
@@ -131,7 +138,7 @@ namespace aspect
     bool
     Manager<dim>::shear_heating_enabled() const
     {
-      return find_heating_model<HeatingModel::ShearHeating<dim> >() != NULL;
+      return has_matching_heating_model<HeatingModel::ShearHeating<dim> >() ;
     }
 
 
@@ -182,7 +189,7 @@ namespace aspect
       // their own parameters
       for (unsigned int name=0; name<model_names.size(); ++name)
         {
-          heating_model_objects.push_back (std_cxx11::shared_ptr<Interface<dim> >
+          heating_model_objects.push_back (std::shared_ptr<Interface<dim> >
                                            (std_cxx11::get<dim>(registered_plugins)
                                             .create_plugin (model_names[name],
                                                             "Heating model::Model names")));
@@ -200,7 +207,7 @@ namespace aspect
     void
     Manager<dim>::update ()
     {
-      for (typename std::list<std_cxx11::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
+      for (typename std::list<std::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
            heating_model = heating_model_objects.begin();
            heating_model != heating_model_objects.end(); ++heating_model)
         {
@@ -229,7 +236,7 @@ namespace aspect
       const MaterialModel::ReactionRateOutputs<dim> *reaction_rate_outputs
         = material_model_outputs.template get_additional_output<MaterialModel::ReactionRateOutputs<dim> >();
 
-      for (typename std::list<std_cxx11::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
+      for (typename std::list<std::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
            heating_model = heating_model_objects.begin();
            heating_model != heating_model_objects.end(); ++heating_model)
         {
@@ -260,8 +267,16 @@ namespace aspect
     template <int dim>
     void
     Manager<dim>::
-    create_additional_material_model_outputs(MaterialModel::MaterialModelOutputs<dim> &material_model_outputs) const
+    create_additional_material_model_inputs_and_outputs(MaterialModel::MaterialModelInputs<dim>  &material_model_inputs,
+                                                        MaterialModel::MaterialModelOutputs<dim> &material_model_outputs) const
     {
+      for (typename std::list<std::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
+           heating_model = heating_model_objects.begin();
+           heating_model != heating_model_objects.end(); ++heating_model)
+        {
+          (*heating_model)->create_additional_material_model_inputs(material_model_inputs);
+        }
+
       for (typename std::list<std_cxx11::shared_ptr<HeatingModel::Interface<dim> > >::const_iterator
            heating_model = heating_model_objects.begin();
            heating_model != heating_model_objects.end(); ++heating_model)
@@ -281,7 +296,7 @@ namespace aspect
 
 
     template <int dim>
-    const std::list<std_cxx11::shared_ptr<Interface<dim> > > &
+    const std::list<std::shared_ptr<Interface<dim> > > &
     Manager<dim>::get_active_heating_models () const
     {
       return heating_model_objects;

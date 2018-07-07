@@ -39,6 +39,12 @@ DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
 
 DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
 
+#if !DEAL_II_VERSION_GTE(9,1,0)
+#  include <deal.II/lac/constraint_matrix.h>
+#else
+#  include <deal.II/lac/affine_constraints.h>
+#endif
+
 #include <aspect/global.h>
 #include <aspect/simulator_access.h>
 #include <aspect/lateral_averaging.h>
@@ -49,6 +55,7 @@ DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
 #include <aspect/geometry_model/interface.h>
 #include <aspect/gravity_model/interface.h>
 #include <aspect/boundary_temperature/interface.h>
+#include <aspect/boundary_heat_flux/interface.h>
 #include <aspect/boundary_composition/interface.h>
 #include <aspect/initial_temperature/interface.h>
 #include <aspect/initial_composition/interface.h>
@@ -68,6 +75,18 @@ DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
 namespace aspect
 {
   using namespace dealii;
+
+#if DEAL_II_VERSION_GTE(9,1,0)
+  /**
+   * The ConstraintMatrix class was deprecated in deal.II 9.1 in favor
+   * of AffineConstraints. To make the name available for ASPECT
+   * nonetheless, use a `using` declaration. This injects the name
+   * into the `aspect` namespace, where it is visible before the
+   * deprecated name in the `dealii` namespace, thereby suppressing
+   * the deprecation message.
+   */
+  using ConstraintMatrix = class dealii::AffineConstraints<double>;
+#endif
 
   template <int dim>
   class MeltHandler;
@@ -454,6 +473,19 @@ namespace aspect
        * <code>source/simulator/solver_schemes.cc</code>.
        */
       void solve_no_advection_iterated_stokes ();
+
+      /**
+       * This function implements one scheme for the various
+       * steps necessary to assemble and solve the nonlinear problem.
+       *
+       * The `first timestep only, single Stokes' scheme only solves the Stokes system,
+       * for the initial timestep. This results in a `steady state' velocity field for
+       * particle calculations.
+       *
+       * This function is implemented in
+       * <code>source/simulator/solver_schemes.cc</code>.
+       */
+      void solve_first_timestep_only_single_stokes ();
 
       /**
        * This function implements one scheme for the various
@@ -1551,7 +1583,8 @@ namespace aspect
       InitialTemperature::Manager<dim>                                        initial_temperature_manager;
       const std_cxx11::unique_ptr<AdiabaticConditions::Interface<dim> >       adiabatic_conditions;
       BoundaryVelocity::Manager<dim>                                          boundary_velocity_manager;
-      std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryTraction::Interface<dim> > > boundary_traction;
+      std::map<types::boundary_id,std::shared_ptr<BoundaryTraction::Interface<dim> > > boundary_traction;
+      const std_cxx11::unique_ptr<BoundaryHeatFlux::Interface<dim> >          boundary_heat_flux;
 
       /**
        * @}
@@ -1699,8 +1732,8 @@ namespace aspect
 
 
 
-      std_cxx11::shared_ptr<LinearAlgebra::PreconditionAMG>     Amg_preconditioner;
-      std_cxx11::shared_ptr<LinearAlgebra::PreconditionBase>    Mp_preconditioner;
+      std::shared_ptr<LinearAlgebra::PreconditionAMG>     Amg_preconditioner;
+      std::shared_ptr<LinearAlgebra::PreconditionBase>    Mp_preconditioner;
 
       bool                                                      rebuild_sparsity_and_matrices;
       bool                                                      rebuild_stokes_matrix;
@@ -1719,7 +1752,7 @@ namespace aspect
        * if we do not need the machinery for doing free surface stuff, we do
        * not even allocate it.
        */
-      std_cxx11::shared_ptr<FreeSurfaceHandler<dim> > free_surface;
+      std::shared_ptr<FreeSurfaceHandler<dim> > free_surface;
 
       friend class boost::serialization::access;
       friend class SimulatorAccess<dim>;

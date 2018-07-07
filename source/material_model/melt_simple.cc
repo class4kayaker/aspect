@@ -719,7 +719,7 @@ namespace aspect
           if (thermal_viscosity_exponent!=0.0 && reference_T == 0.0)
             AssertThrow(false, ExcMessage("Error: Material model Melt simple with Thermal viscosity exponent can not have reference_T=0."));
 
-          if (this->get_parameters().convert_to_years == true)
+          if (this->convert_output_to_years() == true)
             {
               melting_time_scale *= year_in_seconds;
               freezing_rate /= year_in_seconds;
@@ -770,7 +770,7 @@ namespace aspect
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
-            std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
+            std::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
             (new MaterialModel::ReactionRateOutputs<dim> (n_points, this->n_compositional_fields())));
         }
     }

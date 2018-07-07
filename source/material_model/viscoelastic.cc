@@ -37,7 +37,7 @@ namespace aspect
       std::vector<std::string> make_elastic_additional_outputs_names()
       {
         std::vector<std::string> names;
-        names.push_back("elastic_shear_modulus");
+        names.emplace_back("elastic_shear_modulus");
         return names;
       }
     }
@@ -66,41 +66,6 @@ namespace aspect
       return elastic_shear_moduli;
     }
 
-    template <int dim>
-    const std::vector<double>
-    Viscoelastic<dim>::
-    compute_volume_fractions(const std::vector<double> &compositional_fields) const
-    {
-      std::vector<double> volume_fractions(compositional_fields.size()+1);
-
-      //clip the compositional fields so they are between zero and one
-      std::vector<double> x_comp = compositional_fields;
-      for (unsigned int i=0; i < x_comp.size(); ++i)
-        x_comp[i] = std::min(std::max(x_comp[i], 0.0), 1.0);
-
-      // assign compositional fields associated with viscoelastic stress a value of 0
-      for (unsigned int i=0; i < SymmetricTensor<2,dim>::n_independent_components; ++i)
-        x_comp[i] = 0.0;
-
-      //sum the compositional fields for normalization purposes
-      double sum_composition = 0.0;
-      for (unsigned int i=0; i < x_comp.size(); ++i)
-        sum_composition += x_comp[i];
-
-      if (sum_composition >= 1.0)
-        {
-          volume_fractions[0] = 0.0;  //background mantle
-          for (unsigned int i=1; i <= x_comp.size(); ++i)
-            volume_fractions[i] = x_comp[i-1]/sum_composition;
-        }
-      else
-        {
-          volume_fractions[0] = 1.0 - sum_composition; //background mantle
-          for (unsigned int i=1; i <= x_comp.size(); ++i)
-            volume_fractions[i] = x_comp[i-1];
-        }
-      return volume_fractions;
-    }
 
     template <int dim>
     double
@@ -161,7 +126,13 @@ namespace aspect
                               const std::vector<double> &parameter_values,
                               const enum AveragingScheme &average_type) const
     {
-      const std::vector<double> volume_fractions = compute_volume_fractions(composition);
+      // Store which components to exclude during volume fraction computation.
+      ComponentMask composition_mask(this->n_compositional_fields(),true);
+      // assign compositional fields associated with viscoelastic stress a value of 0
+      // assume these fields are listed first
+      for (unsigned int i=0; i < SymmetricTensor<2,dim>::n_independent_components; ++i)
+        composition_mask.set(i,false);
+      const std::vector<double> volume_fractions = compute_volume_fractions(composition, composition_mask);
       const double averaged_vector = average_value(volume_fractions, parameter_values, average_type);
       return averaged_vector;
     }
@@ -189,13 +160,24 @@ namespace aspect
       MaterialModel::ElasticOutputs<dim>
       *force_out = out.template get_additional_output<MaterialModel::ElasticOutputs<dim> >();
 
+      // Store which components to exclude during volume fraction computation.
+      ComponentMask composition_mask(this->n_compositional_fields(),true);
+      // assign compositional fields associated with viscoelastic stress a value of 0
+      // assume these fields are listed first
+      for (unsigned int i=0; i < SymmetricTensor<2,dim>::n_independent_components; ++i)
+        composition_mask.set(i,false);
 
       // The elastic time step (dte) is equal to the numerical time step if the time step number
       // is greater than 0 and the parameter 'use_fixed_elastic_time_step' is set to false.
       // On the first (0) time step the elastic time step is always equal to the value
       // specified in 'fixed_elastic_time_step', which is also used in all subsequent time
       // steps if 'use_fixed_elastic_time_step' is set to true.
-      const double dte = ( ( this->get_timestep_number() > 0 && use_fixed_elastic_time_step == false )
+      //
+      // We also use this parameter when we are still *before* the first time step,
+      // i.e., if the time step number is numbers::invalid_unsigned_int.
+      const double dte = ( ( this->get_timestep_number() > 0 &&
+                             this->get_timestep_number() != numbers::invalid_unsigned_int &&
+                             use_fixed_elastic_time_step == false )
                            ?
                            this->get_timestep()
                            :
@@ -205,7 +187,7 @@ namespace aspect
         {
           const double temperature = in.temperature[i];
           const std::vector<double> composition = in.composition[i];
-          const std::vector<double> volume_fractions = compute_volume_fractions(composition);
+          const std::vector<double> volume_fractions = compute_volume_fractions(composition, composition_mask);
 
           out.specific_heat[i] = average_value(volume_fractions, specific_heats, arithmetic);
 
@@ -586,7 +568,7 @@ namespace aspect
         {
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
-            std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
+            std::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
             (new MaterialModel::ElasticAdditionalOutputs<dim> (n_points)));
         }
     }
@@ -610,7 +592,7 @@ namespace aspect
                                    "rock type or component of the viscoelastic stress tensor. The stress "
                                    "tensor in 2D and 3D, respectively, contains 3 or 6 components. The "
                                    "compositional fields representing these components must be named "
-                                   "and listed in a very specific format, which is designed to minimize"
+                                   "and listed in a very specific format, which is designed to minimize "
                                    "mislabeling stress tensor components as distinct 'compositional "
                                    "rock types' (or vice versa). For 2D models, the first three "
                                    "compositional fields must be labeled 'stress\\_xx', 'stress\\_yy' and 'stress\\_xy'. "
@@ -634,7 +616,7 @@ namespace aspect
                                    "However, an important distinction between this material model and "
                                    "the studies above is the use of compositional fields, rather than "
                                    "tracers, to track individual components of the viscoelastic stress "
-                                   "tensor. The material model will be udpated when an option to track "
+                                   "tensor. The material model will be updated when an option to track "
                                    "and calculate viscoelastic stresses with tracers is implemented. "
                                    "\n\n "
                                    "Moresi et al. (2003) begins (eqn. 23) by writing the deviatoric "
@@ -679,13 +661,13 @@ namespace aspect
                                    "The magnitude of the shear modulus thus controls how much the effective "
                                    "viscosity is reduced relative to the initial viscosity. "
                                    "\n\n "
-                                   "Elastic effects are introduced into the governing stokes equations through "
+                                   "Elastic effects are introduced into the governing Stokes equations through "
                                    "an elastic force term (eqn. 30) using stresses from the previous time step: "
                                    "$F^{e,t} = -\\frac{\\eta_{eff}}{\\mu \\Delta t^{e}} \\tau^{t}$. "
                                    "This force term is added onto the right-hand side force vector in the "
                                    "system of equations. "
                                    "\n\n "
-                                   "The value of each compositional field representing distinck rock types at a "
+                                   "The value of each compositional field representing distinct rock types at a "
                                    "point is interpreted to be a volume fraction of that rock type. If the sum of "
                                    "the compositional field volume fractions is less than one, then the remainder "
                                    "of the volume is assumed to be 'background material'."

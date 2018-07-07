@@ -1,3 +1,22 @@
+/*
+  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
+
+  This file is part of ASPECT.
+
+  ASPECT is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2, or (at your option)
+  any later version.
+
+  ASPECT is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with ASPECT; see the file LICENSE.  If not see
+  <http://www.gnu.org/licenses/>.
+*/
 #include <aspect/initial_composition/interface.h>
 #include <aspect/geometry_model/box.h>
 #include <aspect/postprocess/interface.h>
@@ -778,13 +797,13 @@ namespace aspect
       const Point<dim> lower_boundary_point = this->get_geometry_model().representative_point(this->get_geometry_model().maximal_depth());
 
       // get the map of boundary indicators and velocity bounfary conditions
-      const std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >
+      const std::map<types::boundary_id,std::shared_ptr<BoundaryVelocity::Interface<dim> > >
       bvs = this->get_prescribed_boundary_velocity();
       types::boundary_id upper_boundary = this->get_geometry_model().translate_symbolic_boundary_name_to_id("top");
       types::boundary_id lower_boundary = this->get_geometry_model().translate_symbolic_boundary_name_to_id("bottom");
 
       // get the velocities at the upper and lower boundary
-      typename std::map<types::boundary_id,std_cxx11::shared_ptr<BoundaryVelocity::Interface<dim> > >::const_iterator
+      typename std::map<types::boundary_id,std::shared_ptr<BoundaryVelocity::Interface<dim> > >::const_iterator
       it = bvs.find(upper_boundary);
       const double max_velocity = it->second->boundary_velocity(it->first,upper_boundary_point).norm();
       it = bvs.find(lower_boundary);

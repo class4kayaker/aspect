@@ -23,7 +23,7 @@
 #define _aspect_initial_temperature_S40RTS_perturbation_h
 
 #include <aspect/initial_temperature/interface.h>
-
+#include <aspect/utilities.h>
 
 namespace aspect
 {
@@ -54,11 +54,22 @@ namespace aspect
     {
       public:
         /**
+         * Constructor. Initialize variables.
+         */
+        S40RTSPerturbation ();
+
+        /**
          * Initialization function. Loads the material data and sets up
          * pointers.
          */
         void
         initialize ();
+
+        /**
+         * Return the Vs as a function of position.
+         */
+        virtual
+        double get_Vs (const Point<dim> &position) const;
 
         /**
          * Return the initial temperature as a function of position.
@@ -82,6 +93,20 @@ namespace aspect
 
 
       private:
+
+        /**
+         * An enum to describe which method should be chosen to scale vs to density.
+         */
+        enum VsToDensityMethod
+        {
+          file,
+          constant
+        };
+
+        /**
+         * Currently chosen source for vs to density scaling.
+         */
+        VsToDensityMethod vs_to_density_method;
 
         /**
          * File directory and names
@@ -109,7 +134,7 @@ namespace aspect
          * The last parameter is a depth down to which heterogeneities are
          * zeroed out.
          */
-        double vs_to_density;
+        double vs_to_density_constant;
         double thermal_alpha;
         double no_perturbation_depth;
 
@@ -143,13 +168,23 @@ namespace aspect
          * Pointer to an object that reads and processes the spherical
          * harmonics coefficients
          */
-        std_cxx11::shared_ptr<internal::S40RTS::SphericalHarmonicsLookup> spherical_harmonics_lookup;
+        std::shared_ptr<internal::S40RTS::SphericalHarmonicsLookup> spherical_harmonics_lookup;
 
         /**
          * Pointer to an object that reads and processes the depths for the
          * spline knot points.
          */
-        std_cxx11::shared_ptr<internal::S40RTS::SplineDepthsLookup> spline_depths_lookup;
+        std::shared_ptr<internal::S40RTS::SplineDepthsLookup> spline_depths_lookup;
+
+        /**
+         * Object containing the data profile.
+         */
+        aspect::Utilities::AsciiDataProfile<dim> profile;
+
+        /**
+         * The column index of the vs to density scaling in the data file
+         */
+        unsigned int vs_to_density_index;
 
     };
 
