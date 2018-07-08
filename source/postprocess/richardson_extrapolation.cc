@@ -192,7 +192,7 @@ namespace aspect
                   unsigned int count = 0;
                   itr_compositional_fields = interpolated_compositional_fields.begin();
                   for (; itr_compositional_fields != interpolated_compositional_fields.end(); itr_compositional_fields++, count++)
-                    interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index] << "\t";
+                    interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index];
                 }
 
               if (this->get_parameters().volume_of_fluid_tracking_enabled)
@@ -350,7 +350,7 @@ namespace aspect
                   unsigned int count = 0;
                   itr_compositional_fields = interpolated_compositional_fields.begin();
                   for (; itr_compositional_fields != interpolated_compositional_fields.end(); itr_compositional_fields++, count++)
-                    interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index] << "\t";
+                    interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index];
                 }
 
               if (this->get_parameters().volume_of_fluid_tracking_enabled)
@@ -531,7 +531,7 @@ namespace aspect
                   unsigned int count = 0;
                   itr_compositional_fields = interpolated_compositional_fields.begin();
                   for (; itr_compositional_fields != interpolated_compositional_fields.end(); itr_compositional_fields++, count++)
-                    interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index] << "\t";
+                    interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index];
                 }
 
               if (this->get_parameters().volume_of_fluid_tracking_enabled)
