@@ -231,6 +231,12 @@ namespace aspect
       const FEValuesExtractors::Scalar &extractor_temperature = this->introspection().extractors.temperature;
       const FEValuesExtractors::Vector &extractor_velocity = this->introspection().extractors.velocities;
 
+      unsigned int n_vof_fields = 0;
+      if (this->get_parameters().volume_of_fluid_tracking_enabled)
+        {
+          n_vof_fields = this->get_volume_of_fluid_handler().get_n_fields();
+        }
+
       // Write header
       interpolated_data_stream << "X_X" << "\t" << "X_Y"
                                << "\t" << "W"
@@ -240,6 +246,15 @@ namespace aspect
         {
           interpolated_data_stream << "\t" << "C_" << name;
         }
+
+      if (this->get_parameters().volume_of_fluid_tracking_enabled)
+        {
+          for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx)
+            {
+                interpolated_data_stream << "\t" << "VOF_" << this->get_volume_of_fluid_handler().name_for_field_index(idx);
+            }
+        }
+
       interpolated_data_stream << std::endl;
 
       // Declaring an iterator over all active cells on local mpi process
@@ -274,6 +289,8 @@ namespace aspect
           std::vector<Tensor<1,dim>> interpolated_velocity(quadrature_points.size());
           std::vector<std::vector<double>> interpolated_compositional_fields(this->n_compositional_fields(),
                                                                              std::vector<double>(quadrature_points.size()));
+          std::vector<std::vector<double>> interpolated_vof_fields(n_vof_fields,
+                                                                   std::vector<double>(quadrature_points.size()));
 
           fe_values[extractor_pressure].get_function_values(this->get_solution(), interpolated_pressure);
           fe_values[extractor_temperature].get_function_values(this->get_solution(), interpolated_temperature);
@@ -288,6 +305,29 @@ namespace aspect
                 this->get_solution(),
                 *itr_compositional_fields);
               index++;
+            }
+
+          if (this->get_parameters().volume_of_fluid_tracking_enabled)
+            {
+              for (unsigned int idx = 0; idx < this->get_volume_of_fluid_handler().get_n_fields(); ++idx)
+                {
+                  const VolumeOfFluidField<dim> &field = this->get_volume_of_fluid_handler().field_struct_for_field_index(idx);
+                  const unsigned int volume_of_fluid_component = field.volume_fraction.first_component_index;
+                  const FEValuesExtractors::Scalar volume_of_fluid = FEValuesExtractors::Scalar(volume_of_fluid_component);
+
+                  std::vector<double> fraction_values(quadrature_points.size());
+
+                  fe_values[volume_of_fluid].get_function_values(this->get_solution(), fraction_values);
+
+                  // We are either at the highest refinement, or not on an interface so use
+                  // the volume fraction directly
+                  const double fraction = fraction_values[0];
+
+                  for (unsigned int i=0; i<quadrature_points.size(); ++i)
+                    {
+                      interpolated_vof_fields[idx][i] = fraction;
+                    }
+                }
             }
 
           typename std::vector<double>::const_iterator itr_temperature = interpolated_temperature.begin();
@@ -312,6 +352,15 @@ namespace aspect
                   for (; itr_compositional_fields != interpolated_compositional_fields.end(); itr_compositional_fields++, count++)
                     interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index] << "\t";
                 }
+
+              if (this->get_parameters().volume_of_fluid_tracking_enabled)
+                {
+                  for (unsigned int i=0; i<this->get_volume_of_fluid_handler().get_n_fields(); ++i)
+                    {
+                      interpolated_data_stream << "\t" << interpolated_vof_fields[i][quadrature_point_index];
+                    }
+                }
+
               interpolated_data_stream << std::endl;
             }
         }
