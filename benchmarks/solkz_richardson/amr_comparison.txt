@@ -1,0 +1,6 @@
+4_a:coarse:output/interpolated_values_4_a_0.dat
+4_a:fine:output/interpolated_values_4_c_0.dat
+5_a:coarse:output/interpolated_values_5_a_0.dat
+5_a:fine:output/interpolated_values_5_c_0.dat
+6_a:coarse:output/interpolated_values_6_a_0.dat
+6_a:fine:output/interpolated_values_6_c_0.dat

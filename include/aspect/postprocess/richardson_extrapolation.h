@@ -74,19 +74,32 @@ namespace aspect
         write_out_coarse_data();
 
         /**
+         * Write out the solution data at current mesh scale for quadrature
+         * points corresponding to a uniform mesh. Again, this is written out
+         * into an ascii file and instead, should be written out in binary
+         * format.
+         */
+        void
+        write_out_uniform_data();
+
+        /**
          * Write out the solution data at mesh scale for one more level of
          * refinement. Again, this is written out into an ascii file and
          * instead, should be written out in binary format.
          */
         void
         write_out_refined_data();
+
       private:
         /**
          * Run time parameters.
          */
+        std::string uniform_file_name;
         std::string coarse_file_name;
         std::string refined_file_name;
         double end_time;
+        bool amr_comparison;
+        bool refinement_comparison;
     };
   }
 }

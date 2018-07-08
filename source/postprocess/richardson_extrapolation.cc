@@ -44,10 +44,17 @@ namespace aspect
     {
       AssertThrow(dim==2,
                   ExcMessage("Richardson Extrapolation is currently only functional for dim=2."));
-      AssertThrow((this->get_parameters().initial_adaptive_refinement == 0 ||
-                   this->get_parameters().adaptive_refinement_interval == 0),
-                  ExcMessage("Richardson Extrapolation is not compatible with AMR."));
+      if (refinement_comparison || !amr_comparison)
+        {
+          AssertThrow((this->get_parameters().initial_adaptive_refinement == 0 ||
+                       this->get_parameters().adaptive_refinement_interval == 0),
+                      ExcMessage("To compare an AMR solution to the uniform coarser solution "));
+        }
 
+      uniform_file_name = this->get_output_directory()
+                          + uniform_file_name + "_"
+                          + Utilities::int_to_string(Utilities::MPI::this_mpi_process(this->get_mpi_communicator()))
+                          + ".dat";
       coarse_file_name = this->get_output_directory()
                          + coarse_file_name + "_"
                          + Utilities::int_to_string(Utilities::MPI::this_mpi_process(this->get_mpi_communicator()))
@@ -196,6 +203,115 @@ namespace aspect
                     }
                 }
 
+              interpolated_data_stream << std::endl;
+            }
+        }
+
+      interpolated_data_stream.close();
+    }
+
+    template <int dim>
+    void
+    RichardsonExtrapolation<dim>::write_out_uniform_data()
+    {
+      std::ofstream interpolated_data_stream;
+      interpolated_data_stream.open(uniform_file_name, std::ios_base::out);
+      interpolated_data_stream << std::setprecision(14);
+
+      unsigned int uniform_level = this->get_parameters().initial_global_refinement +
+                                   this->get_parameters().initial_adaptive_refinement;
+
+      /**
+      * Compute the Legendre gauss points at level 2 indirection.
+      **/
+      //QGaussLobatto<1> base_quadrature(this->get_stokes_velocity_degree() + 1);
+      QGauss<1> base_quadrature(this->get_stokes_velocity_degree() + 1);
+
+      const FEValuesExtractors::Scalar &extractor_pressure = this->introspection().extractors.pressure;
+      const FEValuesExtractors::Scalar &extractor_temperature = this->introspection().extractors.temperature;
+      const FEValuesExtractors::Vector &extractor_velocity = this->introspection().extractors.velocities;
+
+      // Write header
+      interpolated_data_stream << "X_X" << "\t" << "X_Y"
+                               << "\t" << "W"
+                               << "\t" << "V_X" << "\t" << "V_Y"
+                               << "\t" << "P" << "\t" << "T";
+      for (auto name: this->introspection().get_composition_names())
+        {
+          interpolated_data_stream << "\t" << "C_" << name;
+        }
+      interpolated_data_stream << std::endl;
+
+      // Declaring an iterator over all active cells on local mpi process
+      typename DoFHandler<dim>::active_cell_iterator cell = this->get_dof_handler().begin_active();
+      for (; cell != this->get_dof_handler().end();
+           ++cell)
+        {
+
+          if (!(cell->is_locally_owned()))
+            continue;
+
+          unsigned int level_diff =  uniform_level - cell->level();
+          unsigned int n_divisions = 1;
+          for (unsigned int i = 0; i<level_diff; ++i)
+            n_divisions *= 2;
+
+          QIterated<dim> quadrature_rule (base_quadrature, n_divisions);
+
+          FEValues<dim> fe_values(this->get_mapping(),
+                                  this->get_fe(),
+                                  quadrature_rule,
+                                  update_values |
+                                  update_quadrature_points |
+                                  update_JxW_values);
+
+          fe_values.reinit(cell);
+          // Each vector is of the same length.
+          const std::vector<Point<dim>>  quadrature_points = fe_values.get_quadrature_points();
+
+          std::vector<double> interpolated_temperature(quadrature_points.size());
+          std::vector<double> interpolated_pressure(quadrature_points.size());
+          std::vector<Tensor<1,dim>> interpolated_velocity(quadrature_points.size());
+          std::vector<std::vector<double>> interpolated_compositional_fields(this->n_compositional_fields(),
+                                                                             std::vector<double>(quadrature_points.size()));
+
+          fe_values[extractor_pressure].get_function_values(this->get_solution(), interpolated_pressure);
+          fe_values[extractor_temperature].get_function_values(this->get_solution(), interpolated_temperature);
+          fe_values[extractor_velocity].get_function_values(this->get_solution(), interpolated_velocity);
+
+          typename std::vector<std::vector<double>>::iterator itr_compositional_fields = interpolated_compositional_fields.begin();
+
+          unsigned int index = 0;
+          for (; itr_compositional_fields != interpolated_compositional_fields.end(); itr_compositional_fields++)
+            {
+              fe_values[this->introspection().extractors.compositional_fields[index]].get_function_values(
+                this->get_solution(),
+                *itr_compositional_fields);
+              index++;
+            }
+
+          typename std::vector<double>::const_iterator itr_temperature = interpolated_temperature.begin();
+          typename std::vector<double>::const_iterator itr_pressure = interpolated_pressure.begin();
+          typename std::vector<Tensor<1,dim>>::const_iterator itr_velocity = interpolated_velocity.begin();
+
+          typename std::vector<Point<dim>>::const_iterator itr_quadrature_points = quadrature_points.begin();
+
+          unsigned int quadrature_point_index = 0;
+          for (; itr_quadrature_points != quadrature_points.end();
+               itr_quadrature_points++, itr_velocity++, itr_pressure++, itr_temperature++, quadrature_point_index++)
+            {
+              interpolated_data_stream << std::scientific << std::setprecision(15)
+                                       << (*itr_quadrature_points)[0] << "\t" << (*itr_quadrature_points)[1]
+                                       << "\t" << fe_values.JxW(quadrature_point_index)
+                                       << "\t" << (*itr_velocity)[0] << "\t" << (*itr_velocity)[1]
+                                       << "\t" << *itr_pressure << "\t" << *itr_temperature;
+              if (this->n_compositional_fields() != 0)
+                {
+                  unsigned int count = 0;
+                  itr_compositional_fields = interpolated_compositional_fields.begin();
+                  for (; itr_compositional_fields != interpolated_compositional_fields.end(); itr_compositional_fields++, count++)
+                    interpolated_data_stream << "\t" << (*itr_compositional_fields)[quadrature_point_index] << "\t";
+                }
               interpolated_data_stream << std::endl;
             }
         }
@@ -390,12 +506,43 @@ namespace aspect
     {
       if ( this->get_time() == end_time)
         {
-          // Write out the current solution, both current and interpolated at a higher resolved mesh.
-          write_out_coarse_data();
-          write_out_refined_data();
+          if (amr_comparison)
+            {
+              if ((this->get_parameters().initial_adaptive_refinement == 0 ||
+                   this->get_parameters().adaptive_refinement_interval == 0))
+                {
+                  write_out_coarse_data();
 
-          return std::pair<std::string, std::string> ("State data written to : ",
-                                                      coarse_file_name + ", " + refined_file_name);
+                  return std::pair<std::string, std::string> ("State data written to : ",
+                                                              coarse_file_name);
+                }
+              else
+                {
+                  write_out_uniform_data();
+
+                  return std::pair<std::string, std::string> ("State data written to : ",
+                                                              uniform_file_name);
+                }
+            }
+          else
+            {
+              if (refinement_comparison)
+                {
+                  // Write out the current solution, both current and interpolated at a higher resolved mesh.
+                  write_out_coarse_data();
+                  write_out_refined_data();
+
+                  return std::pair<std::string, std::string> ("State data written to : ",
+                                                              coarse_file_name + ", " + refined_file_name);
+                }
+              else
+                {
+                  write_out_coarse_data();
+
+                  return std::pair<std::string, std::string> ("State data written to : ",
+                                                              coarse_file_name);
+                }
+            }
         }
       else
         {
@@ -413,8 +560,16 @@ namespace aspect
         {
           prm.declare_entry("File name prefix for interpolated data", "interpolated_data",
                             Patterns::Anything (),
-                            "The file name containing the interpolated solution at the nodal values "
-                            "at the current grid resolution+1.");
+                            "The file prefix for the files containing the"
+                            " interpolated solution at the nodal values.");
+          prm.declare_entry("AMR comparison", "false",
+                            Patterns::Bool (),
+                            "Write nodal values to compare to a uniform mesh of"
+                            " the same maximum refinement level.");
+          prm.declare_entry("Refinement comparison", "false",
+                            Patterns::Bool (),
+                            "Write nodal values to compare to a uniform mesh of"
+                            " one additional refinement level.");
         }
         prm.leave_subsection();
       }
@@ -439,9 +594,14 @@ namespace aspect
       {
         prm.enter_subsection("Richardson extrapolation");
         {
+          amr_comparison = prm.get_bool("AMR comparison");
+          refinement_comparison = prm.get_bool("Refinement comparison");
           std::string file_prefix = prm.get("File name prefix for interpolated data");
-          coarse_file_name = file_prefix + "_" + Utilities::int_to_string(this->get_parameters().initial_global_refinement) + "_c";
-          refined_file_name = file_prefix + "_" + Utilities::int_to_string(this->get_parameters().initial_global_refinement) + "_r";
+          unsigned int max_refinement = this->get_parameters().initial_global_refinement +
+                                        this->get_parameters().initial_adaptive_refinement;
+          uniform_file_name = file_prefix + "_" + Utilities::int_to_string(max_refinement) + "_a";
+          coarse_file_name = file_prefix + "_" + Utilities::int_to_string(max_refinement) + "_c";
+          refined_file_name = file_prefix + "_" + Utilities::int_to_string(max_refinement) + "_r";
         }
         prm.leave_subsection();
       }

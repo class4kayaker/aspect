@@ -138,7 +138,7 @@ class AspectStateQuadrature:
 
 def load_def_file(fn):
     f_line_re = re.compile(
-        "(?P<level>[0-9]+):(?P<type>coarse|fine):(?P<glob>[A-Za-z0-9_/.]+)"
+        "(?P<level>[A-Za-z0-9_]+):(?P<type>coarse|fine):(?P<glob>[A-Za-z0-9_/.]+)"
     )
     flist = {}
     with open(fn, 'r') as f:
@@ -193,18 +193,33 @@ def compute_convergence(err_names, data):
     for row in data:
         if last_row is None:
             for v in err_names:
-                row[v+"_rate"] = "nan"
+                row[v+"_rate"] = np.nan
         else:
             for v in err_names:
-                row[v+"_rate"] = "{:4.2f}".format(np.log2(last_row[v]/row[v]))
+                row[v+"_rate"] = np.log2(last_row[v]/row[v])
         last_row = row
     return [v+"_rate" for v in err_names]
+
+
+def format_data(copy_cols, err_cols, rate_cols, data):
+    fmt_data = []
+    for row in data:
+        fmt_row = {}
+        for k in copy_cols:
+            fmt_row[k] = row[k]
+        for k in err_cols:
+            fmt_row[k] = "{:16.12e}".format(row[k])
+        for k in rate_cols:
+            fmt_row[k] = "{:4.2f}".format(row[k])
+        fmt_data.append(fmt_row)
+    return fmt_data
 
 
 def print_data(header, data):
     writer = csv.DictWriter(sys.stdout, fieldnames=header)
     writer.writeheader()
     writer.writerows(data)
+
 
 if __name__=="__main__":
     list_file = sys.argv[1]
@@ -213,6 +228,13 @@ if __name__=="__main__":
     region = np.array([[0.,0.],[1.,1.]]);
 
     cols, data = diff_data(flist)
-    cols.extend(compute_convergence(cols[1:], data))
-    cols[1:].sort()
-    print_data(cols, data)
+    cp_cols = cols[:1]
+    e_cols = cols[1:]
+
+    rate_cols = compute_convergence(e_cols, data)
+
+    fmt_data = format_data(cp_cols, e_cols, rate_cols, data)
+
+    cols.extend(rate_cols)
+    cols[1:] = sorted(cols[1:])
+    print_data(cols, fmt_data)
