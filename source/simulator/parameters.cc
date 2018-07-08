@@ -1497,20 +1497,16 @@ namespace aspect
             AssertThrow(false,ExcNotImplemented());
         }
 
-<<<<<<< HEAD
       // Enable Volume of Fluid field tracking if any compositional_field_methods are volume_of_fluid
       volume_of_fluid_tracking_enabled =
         (std::count(compositional_field_methods.begin(),compositional_field_methods.end(),AdvectionFieldMethod::volume_of_fluid)
          > 0);
 
-||||||| merged common ancestors
-=======
       if (std::find(compositional_field_methods.begin(), compositional_field_methods.end(), AdvectionFieldMethod::fem_melt_field)
           != compositional_field_methods.end())
         AssertThrow (this->include_melt_transport,
                      ExcMessage ("The advection method 'melt field' can only be selected if melt "
                                  "transport is used in the simulation."));
->>>>>>> origin/Richardson_extrapolation_merge
 
       const std::vector<std::string> x_mapped_particle_properties
         = Utilities::split_string_list
