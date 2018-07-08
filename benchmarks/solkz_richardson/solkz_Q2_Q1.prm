@@ -66,8 +66,9 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement              = 0
-  set Initial global refinement                = 6
+  set Initial global refinement                = 3
+  set Initial adaptive refinement              = 3
+  set Strategy = velocity
 end
 
 
@@ -77,5 +78,6 @@ subsection Postprocess
   set List of postprocessors = SolKzPostprocessor, visualization, richardson extrapolation
   subsection Richardson extrapolation
     set File name prefix for interpolated data = interpolated_values
+    set AMR comparison = true
   end
 end
