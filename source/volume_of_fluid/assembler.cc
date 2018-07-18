@@ -656,7 +656,7 @@ namespace aspect
               data.face_contributions_mask[f_rhs_ind] = true;
 
               // fluxes to RHS
-              double flux_volume_of_fluid = cell_volume_of_fluid;
+              double flux_volume_of_fluid = face_flux>0.0?cell_volume_of_fluid:neighbor_volume_of_fluid;
               if (std::abs(face_flux) < 0.5*volume_fraction_threshold*(cell_vol+neighbor_vol))
                 {
                   flux_volume_of_fluid = 0.5*(cell_volume_of_fluid+neighbor_volume_of_fluid);

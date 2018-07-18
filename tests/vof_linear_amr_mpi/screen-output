@@ -9,7 +9,7 @@ Number of degrees of freedom: 1,749 (578+81+289+289+64+192+256)
    Solving volume of fluid system... 0 iterations.
    Solving volume of fluid system... 0 iterations.
 
-Error 16Error 18Error 20Error 24Error 25Number of active cells: 196 (on 5 levels)
+Number of active cells: 196 (on 5 levels)
 Number of degrees of freedom: 5,257 (1,730+229+865+865+196+588+784)
 
 *** Timestep 0:  t=0 seconds
@@ -21,7 +21,7 @@ Number of degrees of freedom: 5,257 (1,730+229+865+865+196+588+784)
      Global volume of fluid volumes (m^3): 0.5
      VoF Calculation(IEstL1/FEstL1):       1.59633523e-16 / 0.00000000e+00
 
-Error 40Error 42Error 44Error 49Error 50Error 56Error 64Error 65Error 68Error 69Error 72Error 73Number of active cells: 166 (on 5 levels)
+Number of active cells: 166 (on 5 levels)
 Number of degrees of freedom: 4,523 (1,498+199+749+749+166+498+664)
 
 *** Timestep 1:  t=0.0441942 seconds
@@ -32,7 +32,7 @@ Number of degrees of freedom: 4,523 (1,498+199+749+749+166+498+664)
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.478
 
-Error 32Error 42Error 56Error 57Error 60Number of active cells: 178 (on 5 levels)
+Number of active cells: 178 (on 5 levels)
 Number of degrees of freedom: 4,807 (1,586+211+793+793+178+534+712)
 
 *** Timestep 2:  t=0.0883883 seconds
@@ -43,7 +43,7 @@ Number of degrees of freedom: 4,807 (1,586+211+793+793+178+534+712)
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.457
 
-Error 46Error 60Error 61Error 64Error 65Error 68Number of active cells: 166 (on 5 levels)
+Number of active cells: 166 (on 5 levels)
 Number of degrees of freedom: 4,523 (1,498+199+749+749+166+498+664)
 
 *** Timestep 3:  t=0.132583 seconds
@@ -54,7 +54,7 @@ Number of degrees of freedom: 4,523 (1,498+199+749+749+166+498+664)
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.436
 
-Error 32Error 36Error 36Error 52Error 52Error 56Error 57Error 68Error 68Number of active cells: 166 (on 5 levels)
+Number of active cells: 166 (on 5 levels)
 Number of degrees of freedom: 4,519 (1,496+199+748+748+166+498+664)
 
 *** Timestep 4:  t=0.176777 seconds
@@ -65,7 +65,7 @@ Number of degrees of freedom: 4,519 (1,496+199+748+748+166+498+664)
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.416
 
-Error 32Error 34Error 37Error 38Error 40Error 40Error 44Error 52Error 53Error 56Error 57Error 68Error 68Number of active cells: 169 (on 5 levels)
+Number of active cells: 169 (on 5 levels)
 Number of degrees of freedom: 4,590 (1,518+202+759+759+169+507+676)
 
 *** Timestep 5:  t=0.220971 seconds
@@ -76,7 +76,7 @@ Number of degrees of freedom: 4,590 (1,518+202+759+759+169+507+676)
    Postprocessing:
      Global volume of fluid volumes (m^3): 0.396
 
-Error 33Error 34Error 40Error 48Error 56Error 57Error 60Error 61Error 72Error 72Number of active cells: 166 (on 5 levels)
+Number of active cells: 166 (on 5 levels)
 Number of degrees of freedom: 4,519 (1,496+199+748+748+166+498+664)
 
 *** Timestep 6:  t=0.25 seconds
@@ -88,7 +88,7 @@ Number of degrees of freedom: 4,519 (1,496+199+748+748+166+498+664)
      Global volume of fluid volumes (m^3): 0.383
      VoF Calculation(IEstL1/FEstL1):       8.04398391e-16 / 5.01575642e-16
 
-Error 32Error 34Error 37Error 38Error 40Error 40Error 44Error 50Error 52Error 53Error 56Error 57Error 65Error 68Error 68Number of active cells: 160 (on 5 levels)
+Number of active cells: 160 (on 5 levels)
 Number of degrees of freedom: 4,369 (1,448+193+724+724+160+480+640)
 
 Termination requested by criterion: end time
