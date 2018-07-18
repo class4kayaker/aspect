@@ -679,14 +679,10 @@ namespace aspect
                   data.local_face_rhs[f_rhs_ind][0] += (flux_volume_of_fluid-neighbor_volume_of_fluid) * face_flux;
                 }
 
-              // Limit to constant cases, otherwise announce error
-              if (cell_volume_of_fluid > volume_fraction_threshold && cell_volume_of_fluid<1.0-volume_fraction_threshold)
-                {
-                  this->get_pcout() << "Cell at " << cell->center() << " " << cell_volume_of_fluid << std::endl
-                                    << "\t" << face_flux/this->get_timestep()/cell_vol << std::endl
-                                    << "\t" << cell_i_normal << ".x=" << cell_i_d << std::endl;
-                  Assert(false, ExcNotImplemented());
-                }
+              AssertThrow(flux_volume_of_fluid < volume_fraction_threshold || flux_volume_of_fluid>1.0-volume_fraction_threshold,
+                          ExcMessage("Attempting to assemble fractional flux "
+                              "through multilevel cell interface. This case is "
+                              "not handled."));
             }
         }
     }

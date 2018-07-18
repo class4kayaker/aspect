@@ -73,9 +73,9 @@ namespace aspect
                                                          endc = this->get_dof_handler().end();
           for (; cell != endc; ++cell)
             {
-              // Skip if not local
-              if (!cell->is_locally_owned())
-                continue;
+              // Skip artificial cells
+              if(!cell->active() || cell->is_artificial())
+                  continue;
 
               bool mark = false;
 
@@ -106,10 +106,15 @@ namespace aspect
                       const bool cell_has_periodic_neighbor = cell->has_periodic_neighbor(f);
                       const typename DoFHandler<dim>::face_iterator face = cell->face(f);
 
+                      // Skip if face is at boundary, and does not have a periodic neighbor
                       if (face->at_boundary() && !cell_has_periodic_neighbor)
                         continue;
 
                       const typename DoFHandler<dim>::cell_iterator neighbor = cell->neighbor_or_periodic_neighbor(f);
+
+                      // Skip if neighboring cell is invalid
+                      if (neighbor == endc)
+                        continue;
 
                       if ((!face->at_boundary() && !face->has_children())
                           ||
@@ -117,9 +122,8 @@ namespace aspect
                           ||
                           (face->at_boundary() && neighbor->level() == cell->level() && neighbor->active()))
                         {
-                          if (neighbor->active())
+                          if (neighbor->active() && !neighbor->is_artificial())
                             {
-                              if (neighbor==endc) continue;
                               fe_values.reinit(neighbor);
                               fe_values[volume_of_fluid_field].get_function_values(this->get_solution(),
                                                                                    volume_of_fluid_q_values);
@@ -154,7 +158,7 @@ namespace aspect
                                  :
                                  cell->neighbor_child_on_subface(f, sf));
 
-                              if (neighbor_sub==endc) continue;
+                              if (neighbor_sub==endc || neighbor_sub->is_artificial()) continue;
                               fe_values.reinit(neighbor_sub);
                               fe_values[volume_of_fluid_field].get_function_values(this->get_solution(),
                                                                                    volume_of_fluid_q_values);
