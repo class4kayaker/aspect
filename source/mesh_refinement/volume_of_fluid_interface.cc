@@ -74,8 +74,8 @@ namespace aspect
           for (; cell != endc; ++cell)
             {
               // Skip artificial cells
-              if(!cell->active() || cell->is_artificial())
-                  continue;
+              if (!cell->active() || cell->is_artificial())
+                continue;
 
               bool mark = false;
 
@@ -142,10 +142,6 @@ namespace aspect
                                   break;
                                 }
                             }
-                          else
-                            {
-                              this->get_pcout() << "Error " << cell->index();
-                            }
                         }
                       else
                         {
@@ -188,8 +184,11 @@ namespace aspect
                 {
                   // Fractional volume
                   marked_cells.insert(cell);
-                  cell->clear_coarsen_flag ();
-                  cell->set_refine_flag ();
+                  if (cell->is_locally_owned())
+                    {
+                      cell->clear_coarsen_flag ();
+                      cell->set_refine_flag ();
+                    }
                 }
 
             }
@@ -211,7 +210,7 @@ namespace aspect
               for (; neighbor_cell!=end_neighbor_cell_index; neighbor_cell++)
                 {
                   typename Triangulation<dim>::active_cell_iterator itr_tmp = *neighbor_cell;
-                  if (itr_tmp->active())
+                  if (itr_tmp->active() && itr_tmp->is_locally_owned())
                     {
                       itr_tmp->clear_coarsen_flag ();
                       itr_tmp->set_refine_flag ();
@@ -226,7 +225,7 @@ namespace aspect
               if ( mcell->has_periodic_neighbor(f))
                 {
                   typename Triangulation<dim>::cell_iterator itr_tmp = mcell->periodic_neighbor(f);
-                  if (itr_tmp->active())
+                  if (itr_tmp->active() && itr_tmp->is_locally_owned())
                     {
                       itr_tmp->clear_coarsen_flag ();
                       itr_tmp->set_refine_flag ();
