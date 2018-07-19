@@ -680,9 +680,13 @@ namespace aspect
                 }
 
               AssertThrow(flux_volume_of_fluid < volume_fraction_threshold || flux_volume_of_fluid>1.0-volume_fraction_threshold,
-                          ExcMessage("Attempting to assemble fractional flux "
-                              "through multilevel cell interface. This case is "
-                              "not handled."));
+                          ExcMessage("Face between multiple refinement levels with fluid interface producing fraction " +
+                              Utilities::to_string(flux_volume_of_fluid) +
+                              ". Levels: " +
+                              Utilities::int_to_string(cell->level()) +
+                              " and " +
+                              Utilities::int_to_string(neighbor_child->level()) +
+                              ". This case is not handled by the VOF assembler.");
             }
         }
     }
