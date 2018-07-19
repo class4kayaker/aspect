@@ -686,7 +686,7 @@ namespace aspect
                               Utilities::int_to_string(cell->level()) +
                               " and " +
                               Utilities::int_to_string(neighbor_child->level()) +
-                              ". This case is not handled by the VOF assembler.");
+                              ". This case is not handled by the VOF assembler."));
             }
         }
     }
