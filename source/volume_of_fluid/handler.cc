@@ -106,13 +106,18 @@ namespace aspect
 
       prm.declare_entry ("Number initialization samples", "3",
                          Patterns::Integer (1),
-                         "Number of divisions per dimension when computing the initial volume fracitons."
+                         "Number of divisions per dimension when computing the initial volume fracitons. "
                          "If set to the default of 3 for a 2D model, then initialization will be based on "
                          "the initialization criterion at $3^2=9$ points within each cell. If the initialization "
                          "based on a composition style initial condition, a larger value may be desired for better "
                          "approximation of the initial fluid fractions. Smaller values will suffice in the case of "
                          "level set initializations due to the presence of more information to better approximate "
                          "the initial fluid fractions.");
+
+      prm.declare_entry ("Restrict fractional cells", "false",
+                         Patterns::Bool (),
+                         "Correct volume fractions in cells with fluid fractions below the threshold during "
+                         "the reconstruction step.");
     }
     prm.leave_subsection ();
 
@@ -170,6 +175,8 @@ namespace aspect
     prm.enter_subsection ("Volume of Fluid");
     {
       volume_fraction_threshold = prm.get_double("Volume fraction threshold");
+
+      clamp_volume_fractions = prm.get_bool("Restrict fractional cells");
 
       volume_of_fluid_solver_tolerance = prm.get_double("Volume of Fluid solver tolerance");
 

@@ -185,6 +185,12 @@ namespace aspect
       double volume_fraction_threshold;
 
       /**
+       * Variable indicating whether to correct cell volume fractions below the
+       * threshold during reconstruction.
+       */
+      bool clamp_volume_fractions;
+
+      /**
        * Tolerance to use for the Newton iteration in the reconstruction step
        */
       static constexpr double volume_of_fluid_reconstruct_epsilon = 1e-13;

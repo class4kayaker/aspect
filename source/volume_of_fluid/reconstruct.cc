@@ -84,6 +84,7 @@ namespace aspect
 
     const FEVariable<dim> &volume_of_fluid_var = field.volume_fraction;
     const unsigned int volume_of_fluid_c_index = volume_of_fluid_var.first_component_index;
+    const unsigned int volume_of_fluid_blockidx = volume_of_fluid_var.block_index;
     const unsigned int volume_of_fluid_ind
       = this->get_fe().component_to_system_index(volume_of_fluid_c_index, 0);
 
@@ -413,6 +414,10 @@ namespace aspect
     sim.compute_current_constraints();
     sim.current_constraints.distribute(initial_solution);
 
+    if (clamp_volume_fractions)
+      {
+        solution.block(volume_of_fluid_blockidx) = initial_solution.block(volume_of_fluid_blockidx);
+      }
     solution.block(volume_of_fluidN_blockidx) = initial_solution.block(volume_of_fluidN_blockidx);
     solution.block(volume_of_fluidLS_blockidx) = initial_solution.block(volume_of_fluidLS_blockidx);
 
