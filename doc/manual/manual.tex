@@ -6131,6 +6131,23 @@ In this model the given global refinement level (5), associated number of cells 
 \note{\aspect{}'s particle implementation is in a preliminary state. While the accuracy and scalability of the implementation is benchmarked, other limitations remain. This in particular means that it is not optimized for performance, and more than a few thousand particles per process can slow down a model significantly. Moreover, models with a highly adaptive mesh and many particles do encounter a significant slowdown, because \aspect{} only considers the number of degrees of freedom for load balancing across processes and not the number of particles. Therefore processes that compute the solution for coarse-grid regions have to process many more particles than other processes. Additionally, the checkpoint/restart functionality for particles is only implemented in models with a constant number of processes before and after the checkpoint and when the selected particle properties do not change. These limitations might be removed over time, but for current models the user should be aware of them.}
 
 
+\subsubsection{Using volume of fluid}
+\label{sec:cookbooks-volume-of-fluid}
+
+While both composition fields and particles are well established methods for dealing with material types, in a number of common cases the specification of the scenario to be modeled has the following characteristics:
+
+\begin{itemize}
+    \item The division between the modeled materials is sharp on the model scale, i.e. there is no significant region relevant to the model where both materials are present in quantity.
+    \item The dividing line between the modeled materials can be reasonably drawn using piecewise linear segments in each cell\footnote{The restriction to piecewise linear segments is made by the choice of algorithm.}, i.e. there are no relevant cases where there are `bubbles' of material that are at the scale of a single cell. We note that this can be enforced by choosing the level of refinement for the model.
+    \item The above factors are expected to hold true throughout the model by the definition of the problem of interest, such that enforcing these requirements will ensure correct model behavior.
+\end{itemize}
+
+In cases where all of the above hold, the use of an interface tracking algorithm such as the volume-of-fluid algorithm is appropriate.
+In particular, an interface tracking algorithm is designed to maintain a sharp distinction between the modeled materials throughout the duration of the model.
+As such, in cases where this shart distinction is a desired component of the correct behavior of the system, we will
+
+\note{\aspect{}'s volume of fluid implementation is in a preliminary state. While the accuracy and performance of the implementation have been tested and confirmed to be correct, there are still some relevant limitations on the applicability of the algorithm. In particular, the algorithm as currently implemented is limited to 2D cartesian meshes.}
+
 \subsubsection{Using a free surface}
 \label{sec:cookbooks-freesurface}
 \textit{This section was contributed by Ian Rose}.
