@@ -9033,6 +9033,34 @@ Compared to the results of the models using constant viscosity throughout the do
 
 We can observe that when the two-layer viscosity model is added, there is only one apparent peak for each case. The first peaks of the 0.01 viscosity contrast tests appear earlier and are larger in magnitude than those of 0.1 viscosity contrast tests.  There are no secondary plumes and the whole system tends to reach stability after around 500 time steps.
 
+\paragraph{Volume-of-Fluid implementation}
+
+In the above section...
+
+The relevant modification necessary to make use of the volume-of-fluid advection algorithm is:
+
+\lstinputlisting[language=prmfile]{cookbooks/benchmarks/vof-van-keken/main.part.prm.out}
+
+While the original visualization configuration is sufficiently functional for
+general use, when making use of volume-of-fluid interface tracking, the ability
+to see the division between the fluids as reconstructed by the algorithm is a
+desirable factor.
+The necessary modifications to the parameter file to include the necessary
+information to draw the reconstructed boundary as a contour line are:
+
+\lstinputlisting[language=prmfile]{cookbooks/benchmarks/vof-van-keken/postprocess.part.prm.out}
+
+(The full configuration file for this version of the bechmark problem can be found at \url{cookbooks/van-keken-vof.prm}).
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.4\textwidth]{cookbooks/benchmarks/vof-van-keken/vof-final.png}
+    \caption{\it Van Keken benchmark using VOF advection algorithm.}
+    \label{fig:vof-vk-1}
+\end{figure}
+
+The general structure of the solution shown in Figure~\ref{fig:vof-vk-1} matches the expected form.
+
 \subsubsection{The Rayleigh-Taylor instability}
 \label{sec:benchmark-rayleigh-taylor}
 
