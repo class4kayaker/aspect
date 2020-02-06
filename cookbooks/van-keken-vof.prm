@@ -6,7 +6,7 @@ set Start time                             = 0
 set End time                               = 2000
 set Use years in output instead of seconds = false
 set CFL number                             = 0.5
-set Output directory                       = output-van-kekken-vof
+set Output directory                       = output-van-keken-vof-h
 
 subsection Geometry model
   set Model name = box
@@ -94,7 +94,7 @@ end
 
 subsection Mesh refinement
   set Initial adaptive refinement        = 0
-  set Strategy                           = vof interface
+  set Strategy                           = volume of fluid interface
   set Initial global refinement          = 7
   set Time steps between mesh refinement = 0
   set Coarsening fraction                = 0.05
@@ -112,7 +112,7 @@ subsection Postprocess
     set Output format                 = vtu
     set Time between graphical output = 100
     subsection Volume of Fluid
-      set Include internal reconstruction contour = true
+      set Output interface reconstruction contour = true
     end
   end
 end
