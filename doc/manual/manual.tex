@@ -9035,20 +9035,52 @@ We can observe that when the two-layer viscosity model is added, there is only o
 
 \paragraph{Volume-of-Fluid implementation}
 
-In the above section...
+The nature of this benchmark problem is suited to the use of the volume of
+fluid interface tracking algorithm.
+In particular, the problem consists of a set of distinct fluids/materials which
+are not expected to mix at sub-mesh scales during the duration of the problem,
+with one of the primary factors of interest being the form of the boundary
+between the two algorithms.
 
-The relevant modification necessary to make use of the volume-of-fluid advection algorithm is:
+We do note that one necessary modification to the problem that will not be
+discussed below is a change of the CFL number from $\sigma=1.0$ to
+$\sigma=0.5$, due the the volume of fluid algorithm being an explicit method
+and therefore must have $0<\sigma<1$ for stability.
+
+Because we have noted above that the problem is sensitive to initial
+conditions, rather than use a standard initialization for the volume fractions
+from a composition field, we instead initialize the problem by providing a
+level set function.
+In particular, this initialization method is done by providing a function which
+is a signed distance level set function, i.e. a function which is positive in
+the region which contains the material while negative elsewhere and the
+magnitude at each point is the distance to the material boundary.
+In this case, the function we provide is only a close approximation to a signed
+distance level set, but it is close enough to function correctly.
+The primary advantage this choice allows is that the initialization can far
+more accurately reproduce the sub-grid scale of the initial condition.
+The relevant parameter file sections for this use of the volume-of-fluid
+advection algorithm are:
 
 \lstinputlisting[language=prmfile]{cookbooks/benchmarks/vof-van-keken/main.part.prm.out}
 
-Due to the change in
-
-\lstinputlisting[language=prmfile]{cookbooks/benchmarks/vof-van-keken/amr.part.prm.out}
+% AMR section, currently unused so not included
+% Due to the change in the advection algorithm, we also modify the refinement
+% strategy for the AMR algorithm.
+% In particular, the use of the \texttt{volume of fluid interface} refinement
+% strategy will ensure that the boundary between that materials, and a small
+% region around that will be refined to the maximum extent.\footnote{The
+%     inclusion of this refinement strategy is currently required for use of the VOF
+%     advection scheme in any model which makes use of AMR due to implementation
+% details.}
+% The new mesh refinement parameter section is shown below.
+% 
+% \lstinputlisting[language=prmfile]{cookbooks/benchmarks/vof-van-keken/amr.part.prm.out}
 
 While the original visualization configuration is sufficiently functional for
 general use, when making use of volume-of-fluid interface tracking, the ability
 to see the division between the fluids as reconstructed by the algorithm is a
-desirable factor.
+desirable refinement to the visualization.
 The necessary modifications to the parameter file to include the necessary
 information to draw the reconstructed boundary as a contour line are:
 
