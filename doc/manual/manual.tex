@@ -9090,12 +9090,30 @@ information to draw the reconstructed boundary as a contour line are:
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.4\textwidth]{cookbooks/benchmarks/vof-van-keken/vof-final.png}
-    \caption{\it Van Keken benchmark using VOF advection algorithm.}
+    \includegraphics[width=1.0\textwidth]{cookbooks/benchmarks/vof-van-keken/rms_vel_comparison.png}
+    \caption{\it Van Keken benchmark: Evolution of the root mean square
+        velocity as a function of time under different levels of mesh refinement.
+        The lower refinement level model was run on a 128x128 mesh, matching the other
+    models, while the higher refinement model was run on a 256x256 mesh.}
     \label{fig:vof-vk-1}
 \end{figure}
 
-The general structure of the solution shown in Figure~\ref{fig:vof-vk-1} matches the expected form.
+We begin by examining the RMS velocity data shown in Figure~\ref{fig:vof-vk-1}, and note that the two
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.4\textwidth]{cookbooks/benchmarks/vof-van-keken/vof_van_keken_refinement_comparison.png}
+    \caption{\it Van Keken benchmark using VOF advection algorithm. The
+        visualization here consists of two contours for the reconstructed
+        interfaces superimposed on the colorscale composition data for the higher
+        refinement model. The contour for the higher refinement model is bright green,
+    while the lower refinement contour is in black.}
+    \label{fig:vof-vk-2}
+\end{figure}
+
+We begin by noting that the general structure of the solution shown in
+Figure~\ref{fig:vof-vk-2} matches the expected form, and the general type of
+structure shown in the other versions of this benchmark.
 
 \subsubsection{The Rayleigh-Taylor instability}
 \label{sec:benchmark-rayleigh-taylor}
