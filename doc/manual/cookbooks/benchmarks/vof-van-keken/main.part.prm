@@ -18,9 +18,3 @@ subsection Initial composition model
     set Function expression  =  0.2+0.02*cos(pi*x/0.9142)-z
   end
 end
-
-subsection Material model
-  subsection Simple model
-    set Density differential for compositional field 1 = -10
-  end
-end
