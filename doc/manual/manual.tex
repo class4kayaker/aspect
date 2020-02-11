@@ -9130,8 +9130,13 @@ single refinement are minor, though still visible.
 This is somewhat to be expected as refinement will inherently permit the
 formation of interfaces with sharper curves.
 
-The consistency of the results shown here can reasonably cast some doubt on the
-earlier discussion of the limitations of this problem as a benchmark.
+The consistency of the results shown here differs noticably from the behavior
+of the same problem when making use of the FEM advection algorithms.
+This change in behavior inherently suggests a need to examine the source of the
+change.
+One of the  most obvious differences between the two approaches chosen, given
+that both can be expected to converge from consistent initial conditions, is
+the nature of the initialization procedure.
 As we have discussed, we have selected an approach which can reasonably be
 expected to consistently reproduce the same discontinuous initial condition
 when refining the model.
@@ -9160,6 +9165,11 @@ is consistent.
 The size of this variation in the initial conditions cannot be expected to be
 reproduced using a standard initialization procedure unless the cell size is on
 the scale of the change in the value of $a$, ie $h\lessapprox \Delta a$.
+We also note that the smoothing parameter which would produce a
+$1\cdot10^{-3}\leq C\leq 1-1\cdot10^{-3}$ band on the order of the same size as
+the amplitude variation shown here would be approximately $2.6\cdot10^{-4}$.
+This value is much smaller than any of the examined values for the smoothing
+parameter.
 As such, our results show both the usefullness of the volume of fluid
 algorithm, and the sensitivity of the discontinuous version of the problem to
 minor variations in the initial condition, which is noted above to make its
