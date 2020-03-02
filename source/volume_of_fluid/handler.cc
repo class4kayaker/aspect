@@ -111,7 +111,7 @@ namespace aspect
                          "the initialization criterion at $3^2=9$ points within each cell. If the initialization "
                          "based on a composition style initial condition, a larger value may be desired for better "
                          "approximation of the initial fluid fractions. Smaller values will suffice in the case of "
-                         "level set initializations due to the presence of more information to better approximate "
+                         "signed distance initializations due to the presence of more information to better approximate "
                          "the initial fluid fractions.");
     }
     prm.leave_subsection ();
@@ -120,7 +120,7 @@ namespace aspect
     {
       prm.declare_entry("Volume of fluid intialization type", "",
                         Patterns::Map (Patterns::Anything(),
-                                       Patterns::Selection("composition|level set")),
+                                       Patterns::Selection("composition|signed distance")),
                         "A comma separated list denoting the method to be used to "
                         "initialize a composition field specified to be advected using "
                         "the volume of fluid method.\n\n"
@@ -136,7 +136,7 @@ namespace aspect
                         "are then based on an iterated midpoint quadrature. "
                         "Resultant volume fractions outside of the bounds will be "
                         "coerced to the nearest valid value (ie 0 or 1). "
-                        "If ``level set`` is specified, the intial data will be assumed to "
+                        "If ``signed distance`` is specified, the intial data will be assumed to "
                         "be in the form of a signed distance level set function "
                         "(i.e. a function which is positive when in the "
                         "fluid, negative outside, and zero on the interface "
@@ -236,7 +236,7 @@ namespace aspect
           if (value == "composition")
             initialization_data_type[volume_of_fluid_composition_map_index[compositional_field_index+1]]
               = VolumeOfFluid::VolumeOfFluidInputType::composition;
-          else if (value == "level set")
+          else if (value == "signed distance")
             initialization_data_type[volume_of_fluid_composition_map_index[compositional_field_index+1]]
               = VolumeOfFluid::VolumeOfFluidInputType::level_set;
           else

@@ -70,7 +70,7 @@ end
 
 subsection Initial composition model
   set Model name = function
-  set Volume of fluid intialization type = C_1:level set
+  set Volume of fluid intialization type = C_1:signed distance
   
   subsection Function
     set Variable names      = x,z
